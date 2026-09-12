@@ -12,9 +12,12 @@ Run `SKIP=no-commit-to-branch prek run --all-files` locally with prek 0.5.2.
 Use `prek install` for local checks and `prek install --hook-type commit-msg` for
 Conventional Commit validation. The local branch hook is skipped in CI.
 
-Automerge remains off. No branch protections or rulesets are configured.
-Manually review exact head/base, full diff, author/DCO, every expected CI job and
-relevant artifacts before merging through the maintainer ghmerge function.
+Renovate updates merge automatically after every required CI job passes
+on the current revision, including major and shared-policy updates. The checked
+merge action verifies genuine author sign-offs and dispatches final CI for the
+exact merged commit. No dashboard approval, branch protections or rulesets are
+configured; native GitHub automerge stays disabled. Other changes retain full
+manual review and the maintainer's `ghmerge` process.
 
 Content checks do not prove prose accuracy, external-service availability, or
 application behavior. No application build or placeholder tests are introduced.
