@@ -1,15 +1,15 @@
-# engels74/skills
+# edbfi/skills
 
 Agent Skills for the open [Agent Skills](https://agentskills.io) ecosystem,
 installable via the [`skills`](https://github.com/vercel-labs/skills) CLI.
 
 ## Install all skills
 
-    npx skills add engels74/skills
+    npx skills add edbfi/skills
 
 ## Install a single skill
 
-    npx skills add https://github.com/engels74/skills/tree/main/augmentcode/codebase-retrieval
+    npx skills add https://github.com/edbfi/skills/tree/main/augmentcode/codebase-retrieval
 
 ## Skills
 

@@ -7,10 +7,10 @@ repository.
 
 A content-only collection of Agent Skills published for the [Agent Skills](https://agentskills.io)
 ecosystem and installed with the [`skills`](https://github.com/vercel-labs/skills) CLI. Every
-tracked file is Markdown, YAML, or `LICENSE`. There is no package manifest, lockfile, build
-step, test suite, linter, formatter, type-checker, or CI workflow — `renovate.json` is the only
-automation config and it manages nothing in-tree today. Changes here are prose and frontmatter
-changes, validated by hand. Do not add build tooling or CI unless explicitly asked.
+skill file is Markdown or YAML. There is no application build or runtime test
+suite. [CI.md](CI.md) documents read-only prek checks and the repository contract
+validator for skill metadata, index membership and reference paths. Shared CI
+and Renovate keep automation dependencies consistent.
 
 ## Layout contract
 
@@ -25,7 +25,7 @@ changes, validated by hand. Do not add build tooling or CI unless explicitly ask
 - **The parent directory is the vendor namespace** and must match `metadata.vendor` where that
   field is present (`astro/starlight-docs` → `vendor: astro`).
 - **`<vendor>/<skill-name>` is a public install path.** `README.md` documents single-skill
-  installs as `npx skills add https://github.com/engels74/skills/tree/main/augmentcode/codebase-retrieval`.
+  installs as `npx skills add https://github.com/edbfi/skills/tree/main/augmentcode/codebase-retrieval`.
   Renaming or moving a skill directory breaks that URL for existing users — treat it as a
   breaking change, not a refactor.
 
@@ -75,7 +75,7 @@ and leave `panel-egg-roundtrip` alone rather than normalizing it as a drive-by c
 
 ## Validation before committing
 
-There is no automated check, so verify by hand:
+Run `SKIP=no-commit-to-branch prek run --all-files`. To inspect the entry points:
 
 ```bash
 git ls-files '*/*/SKILL.md'   # each path's directory name must match its frontmatter `name`
