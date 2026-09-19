@@ -12,7 +12,7 @@ Run `SKIP=no-commit-to-branch prek run --all-files` locally with prek 0.5.3.
 Use `prek install` for local checks and `prek install --hook-type commit-msg` for
 Conventional Commit validation. The local branch hook is skipped in CI.
 
-Shared actions, workflows and presets use immutable `v3.0.0` references.
+Shared actions, workflows and presets use immutable `v3.0.1` references.
 Renovate is the sole ongoing dependency merge owner. Direct automerge remains
 explicitly disabled, including matching package rules, until the hosted rollout
 proves native Renovate operation behind complete required CI. The legacy Actions
