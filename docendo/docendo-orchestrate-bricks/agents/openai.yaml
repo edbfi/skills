@@ -1,0 +1,4 @@
+interface:
+  display_name: "Docendo-brikker"
+  short_description: "Præcis Docendo-betjening med ego-browser og modulprofiler"
+  default_prompt: "Brug $docendo-orchestrate-bricks til at planlægge og kontrollere mine Docendo-brikker ud fra opgaveoversigten og min modulprofil."
