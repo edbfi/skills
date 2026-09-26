@@ -8,7 +8,6 @@ Content-only repo of Agent Skills published via `npx skills add edbfi/skills`. T
 
 - Content contract (fast, run after any skill or README edit): `python3 scripts/check-content.py`
 - All local hooks: `SKIP=no-commit-to-branch prek run --all-files`
-- CI then runs `git diff --exit-code HEAD`, so hooks must leave tracked files unchanged.
 
 ## Layout invariants (enforced by `scripts/check-content.py`)
 
