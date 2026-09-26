@@ -46,5 +46,3 @@ Content-only repo of Agent Skills published via `npx skills add edbfi/skills`. T
 
 - With `prek install` active, the `no-commit-to-branch` hook blocks commits on `main`; work on a branch and open a PR.
 - Commit-message hook (`prek install --hook-type commit-msg`) and the PR policy workflow require Conventional Commits; PR policy also checks author sign-offs (`git commit -s`).
-- Action refs (`edbfi/automation/...@v4.0.0`), hook `rev`s in `prek.toml`, and the prek version are Renovate-managed; leave bumps to Renovate PRs and keep the `# renovate:` comment in `.github/workflows/ci.yml`.
-- `CI.md` — merge gate, Renovate automerge, and PR policy details. Read before changing `.github/`, `prek.toml`, or `renovate.json`.
