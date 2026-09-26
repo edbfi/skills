@@ -3,7 +3,7 @@ from pathlib import Path
 import re
 import subprocess
 
-root = Path(__file__).resolve().parents[2]
+root = Path(__file__).resolve().parents[1]
 tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=root).decode().split("\0")
 skills = [root / path for path in tracked if re.fullmatch(r"[^/]+/[^/]+/SKILL\.md", path)]
 errors = []
