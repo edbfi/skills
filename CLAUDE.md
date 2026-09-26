@@ -7,7 +7,7 @@ Content-only repo of Agent Skills published via `npx skills add edbfi/skills`. T
 ## Commands
 
 - Content contract (fast, run after any skill or README edit): `python3 .github/scripts/check-content.py`
-- Everything CI runs: `SKIP=no-commit-to-branch prek run --all-files`
+- All local hooks: `SKIP=no-commit-to-branch prek run --all-files`
 - CI then runs `git diff --exit-code HEAD`, so hooks must leave tracked files unchanged.
 
 ## Layout invariants (enforced by `.github/scripts/check-content.py`)
@@ -45,4 +45,4 @@ Content-only repo of Agent Skills published via `npx skills add edbfi/skills`. T
 ## Git and CI
 
 - With `prek install` active, the `no-commit-to-branch` hook blocks commits on `main`; work on a branch and open a PR.
-- Commit-message hook (`prek install --hook-type commit-msg`) and the PR policy workflow require Conventional Commits; PR policy also checks author sign-offs (`git commit -s`).
+- Commit-message hook (`prek install --hook-type commit-msg`) requires Conventional Commits; include matching author sign-offs (`git commit -s`).
