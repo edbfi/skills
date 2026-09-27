@@ -1,0 +1,68 @@
+---
+name: let-vps-scout
+description: Research LowEndTalk offers and provider websites with ego-browser to find and purchase-verify the cheapest currently available European VPS plans (default brief 4+ vCPU, 8+ GB RAM, annual billing, game-server use), ranked by first-year price excluding VAT, using coordinated subagents, a disposable /tmp run ledger and one archived HTML report. Use whenever the user wants to hunt LET or LowEndBox VPS deals, compare cheap European VPS/VDS offers for a game server, or start, resume or rerun a let-vps-scout run.
+license: AGPL-3.0
+metadata:
+  author: engels74
+  version: "1.0.0"
+  vendor: lowendtalk
+---
+
+# LET VPS scout
+
+Find the cheapest **purchase-verified** European VPS plans by researching LowEndTalk (LET) offer threads and every provider they lead to, then publish one self-contained HTML report. Everything else the run produces lives in a disposable `/tmp` workspace that may vanish on reboot; that is intended.
+
+Resolve this skill's directory first; `scripts/`, `assets/` and `references/` below are relative to it.
+
+## The brief
+
+Use these defaults unless the user overrides them in their request. Record the effective brief in `STATUS.md` and in the report masthead so a reader knows what was ranked.
+
+| Setting | Default |
+|---|---|
+| Minimum | 4 CPU cores/vCPUs and 8 GB actual RAM (swap/VSwap excluded). 6+ vCPU preferred; more RAM desirable |
+| Location | European datacentre, including UK, Switzerland and Norway. Verify the server location, not the provider's headquarters |
+| Billing | Annual preferred. Rank by first-year total **excluding VAT**, including setup fees, required public IPv4 and mandatory extras. Renewal shown separately |
+| Priorities | Price first, then vCPU count, then RAM. Highlight inexpensive resource upgrades without changing cheapest-first order |
+| Payment | Crypto preferred, not required. Record methods and disclosed mandatory fees; flag payment-method-dependent totals |
+| Use | Game-server hosting. Exclude plans that explicitly prohibit it; mark unclear policy **unknown** |
+| Connectivity | Public IPv4 in the main ranking. IPv6-only and NAT plans listed separately with their limitations |
+| Archive | `~/Documents/Research/LET-VPS` (override with the user's path or `LET_VPS_ARCHIVE`) |
+
+Impose no disk or transfer minimum. Do not investigate reputation, outage history or refund policies.
+
+## Ground rules
+
+- **ego-browser for all browsing.** Read the installed ego-browser skill before the first browser action and follow it. Extracting text and links from a loaded page is fine. Search snippets, remembered prices, direct HTTP scraping and other browsers never substitute for visiting a page, because prices and stock change and the report must reflect what was actually observed.
+- **Never buy or identify.** Do not submit orders, create accounts, enter personal or payment details, or contact providers. When a login, challenge or missing information blocks verification, record the limitation and move on; retry only when new information offers a plausible route.
+- **Observed versus unknown.** A blank ledger cell means not checked yet; the literal `unknown` means checked and not disclosed. Discovery observations stay `provisional` until purchase-verified.
+- **Coverage honesty.** Present results as the cheapest verified offers found within the stated coverage, never as an exhaustive market or comment survey. Skipped middle comment pages are an intentional limit, not completed reading.
+
+## Workflow
+
+1. **Start or resume.** New run: `python3 scripts/ledger.py init` prints the run folder (`/tmp/let-vps/<date>_<time>_<random>/`). Give that path in your first progress update. To resume, the user supplies the run folder: read its `STATUS.md` and continue from the recorded resume point. If the folder is gone (reboot), say so and start a new run.
+2. **Discovery.** Inspect LET offer listing pages 1-20, record and deduplicate every thread, read each thread's opening post and final comment page. See [research method: discovery](references/research-method.md#discovery-and-thread-reading).
+3. **Provider investigation.** Check the official site and ordering portal of every distinct server provider encountered, once per provider, with all its threads and coupons. See [provider investigation](references/research-method.md#provider-investigation).
+4. **Shortlist and verify.** Keep a provisional shortlist and fully verify every credible candidate in its cart. See [purchase verification](references/research-method.md#shortlisting-and-purchase-verification).
+5. **Batches.** Continue in five-page listing batches until two consecutive completed batches leave the recommendations unchanged. See [stopping rule](references/research-method.md#adaptive-stopping-rule).
+6. **Report and publish.** Recheck the recommendations, fill the report template and publish it. See [report](references/report.md).
+
+## Workspace and delegation
+
+You coordinate; subagents do bounded browsing and analysis. You are authorized to choose their number, models and reasoning settings without asking. The run folder holds the ledger CSVs, one output file per worker assignment, saved page extracts and `STATUS.md`. Workers write only their own files; only you merge them into the ledger (`scripts/ledger.py merge`), update `STATUS.md` and publish. That single-writer rule is what keeps parallel work from overwriting itself.
+
+- Folder layout, CSV columns, worker file format, checkpoints and resume: [workspace](references/workspace.md)
+- Roles, assignment sizing, ego-browser TaskSpace and Page ownership, and the worker brief: [delegation](references/delegation.md)
+
+Give each worker only the reference sections its role needs rather than this whole skill.
+
+## Progress updates
+
+Keep updates short and useful: new contenders, changes to the recommendations, the stopping counter, blockers and what is next. Checkpoint the ledger and `STATUS.md` after each listing batch, each set of merged provider checks, each finalist verification and before any long pause. Never silently stop early; if interrupted, publish a partial report (`publish --partial`) and leave the exact resume point in `STATUS.md`.
+
+## Finish
+
+1. Recheck the cheapest annual plan, the recommended 6+ vCPU option and highlighted upgrades in their carts.
+2. Fill `report.html` in the run folder following [report](references/report.md), then run `python3 scripts/ledger.py publish <run>`. It refuses reports whose design was altered or still contain sample content, inlines the fonts and writes `<archive>/<year>/<date>_let-vps-report.html`.
+3. After all workers are done, finish the ego-browser TaskSpace once with `task.finish({ keep: [] })`.
+4. Reply with the archived report path, the two picks with first-year EUR totals, and the main coverage limits.

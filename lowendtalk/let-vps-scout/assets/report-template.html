@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Cheapest European VPS for a game server, 27 September 2026</title>
+<style>
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url("fonts/archivo-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url("fonts/archivo-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Design tokens. The report layout is fixed; runs change content only. */
+:root {
+  --paper: #f2f4f3;
+  --ink: #17232c;
+  --ink-2: #56646e;
+  --rule: #cad2d4;
+  --band: #e6ebea;
+  --signal: #2340c8;
+  --ok: #1d7348;
+  --warn: #9a6100;
+  --bad: #b42318;
+  --measure: 68ch;
+  --wide: 125%;
+  --dense: 92%;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #10171c;
+    --ink: #e3e9eb;
+    --ink-2: #93a1aa;
+    --rule: #2b3740;
+    --band: #16212a;
+    --signal: #97a8ff;
+    --ok: #5cc18c;
+    --warn: #e0a64a;
+    --bad: #ff8a7a;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Archivo", system-ui, sans-serif;
+  font-size: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  line-height: 1.5;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+a {
+  color: var(--signal);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+a:hover { text-decoration-thickness: 2px; }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
+h1, h2, h3 { margin: 0; line-height: 1.15; font-stretch: var(--wide); }
+p { margin: 0; max-width: var(--measure); }
+strong { font-weight: 650; }
+
+.page {
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 3.5rem clamp(1rem, 4vw, 3rem) 4rem;
+}
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Masthead */
+.masthead {
+  display: grid;
+  gap: 1rem;
+  padding-bottom: 2rem;
+  border-bottom: 3px solid var(--ink);
+}
+.masthead h1 {
+  max-width: 20ch;
+  font-size: clamp(2rem, 4.5vw, 3rem);
+  font-weight: 760;
+  letter-spacing: -0.015em;
+}
+.masthead .brief { font-size: 1.125rem; color: var(--ink-2); }
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.75rem 2rem;
+  margin: 0.5rem 0 0;
+}
+.facts > div { padding-top: 0.5rem; border-top: 1px solid var(--rule); }
+.facts dt { font-size: 0.8125rem; color: var(--ink-2); }
+.facts dd { margin: 0.125rem 0 0; font-weight: 600; }
+
+/* Answer band: the two picks */
+.picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid var(--rule);
+}
+.pick { padding: 2.25rem 2.5rem 2.25rem 0; }
+.pick + .pick { padding: 2.25rem 0 2.25rem 2.5rem; border-left: 1px solid var(--rule); }
+.pick h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  font-stretch: 100%;
+  color: var(--ink-2);
+}
+.pick-plan {
+  margin-top: 0.875rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-stretch: 112%;
+  line-height: 1.2;
+}
+.pick-plan span { display: block; font-size: 1rem; font-weight: 500; font-stretch: 100%; color: var(--ink-2); }
+.pick-price {
+  margin-top: 1rem;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 820;
+  font-stretch: var(--wide);
+  line-height: 1;
+  letter-spacing: -0.025em;
+}
+.pick-price small {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  font-stretch: 100%;
+  letter-spacing: 0;
+  color: var(--ink-2);
+}
+.pick-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  font-weight: 600;
+}
+.pick-why { margin-top: 1rem; color: var(--ink-2); }
+.pick-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin-top: 1.25rem; font-weight: 600; }
+
+/* Sections */
+.section { padding-top: 3.5rem; }
+.section > h2 { font-size: 1.5rem; font-weight: 720; }
+.section h3 { margin-top: 2.5rem; font-size: 1.125rem; font-weight: 680; font-stretch: 112%; }
+.section-note { margin-top: 0.5rem; color: var(--ink-2); }
+.empty { padding: 1rem 0; color: var(--ink-2); }
+.prose { display: grid; gap: 0.75rem; margin-top: 1.25rem; }
+
+/* Price ladder, drawn by the script from the list below it */
+.ladder-chart { margin-top: 1.5rem; }
+.lane { display: grid; grid-template-columns: 7rem 1fr; align-items: end; }
+.lane-name { padding-bottom: 0.5rem; font-size: 0.8125rem; font-weight: 600; color: var(--ink-2); }
+.lane-track { position: relative; height: 4rem; border-bottom: 1px solid var(--rule); }
+.mark {
+  position: absolute;
+  bottom: 0.6rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-left: -0.375rem;
+  border-radius: 50%;
+  background: var(--ink-2);
+  opacity: 0.5;
+}
+.lane--six .mark { background: var(--signal); opacity: 0.65; }
+.mark--pick {
+  bottom: 0.475rem;
+  width: 1rem;
+  height: 1rem;
+  margin-left: -0.5rem;
+  opacity: 1;
+  box-shadow: 0 0 0 3px var(--paper);
+}
+.lane--six .mark--pick { opacity: 1; }
+.mark-label {
+  position: absolute;
+  bottom: 1.85rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+.mark-label--end { transform: translateX(-100%); }
+.mark-label--start { transform: none; }
+.axis { position: relative; height: 1.75rem; margin-left: 7rem; }
+.tick {
+  position: absolute;
+  top: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+  transform: translateX(-50%);
+}
+.ladder-data { margin: 1rem 0 0; padding-left: 1.25rem; }
+
+/* Tables: one tbody per plan so a plan row and its note row travel together */
+.table-wrap {
+  margin-top: 1.25rem;
+  overflow-x: auto;
+  border-top: 2px solid var(--ink);
+}
+table {
+  width: 100%;
+  min-width: 60rem;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  font-stretch: var(--dense);
+}
+th {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-align: left;
+  vertical-align: bottom;
+  white-space: nowrap;
+  color: var(--ink-2);
+}
+td { padding: 0.75rem 0.75rem 0.375rem; vertical-align: top; }
+tbody { border-bottom: 1px solid var(--rule); }
+th.num, td.num { text-align: right; white-space: nowrap; }
+th.cpu { min-width: 9.5rem; }
+th.loc { min-width: 7.5rem; }
+table.compact { min-width: 40rem; }
+td .sub { display: block; font-size: 0.8125rem; color: var(--ink-2); }
+td strong { font-size: 0.9375rem; }
+td.rank { width: 2.5rem; font-size: 1.125rem; font-weight: 720; font-stretch: var(--wide); }
+td.plan { min-width: 12rem; }
+td.links { white-space: nowrap; }
+td.links a { display: block; }
+tr.note td { padding: 0 0.75rem 0.875rem; font-size: 0.8125rem; color: var(--ink-2); }
+tr.note td > * + * { margin-top: 0.25rem; }
+tr:only-child td { padding-bottom: 0.875rem; }
+tbody.is-pick td:first-child { box-shadow: inset 3px 0 0 var(--signal); }
+tbody.is-pick { background: var(--band); }
+
+.tag {
+  display: inline-block;
+  margin-top: 0.375rem;
+  padding: 0.0625rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-weight: 650;
+  font-stretch: 100%;
+  color: var(--signal);
+}
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.status::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; }
+.status--verified { color: var(--ok); }
+.status--provisional { color: var(--warn); }
+.status--blocked, .status--unavailable { color: var(--bad); }
+.status--unknown { color: var(--ink-2); }
+
+/* Coverage and appendices */
+.appendix { margin-top: 2rem; }
+details { border-top: 1px solid var(--rule); }
+details:last-child { border-bottom: 1px solid var(--rule); }
+summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 0;
+  font-weight: 650;
+  cursor: pointer;
+  list-style: none;
+}
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font-weight: 400; font-stretch: var(--wide); color: var(--ink-2); }
+details[open] > summary::after { content: "\2212"; }
+summary .count { margin-left: auto; font-weight: 400; color: var(--ink-2); }
+details .table-wrap { margin: 0 0 1.25rem; border-top-width: 1px; }
+details > p, details > ul { margin-bottom: 1.25rem; }
+
+.footer {
+  margin-top: 4rem;
+  padding-top: 1rem;
+  border-top: 3px solid var(--ink);
+  font-size: 0.8125rem;
+  color: var(--ink-2);
+}
+
+@media (max-width: 56rem) {
+  .picks { grid-template-columns: 1fr; }
+  .pick, .pick + .pick { padding: 2rem 0; border-left: 0; }
+  .pick + .pick { border-top: 1px solid var(--rule); }
+  .lane { grid-template-columns: 4.5rem 1fr; }
+  .axis { margin-left: 4.5rem; }
+}
+@media print {
+  :root { --paper: #fff; }
+  .page { padding: 0; max-width: none; }
+  .table-wrap { overflow: visible; }
+  a { color: inherit; }
+}
+</style>
+</head>
+<body>
+<main class="page">
+
+<header class="masthead">
+<!-- slot:masthead -->
+<div data-sample>
+  <h1>Cheapest European VPS for a game server</h1>
+  <p class="brief">At least 4 vCPU and 8 GB RAM in a European datacentre, ranked by first-year price excluding VAT. Prices checked 27 September 2026.</p>
+  <dl class="facts">
+    <div><dt>Verified annual plans</dt><dd>5</dd></div>
+    <div><dt>Providers checked</dt><dd>63</dd></div>
+    <div><dt>LET listing pages</dt><dd>1 to 30</dd></div>
+    <div><dt>Exchange rates</dt><dd>ECB, 26 Sep 2026</dd></div>
+  </dl>
+</div>
+<!-- /slot:masthead -->
+</header>
+
+<section class="picks" aria-label="Recommendations">
+<!-- slot:picks -->
+<article class="pick" data-sample>
+  <h2>Cheapest verified annual plan</h2>
+  <p class="pick-plan">Nordhost VPS L <span>Frankfurt, Germany</span></p>
+  <p class="pick-price">€71.88 <small>first year, excluding VAT. Renews at €95.88. About €5.99 a month.</small></p>
+  <ul class="pick-specs">
+    <li>4 vCPU, shared</li>
+    <li>8 GB RAM</li>
+    <li>120 GB NVMe</li>
+    <li>IPv4 included</li>
+  </ul>
+  <p class="pick-why">The LET coupon takes 25% off the first year only. Game servers are allowed by the acceptable use policy. Pays by card, PayPal or crypto via Coinbase Commerce.</p>
+  <p class="pick-links"><a href="https://example.com/order">Order page</a><a href="https://lowendtalk.com/discussion/000000">LET thread</a></p>
+</article>
+<article class="pick" data-sample>
+  <h2>Best inexpensive 6+ vCPU option</h2>
+  <p class="pick-plan">Alpenbyte Cloud 6 <span>Zurich, Switzerland</span></p>
+  <p class="pick-price">€89.40 <small>first year, excluding VAT. Renews at €89.40. About €7.45 a month.</small></p>
+  <ul class="pick-specs">
+    <li>6 vCPU, shared</li>
+    <li>12 GB RAM</li>
+    <li>200 GB NVMe</li>
+    <li>IPv4 included</li>
+  </ul>
+  <p class="pick-why">€17.52 more than the cheapest plan buys 2 more vCPU and 4 GB more RAM. The price is the normal annual rate, so it renews unchanged.</p>
+  <p class="pick-links"><a href="https://example.com/order">Order page</a><a href="https://lowendtalk.com/discussion/000000">LET thread</a></p>
+</article>
+<!-- /slot:picks -->
+</section>
+
+<section class="section" aria-labelledby="ladder-h">
+  <h2 id="ladder-h">Where the verified plans sit</h2>
+  <p class="section-note">Each mark is one verified annual plan with public IPv4, placed by first-year price in EUR excluding VAT. Hover a mark for its name.</p>
+<!-- slot:ladder -->
+<ol class="ladder-data" data-sample>
+  <li data-eur="71.88" data-vcpu="4" data-pick="Nordhost VPS L">Nordhost VPS L, Frankfurt: €71.88, 4 vCPU, 8 GB</li>
+  <li data-eur="78.00" data-vcpu="4">Rheinserver VS4, Düsseldorf: €78.00, 4 vCPU, 8 GB</li>
+  <li data-eur="84.20" data-vcpu="4">Kelvin Cloud K8, Amsterdam: €84.20, 4 vCPU, 8 GB</li>
+  <li data-eur="89.40" data-vcpu="6" data-pick="Alpenbyte Cloud 6">Alpenbyte Cloud 6, Zurich: €89.40, 6 vCPU, 12 GB</li>
+  <li data-eur="96.00" data-vcpu="5">Fjordcompute F5, Oslo: €96.00, 5 vCPU, 10 GB</li>
+  <li data-eur="118.80" data-vcpu="8">Rheinserver VS8, Düsseldorf: €118.80, 8 vCPU, 16 GB</li>
+  <li data-eur="131.00" data-vcpu="6">Kelvin Cloud K12, London: €131.00, 6 vCPU, 12 GB</li>
+</ol>
+<!-- /slot:ladder -->
+</section>
+
+<section class="section" aria-labelledby="annual-h">
+  <h2 id="annual-h">Cheapest verified annual plans</h2>
+  <p class="section-note">Sorted by first-year total in EUR excluding VAT, including setup fees, IPv4 and mandatory extras. Original-currency totals are shown underneath.</p>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">#</th>
+        <th scope="col">Plan</th>
+        <th scope="col" class="loc">Location</th>
+        <th scope="col" class="cpu">CPU</th>
+        <th scope="col" class="num">RAM</th>
+        <th scope="col">Disk</th>
+        <th scope="col">IPv4</th>
+        <th scope="col" class="num">First year</th>
+        <th scope="col" class="num">Renewal</th>
+        <th scope="col" class="num">Per month</th>
+        <th scope="col">Crypto</th>
+        <th scope="col">Links</th>
+      </tr>
+    </thead>
+<!-- slot:annual -->
+    <tbody class="is-pick" data-sample>
+      <tr>
+        <td class="rank">1</td>
+        <td class="plan"><strong>Nordhost VPS L</strong><span class="sub">Coupon LET25, first year only</span></td>
+        <td>Frankfurt, DE</td>
+        <td>4 vCPU shared<span class="sub">AMD EPYC 9454P</span></td>
+        <td class="num">8 GB</td>
+        <td>120 GB NVMe</td>
+        <td>Included</td>
+        <td class="num"><strong>€71.88</strong><span class="sub">EUR 71.88</span></td>
+        <td class="num">€95.88<span class="sub">EUR 95.88</span></td>
+        <td class="num">€5.99</td>
+        <td>Yes<span class="sub">BTC, ETH, USDT</span></td>
+        <td class="links"><a href="https://example.com/order">Order</a><a href="https://lowendtalk.com/discussion/000000">LET</a></td>
+      </tr>
+      <tr class="note"><td colspan="12"><p>1 Gbit/s port, 20 TB transfer. Game servers explicitly allowed; sustained 100% CPU may be throttled after 24 hours. Verified 27 Sep 2026 14:12 CEST.</p></td></tr>
+    </tbody>
+    <tbody data-sample>
+      <tr>
+        <td class="rank">2</td>
+        <td class="plan"><strong>Rheinserver VS4</strong><span class="tag">+4 vCPU and 8 GB for €40.80 more: VS8</span></td>
+        <td>Düsseldorf, DE</td>
+        <td>4 vCPU shared<span class="sub">Intel Xeon Gold 6230R</span></td>
+        <td class="num">8 GB</td>
+        <td>160 GB SSD</td>
+        <td>Included</td>
+        <td class="num"><strong>€78.00</strong><span class="sub">EUR 78.00</span></td>
+        <td class="num">€78.00<span class="sub">EUR 78.00</span></td>
+        <td class="num">€6.50</td>
+        <td>No</td>
+        <td class="links"><a href="https://example.com/order">Order</a><a href="https://lowendtalk.com/discussion/000000">LET</a></td>
+      </tr>
+      <tr class="note"><td colspan="12"><p>1 Gbit/s port, unmetered fair use. Game-server policy unknown: the terms do not mention it. €5 setup fee included in the first-year total.</p></td></tr>
+    </tbody>
+    <tbody data-sample>
+      <tr>
+        <td class="rank">3</td>
+        <td class="plan"><strong>Kelvin Cloud K8</strong></td>
+        <td>Amsterdam, NL</td>
+        <td>4 vCPU dedicated<span class="sub">AMD Ryzen 9 7950X</span></td>
+        <td class="num">8 GB</td>
+        <td>100 GB NVMe</td>
+        <td>€1.00/mo extra</td>
+        <td class="num"><strong>€84.20</strong><span class="sub">USD 92.00</span></td>
+        <td class="num">€84.20<span class="sub">USD 92.00</span></td>
+        <td class="num">€7.02</td>
+        <td>Yes<span class="sub">BTC via BTCPay, 1% fee</span></td>
+        <td class="links"><a href="https://example.com/order">Order</a><a href="https://lowendtalk.com/discussion/000000">LET</a></td>
+      </tr>
+      <tr class="note"><td colspan="12"><p>10 Gbit/s shared port, 4 TB transfer. Game servers allowed. Paying in crypto adds a 1% fee, so the crypto total is €85.04.</p></td></tr>
+    </tbody>
+<!-- /slot:annual -->
+  </table>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="upgrades-h">
+  <h2 id="upgrades-h">6+ vCPU options and upgrades</h2>
+  <p class="section-note">Cheaper-first order above is unchanged; these are the plans where a small extra spend buys substantially more.</p>
+
+  <h3>Upgrades worth considering</h3>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Plan</th>
+        <th scope="col" class="loc">Location</th>
+        <th scope="col" class="cpu">CPU</th>
+        <th scope="col" class="num">RAM</th>
+        <th scope="col" class="num">First year</th>
+        <th scope="col" class="num">Extra vs cheapest</th>
+        <th scope="col">What the extra buys</th>
+        <th scope="col">Links</th>
+      </tr>
+    </thead>
+<!-- slot:upgrades -->
+    <tbody class="is-pick" data-sample>
+      <tr>
+        <td class="plan"><strong>Alpenbyte Cloud 6</strong></td>
+        <td>Zurich, CH</td>
+        <td>6 vCPU shared<span class="sub">AMD EPYC 7763</span></td>
+        <td class="num">12 GB</td>
+        <td class="num"><strong>€89.40</strong><span class="sub">CHF 84.00</span></td>
+        <td class="num">+€17.52</td>
+        <td>2 more vCPU and 4 GB more RAM, and the price does not rise at renewal</td>
+        <td class="links"><a href="https://example.com/order">Order</a><a href="https://lowendtalk.com/discussion/000000">LET</a></td>
+      </tr>
+      <tr class="note"><td colspan="8"><p>Game servers allowed. Crypto accepted through CoinPayments with no disclosed fee.</p></td></tr>
+    </tbody>
+    <tbody data-sample>
+      <tr>
+        <td class="plan"><strong>Rheinserver VS8</strong></td>
+        <td>Düsseldorf, DE</td>
+        <td>8 vCPU shared<span class="sub">Intel Xeon Gold 6230R</span></td>
+        <td class="num">16 GB</td>
+        <td class="num"><strong>€118.80</strong><span class="sub">EUR 118.80</span></td>
+        <td class="num">+€46.92</td>
+        <td>Double the cores and RAM of the cheapest plan</td>
+        <td class="links"><a href="https://example.com/order">Order</a></td>
+      </tr>
+      <tr class="note"><td colspan="8"><p>Game-server policy unknown.</p></td></tr>
+    </tbody>
+<!-- /slot:upgrades -->
+  </table>
+  </div>
+
+  <h3>Monthly and multi-year alternatives</h3>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Plan</th>
+        <th scope="col" class="loc">Location</th>
+        <th scope="col" class="cpu">CPU</th>
+        <th scope="col" class="num">RAM</th>
+        <th scope="col">Term</th>
+        <th scope="col" class="num">Upfront commitment</th>
+        <th scope="col" class="num">Per month</th>
+        <th scope="col" class="num">Renewal</th>
+        <th scope="col">Links</th>
+      </tr>
+    </thead>
+<!-- slot:nonannual -->
+    <tbody data-sample>
+      <tr>
+        <td class="plan"><strong>Fjordcompute F6 triennial</strong></td>
+        <td>Oslo, NO</td>
+        <td>6 vCPU shared</td>
+        <td class="num">12 GB</td>
+        <td>3 years</td>
+        <td class="num"><strong>€180.00</strong><span class="sub">NOK 2,100</span></td>
+        <td class="num">€5.00</td>
+        <td class="num">Unknown</td>
+        <td class="links"><a href="https://example.com/order">Order</a></td>
+      </tr>
+      <tr class="note"><td colspan="9"><p>Cheapest per month found, but it needs three years paid upfront.</p></td></tr>
+    </tbody>
+<!-- /slot:nonannual -->
+  </table>
+  </div>
+
+  <h3>IPv6-only and NAT plans</h3>
+  <p class="section-note">Kept out of the main ranking. Players on IPv4-only connections cannot reach an IPv6-only server, and NAT plans expose only a small set of forwarded ports.</p>
+  <div class="table-wrap">
+  <table class="compact">
+    <thead>
+      <tr>
+        <th scope="col">Plan</th>
+        <th scope="col">Connectivity</th>
+        <th scope="col" class="cpu">CPU</th>
+        <th scope="col" class="num">RAM</th>
+        <th scope="col" class="num">First year</th>
+        <th scope="col">Limitation</th>
+        <th scope="col">Links</th>
+      </tr>
+    </thead>
+<!-- slot:altconn -->
+    <tbody data-sample>
+      <tr><td colspan="7" class="empty">No qualifying IPv6-only or NAT plans were found.</td></tr>
+    </tbody>
+<!-- /slot:altconn -->
+  </table>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="leads-h">
+  <h2 id="leads-h">Unavailable or unverified leads</h2>
+  <p class="section-note">Offers that could change the recommendation but could not be confirmed as purchasable.</p>
+  <div class="table-wrap">
+  <table class="compact">
+    <thead>
+      <tr>
+        <th scope="col">Lead</th>
+        <th scope="col">Status</th>
+        <th scope="col">Why it matters</th>
+        <th scope="col">What is missing</th>
+        <th scope="col">Link</th>
+      </tr>
+    </thead>
+<!-- slot:leads -->
+    <tbody data-sample>
+      <tr>
+        <td class="plan"><strong>Kelvin Cloud K8 Black Friday</strong><span class="sub">€59.00 first year advertised</span></td>
+        <td><span class="status status--unavailable">Out of stock</span></td>
+        <td>Would be €12.88 cheaper than the current pick</td>
+        <td>Restock date not announced</td>
+        <td class="links"><a href="https://lowendtalk.com/discussion/000000">LET thread</a></td>
+      </tr>
+    </tbody>
+    <tbody data-sample>
+      <tr>
+        <td class="plan"><strong>Brückenhost VDS 6</strong><span class="sub">6 vCPU, 16 GB, €95 advertised</span></td>
+        <td><span class="status status--blocked">Blocked</span></td>
+        <td>Could replace the 6+ vCPU pick</td>
+        <td>Cart requires an account before showing totals</td>
+        <td class="links"><a href="https://example.com/">Provider</a></td>
+      </tr>
+    </tbody>
+    <tbody data-sample>
+      <tr>
+        <td class="plan"><strong>Fjordcompute F5</strong><span class="sub">5 vCPU, 10 GB, €96.00</span></td>
+        <td><span class="status status--provisional">Provisional</span></td>
+        <td>Norway location with generous RAM</td>
+        <td>Coupon scope unconfirmed at checkout</td>
+        <td class="links"><a href="https://example.com/order">Order</a></td>
+      </tr>
+    </tbody>
+<!-- /slot:leads -->
+  </table>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="coverage-h">
+  <h2 id="coverage-h">Coverage</h2>
+<!-- slot:coverage -->
+<div data-sample>
+  <dl class="facts">
+    <div><dt>Listing pages</dt><dd>1 to 30 (6 batches)</dd></div>
+    <div><dt>Unique threads</dt><dd>612</dd></div>
+    <div><dt>Comment pages read</dt><dd>1,041</dd></div>
+    <div><dt>Provider sites checked</dt><dd>63</dd></div>
+    <div><dt>Prices verified</dt><dd>27 Sep 2026, 11:40 to 18:55 CEST</dd></div>
+    <div><dt>Exchange rates</dt><dd><a href="https://www.ecb.europa.eu/">ECB reference rates, 26 Sep 2026</a></dd></div>
+  </dl>
+  <div class="prose">
+    <p>Stopped after listing pages 21 to 25 and 26 to 30 left the cheapest plan, the 6+ vCPU pick and the highlighted upgrades unchanged.</p>
+    <p>Each thread was read at its opening post and final comment page. Middle pages were opened only to resolve a specific coupon, restock or replacement offer, so most middle pages were intentionally not read. These are the cheapest verified offers found within this coverage, not a complete survey of the market.</p>
+  </div>
+</div>
+<!-- /slot:coverage -->
+
+  <div class="appendix">
+<!-- slot:appendix -->
+    <details data-sample>
+      <summary>Excluded plans <span class="count">148</span></summary>
+      <div class="table-wrap">
+      <table class="compact">
+        <thead><tr><th scope="col">Plan</th><th scope="col">Reason</th></tr></thead>
+        <tbody><tr><td>Example Host 4C/8G, Miami</td><td>Not in Europe</td></tr></tbody>
+      </table>
+      </div>
+    </details>
+    <details data-sample>
+      <summary>Threads read <span class="count">612</span></summary>
+      <p>One row per discussion: title, pages read and providers found.</p>
+    </details>
+    <details data-sample>
+      <summary>Providers checked <span class="count">63</span></summary>
+      <p>One row per provider: site, outcome and reason when no plan qualified.</p>
+    </details>
+    <details data-sample>
+      <summary>Gaps and blocked checks <span class="count">9</span></summary>
+      <p>Blocked checks, unfinished work and intentional reading limits.</p>
+    </details>
+    <details data-sample>
+      <summary>Exchange rates <span class="count">3</span></summary>
+      <p>Currency, rate to EUR, rate date and source.</p>
+    </details>
+<!-- /slot:appendix -->
+  </div>
+</section>
+
+<footer class="footer">
+<!-- slot:footer -->
+<p data-sample>Run 2026-09-27_1140_k3f9qa1x, made with the let-vps-scout skill. Prices exclude VAT and were checked on the dates shown; confirm at checkout before buying.</p>
+<!-- /slot:footer -->
+</footer>
+
+</main>
+<script>
+// Draws the price ladder from .ladder-data; without the script the list stays readable.
+(function () {
+  var list = document.querySelector(".ladder-data");
+  if (!list) return;
+  var items = Array.prototype.slice.call(list.querySelectorAll("li[data-eur]")).map(function (li) {
+    return {
+      eur: parseFloat(li.getAttribute("data-eur")),
+      vcpu: parseInt(li.getAttribute("data-vcpu"), 10) || 0,
+      pick: li.getAttribute("data-pick") || "",
+      text: li.textContent.replace(/\s+/g, " ").trim()
+    };
+  }).filter(function (d) { return isFinite(d.eur); });
+  if (items.length < 2) return;
+  var prices = items.map(function (d) { return d.eur; });
+  var lo = Math.min.apply(null, prices), hi = Math.max.apply(null, prices);
+  var rough = (hi - lo || 1) / 5, mag = Math.pow(10, Math.floor(Math.log10(rough)));
+  var step = [1, 2, 2.5, 5, 10].map(function (m) { return m * mag; }).filter(function (s) { return s >= rough; })[0];
+  var start = Math.floor(lo / step) * step, end = Math.ceil(hi / step) * step;
+  if (end === start) end = start + step;
+  function x(v) { return ((v - start) / (end - start)) * 100; }
+  function el(tag, cls, text) {
+    var node = document.createElement(tag);
+    node.className = cls;
+    if (text) node.textContent = text;
+    return node;
+  }
+  var chart = el("div", "ladder-chart");
+  chart.setAttribute("aria-hidden", "true");
+  [["4 to 5 vCPU", function (d) { return d.vcpu < 6; }, ""], ["6+ vCPU", function (d) { return d.vcpu >= 6; }, " lane--six"]].forEach(function (lane) {
+    var row = el("div", "lane" + lane[2]);
+    var track = el("div", "lane-track");
+    row.appendChild(el("span", "lane-name", lane[0]));
+    items.filter(lane[1]).forEach(function (d) {
+      var pos = x(d.eur);
+      var mark = el("span", "mark" + (d.pick ? " mark--pick" : ""));
+      mark.style.left = pos + "%";
+      mark.title = d.text;
+      track.appendChild(mark);
+      if (d.pick) {
+        var label = el("span", "mark-label" + (pos > 80 ? " mark-label--end" : pos < 12 ? " mark-label--start" : ""), d.pick);
+        label.style.left = pos + "%";
+        track.appendChild(label);
+      }
+    });
+    row.appendChild(track);
+    chart.appendChild(row);
+  });
+  var axis = el("div", "axis");
+  for (var v = start; v <= end + step / 1000; v += step) {
+    var tick = el("span", "tick", "€" + (step < 1 ? v.toFixed(2) : Math.round(v)));
+    tick.style.left = x(v) + "%";
+    axis.appendChild(tick);
+  }
+  chart.appendChild(axis);
+  list.parentNode.insertBefore(chart, list);
+  list.classList.add("visually-hidden");
+})();
+</script>
+</body>
+</html>
