@@ -1,0 +1,4 @@
+interface:
+  display_name: "LET VPS Scout"
+  short_description: "Find and verify the cheapest European VPS from LowEndTalk offers"
+  default_prompt: "Use $let-vps-scout to find the cheapest purchase-verified European VPS for a game server from current LowEndTalk offers."
