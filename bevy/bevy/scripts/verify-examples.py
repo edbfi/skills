@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compile the actual documented Rust blocks; execute the core behavior tests.
 
-Requires Python 3.11+ and Cargo. Downloads crates on the first run. Rust build
+Requires Python 3 and Cargo. Downloads crates on the first run. Rust build
 artifacts are cached outside the skill; generated projects use a temporary folder.
 Presentation examples are type-checked without native window/audio dependencies.
 """
@@ -27,9 +27,9 @@ def main():
     blocks = {"core": [], "presentation": []}
     pattern = r"<!-- verify: (core|presentation) -->\s*```rust\n(.*?)\n```"
     for path in [root / "SKILL.md", *sorted((root / "references").glob("*.md"))]:
-        content = path.read_text()
+        content = path.read_text(encoding="utf-8")
         matches = list(re.finditer(pattern, content, re.S))
-        if len(matches) != len(re.findall(r"^```rust\s*$", content, re.M)):
+        if len(matches) != len(re.findall(r"^[ \t]*```(?:rust|rs)\b[^\n]*$", content, re.M)):
             raise SystemExit(f"Unmarked or malformed Rust block in {path}")
         for match in matches:
             line = content[:match.start()].count("\n") + 1
@@ -60,12 +60,12 @@ def main():
                 f'features = {features[group]!r} }}\n\n'
                 '[profile.dev]\ndebug = 0\n[profile.test]\ndebug = 0\n'
             )
-            (project / "Cargo.toml").write_text(manifest)
+            (project / "Cargo.toml").write_text(manifest, encoding="utf-8")
             modules = ["#![allow(dead_code)]\n"]
             for index, (source, code) in enumerate(blocks[group]):
                 print(f"{group}: {source}", flush=True)
                 modules.append(f"// {source}\nmod example_{index} {{\n{code}\n}}\n")
-            (project / "src/lib.rs").write_text("\n".join(modules))
+            (project / "src/lib.rs").write_text("\n".join(modules), encoding="utf-8")
             command = ["cargo", "test"] if group == "core" else ["cargo", "check", "--tests"]
             subprocess.run(command + ["--manifest-path", str(project / "Cargo.toml")],
                            env=env, check=True)

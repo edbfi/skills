@@ -57,7 +57,7 @@ behavior, such as keyboard navigation or a durable save format.
 Verified on 2026-10-04 using `rustc 1.98.1`, Cargo 1.98.1, and
 `x86_64-unknown-linux-gnu`: **6 core tests passed and all 4 presentation blocks
 type-checked**, with no skipped Rust blocks. The skill frontmatter validator,
-repository content contract (including the new sixth skill), and all applicable
+repository content contract (including this skill), and all applicable
 prek hygiene hooks passed. The minimum supported Rust version was read from
 package metadata; this run did not separately test Rust 1.95.0.
 
