@@ -86,6 +86,41 @@ class ArtifactChecks(unittest.TestCase):
         self.write(self.skill / "SKILL.md", "<!-- example-exempt: illustrative output -->\n```text\nhello\n```\n")
         self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples))
 
+    def test_examples_regions_and_markers(self) -> None:
+        self.write(self.examples / "src/lib.rs",
+                   "fn a() {}\n// region: b\n    fn b() {\n        let region: u8 = 1;\n    }\n// endregion: b\n")
+        self.write(self.examples / "config.yaml", "region: us-east-1\nname: x\n")
+        self.write(self.skill / "SKILL.md",
+                   "<!-- example: src/lib.rs#b -->\n```rust\nold\n```\n\n<!-- example: src/lib.rs -->\n```rust\nold\n```\n\n"
+                   "<!-- example: config.yaml -->\n```yaml\nold\n```\n")
+        self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples, "--sync"))
+        synced = (self.skill / "SKILL.md").read_text()
+        self.assertIn("```rust\nfn b() {\n    let region: u8 = 1;\n}\n```", synced)
+        self.assertIn("```rust\nfn a() {}\n    fn b() {\n", synced)
+        self.assertNotIn("// region", synced)
+        self.assertIn("```yaml\nregion: us-east-1\nname: x\n```", synced)
+        self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples))
+        self.write(self.skill / "references/x.md", "<!-- example: src/lib.rs#missing -->\n```rust\nold\n```\n")
+        self.assert_code(1, self.run_script("verify_examples.py", self.skill, self.examples))
+
+    def test_examples_widen_fence_when_source_contains_one(self) -> None:
+        self.write(self.examples / "doc.md", "# Readme\n```sh\ncargo run\n```\n")
+        self.write(self.skill / "SKILL.md", "<!-- example: doc.md -->\n```md\nold\n```\n")
+        result = self.run_script("verify_examples.py", self.skill, self.examples)
+        self.assert_code(1, result)
+        self.assertIn("widen the fence", result.stdout)
+        self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples, "--sync"))
+        self.assertEqual("<!-- example: doc.md -->\n````md\n# Readme\n```sh\ncargo run\n```\n````\n",
+                         (self.skill / "SKILL.md").read_text())
+        self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples))
+
+    def test_examples_tolerate_bom_and_reject_deep_closing_indent(self) -> None:
+        self.write(self.examples / "a.py", "print(1)\n")
+        self.write(self.skill / "SKILL.md", "\ufeff---\nname: demo\n---\n<!-- example: a.py -->\n```python\nprint(1)\n```\n")
+        self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples))
+        self.write(self.skill / "SKILL.md", "<!-- example: a.py -->\n```python\nprint(1)\n        ```\n")
+        self.assert_code(1, self.run_script("verify_examples.py", self.skill, self.examples))
+
     def test_examples_reject_unsupported_markdown_containers(self) -> None:
         for content in ("> ```python\n> print(1)\n> ```\n", "    print(1)\n",
                         "- ```python\n  print(1)\n  ```\n", "> 1. ```python\n> ```\n"):

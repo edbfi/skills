@@ -15,17 +15,21 @@ or, for part of a file, a named region:
 
     <!-- example: src/handlers.rs#create_order -->
 
-where the file contains lines with `region: create_order` and
-`endregion: create_order` (any comment syntax; only the words matter). The
-block must equal the file or region exactly, after stripping trailing
-whitespace on each line.
+where the file contains comment lines whose whole content is
+`region: create_order` and `endregion: create_order` (any comment leader:
+`//`, `#`, `--`, `;`, `/* */`, `<!-- -->`, ...). A line that merely contains
+the word `region:` inside code or data is not a marker. The block must equal
+the file or region exactly, after stripping trailing whitespace on each line.
 
 Default mode fails on mismatches, missing sources, malformed fences, and unmarked
 blocks. Non-executable illustration can use an explicit exemption comment:
     <!-- example-exempt: reason -->
 Exemptions are reported for manual review. With --sync, rewrites
 mismatched blocks from the examples, which is the only sanctioned way to edit
-a block: examples/ is the source of truth.
+a block: examples/ is the source of truth. Sync widens a block's fence when the
+source itself contains a fence of the same character and length, so the block
+stays closed. Each Markdown file is rewritten independently and only when all
+of its blocks resolve; the file is written with LF line endings and no BOM.
 
 Generated Markdown must use standalone fenced blocks with at most three leading
 spaces. Blockquoted/list-prefixed fences and unfenced indented code are rejected;
@@ -39,9 +43,27 @@ import sys
 from pathlib import Path
 
 MARKER = re.compile(r"^\s*<!--\s*example:\s*(?P<ref>[^\s]+)\s*-->\s*$")
+# A region marker is a whole comment line: an optional closer follows the name.
+REGION = re.compile(
+    r"^\s*(?://+|#+|--+|;+|/\*+|<!--|\*+|%+|'+|\(\*|\{-|REM\b)\s*(?P<end>end)?region:\s*(?P<name>\S+?)"
+    r"\s*(?:\*/|-->|\*\)|-\})?\s*$"
+)
 EXEMPT = re.compile(r"^\s*<!--\s*example-exempt:\s*(\S.*?)\s*-->\s*$")
 FENCE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<info>.*)$")
 CONTAINER_FENCE = re.compile(r"^(?:[ \t]*(?:>|[-+*]|\d+[.)])[ \t]*)+[`~]{3,}")
+
+
+def region_marker(line: str) -> tuple[bool, str] | None:
+    """(is_end, name) when the line is a region marker comment, else None."""
+    m = REGION.match(line)
+    return (m.group("end") is not None, m.group("name")) if m else None
+
+
+def widen_fence(fence: str, source: str) -> str:
+    """The shortest fence of the same character that `source` cannot close."""
+    runs = re.finditer(rf"^ {{0,3}}({re.escape(fence[0])}{{3,}})", source, re.M)
+    longest = max((len(m.group(1)) for m in runs), default=0)
+    return fence[0] * max(len(fence), longest + 1)
 
 
 def load_source(examples: Path, ref: str) -> tuple[str | None, str]:
@@ -51,16 +73,17 @@ def load_source(examples: Path, ref: str) -> tuple[str | None, str]:
         return None, f"source escapes examples directory: {path_part}"
     if not file.is_file():
         return None, f"missing file {path_part}"
-    lines = file.read_text(encoding="utf-8").splitlines()
+    lines = file.read_text(encoding="utf-8-sig").splitlines()
     if not region:
         # Region markers are navigation for this script, not content to teach.
-        kept = [l for l in lines if not re.search(r"\b(?:end)?region:\s*\S+", l)]
+        kept = [l for l in lines if region_marker(l) is None]
         return "\n".join(l.rstrip() for l in kept), ""
     start = end = None
     for i, line in enumerate(lines):
-        if re.search(rf"\bregion:\s*{re.escape(region)}(?=\s|$)", line) and "endregion" not in line:
+        marker = region_marker(line)
+        if marker == (False, region):
             start = i
-        elif re.search(rf"\bendregion:\s*{re.escape(region)}(?=\s|$)", line):
+        elif marker == (True, region) and start is not None:
             end = i
             break
     if start is None or end is None or end <= start:
@@ -74,7 +97,7 @@ def load_source(examples: Path, ref: str) -> tuple[str | None, str]:
 
 def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
     """Returns (mismatches, missing, unmarked)."""
-    lines = md.read_text(encoding="utf-8").splitlines()
+    lines = md.read_text(encoding="utf-8-sig").splitlines()
     out: list[str] = []
     mismatches = missing = unmarked = 0
     i = 0
@@ -120,7 +143,7 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
             fence = f.group("fence")
             indent = f.group("indent")
             j = i + 1
-            closing = re.compile(rf"^\s*{re.escape(fence[0])}{{{len(fence)},}}\s*$")
+            closing = re.compile(rf"^ {{0,3}}{re.escape(fence[0])}{{{len(fence)},}}\s*$")
             while j < len(lines) and not closing.match(lines[j]):
                 j += 1
             if j == len(lines):
@@ -144,13 +167,15 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
                     out.extend(lines[i : j + 1])
                 elif src != block_text:
                     mismatches += 1
+                    wide = widen_fence(fence, src)
                     if sync:
-                        out.append(line)
+                        out.append(indent + wide + f.group("info"))
                         out.extend(indent + l for l in src.splitlines())
-                        out.append(lines[j] if j < len(lines) else indent + fence)
-                        print(f"{md.name}: {pending_ref}: synced")
+                        out.append(indent + wide)
+                        print(f"{md.name}: {pending_ref}: synced" + (" (fence widened)" if wide != fence else ""))
                     else:
-                        print(f"{md.name}: {pending_ref}: differs from examples")
+                        hint = "; the source contains a fence of this length, widen the fence" if wide != fence else ""
+                        print(f"{md.name}: {pending_ref}: differs from examples{hint}")
                         out.extend(lines[i : j + 1])
                 else:
                     out.extend(lines[i : j + 1])
