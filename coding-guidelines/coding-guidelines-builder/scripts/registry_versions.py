@@ -25,7 +25,7 @@ import urllib.parse
 import urllib.request
 from datetime import date
 
-UA = "stack-skill-builder/1 (+registry version snapshot)"
+UA = "coding-guidelines-builder/1 (+registry version snapshot)"
 PRERELEASE = re.compile(r"[-+]|(?:a|b|rc|alpha|beta|dev|pre|preview|nightly)\d*$", re.I)
 
 
