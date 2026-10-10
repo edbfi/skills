@@ -1,0 +1,49 @@
+{
+  "skill_name": "let-vps-scout",
+  "notes": "Live evals browse real sites and a full run takes hours, so these prompts bound the run. Eval 2 may open a headed agent-browser window if headless fails the Cloudflare probe. Clean up afterwards: the /tmp/let-vps run folder and any letvps-* agent-browser sessions.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "asks-for-backend-first",
+      "setup": "Both ego-browser and agent-browser installed.",
+      "prompt": "find me the cheapest european vps on lowendtalk for a minecraft server, 4 cores 8gb, yearly billing",
+      "expected_output": "Before init or any browser action, the agent checks which browser CLIs are installed and asks the user to choose between ego-browser and agent-browser, with a recommendation and a one-line trade-off for each. Nothing is browsed until the user answers.",
+      "files": [],
+      "assertions": [
+        "the agent asked which browser backend to use before running ledger.py init or any browser command",
+        "only installed backends were offered, with a recommendation",
+        "no web page was fetched or opened before the user answered"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "agent-browser-bounded-discovery",
+      "setup": "agent-browser installed; a desktop session is available in case the Cloudflare probe forces a headed window.",
+      "prompt": "Run let-vps-scout with agent-browser, but this is a dry run: only read LET offer listing pages 1-2 and the opening post of the first non-sticky thread, merge the results, then stop, tear the browser down and tell me the run folder.",
+      "expected_output": "The agent runs `ledger.py init --browser agent-browser`, loads `agent-browser skills get core`, launches one headless host session named letvps-<suffix> (relaunching it headed only if the Cloudflare probe fails), records it, its mode and its CDP URL in STATUS.md, then browses through pinned-tab sessions attached with --cdp (not through the host session). Every open is followed by a wait that rejects the Cloudflare 'Just a moment...' interstitial. Listing and thread text is saved under evidence/, a worker file is merged with ledger.py merge, and teardown releases worker tabs and closes only letvps-* sessions.",
+      "files": [],
+      "assertions": [
+        "ledger.py init was run with --browser agent-browser and STATUS.md records the backend",
+        "agent-browser skills get core was loaded before the first browsing command",
+        "one host browser was launched headless first, relaunched headed only if the Cloudflare probe failed, and its mode and CDP URL were recorded in STATUS.md",
+        "page browsing used --cdp with --pin-tab sessions, not the host session",
+        "each open was followed by a wait that excludes the 'Just a moment' interstitial before extraction",
+        "evidence/listings/page-01.txt and page-02.txt contain real listing text, not the Cloudflare interstitial",
+        "agent-browser read was never called with a URL",
+        "agent-browser close --all was never run, and no letvps-* session remains afterwards"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "resume-legacy-run-uses-ego-browser",
+      "setup": "A run folder created by v1.0.0 of the skill whose STATUS.md has no 'Browser backend' line.",
+      "prompt": "resume let-vps-scout run /tmp/let-vps/<legacy-run-folder>",
+      "expected_output": "The agent reads STATUS.md, sees no recorded backend, treats the run as ego-browser without asking the user to choose, and continues from the recorded resume point.",
+      "files": [],
+      "assertions": [
+        "the agent did not ask the user to choose a backend",
+        "the agent continued with ego-browser and reused the recorded TaskSpace if it still exists"
+      ]
+    }
+  ]
+}
