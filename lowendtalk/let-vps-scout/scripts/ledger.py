@@ -52,6 +52,7 @@ TABLES: dict[str, tuple[str, list[str]]] = {
 # Multi-value cells: merged as an ordered union instead of overwritten.
 LIST_COLUMNS = {"thread_ids", "listing_pages", "pages_read", "provider_ids", "coupons", "payment_methods", "evidence"}
 CANDIDATE_STATES = {"provisional", "shortlisted", "verified", "blocked", "unavailable", "excluded"}
+BROWSERS = ("ego-browser", "agent-browser")
 
 BLOCK_RE = re.compile(r"^```csv[ \t]+([a-z]+)[ \t]*\n(.*?)^```[ \t]*$", re.M | re.S)
 SLOT_RE = re.compile(r"<!-- (/?)slot:([a-z-]+) -->")
@@ -64,6 +65,8 @@ STATUS_TEMPLATE = """# let-vps-scout run {run_id}
 - State: running
 - Working folder: {run}
 - Archive: {archive}
+- Browser backend: {browser}
+- Browser handle: {handle}
 - Last checkpoint: {now}
 
 ## Counters
@@ -179,8 +182,18 @@ def cmd_init(args: argparse.Namespace) -> None:
     _ = (run / "report.html").write_text(TEMPLATE.read_text(encoding="utf-8"), encoding="utf-8")
     for font in (ASSETS / "fonts").glob("*.woff2"):
         _ = (run / "fonts" / font.name).write_bytes(font.read_bytes())
+    browser = cast("str", args.browser)
+    if browser == "agent-browser":
+        # The whole random suffix keeps session names unique per run; it may itself contain "_".
+        host = f"letvps-{run.name.removeprefix(f'{stamp}_')}"
+        handle = f"host session `{host}`, CDP URL not recorded yet; workers use `{host}-<assignment>`"
+    else:
+        handle = "TaskSpace ID not recorded yet"
     _ = (run / "STATUS.md").write_text(
-        STATUS_TEMPLATE.format(run_id=run.name, run=run, archive=archive, now=now(), script=Path(__file__).resolve()),
+        STATUS_TEMPLATE.format(
+            run_id=run.name, run=run, archive=archive, browser=browser, handle=handle,
+            now=now(), script=Path(__file__).resolve(),
+        ),
         encoding="utf-8",
     )
     print(run)
@@ -350,6 +363,7 @@ def main() -> None:
     p = sub.add_parser("init", help="create a run folder and print its path")
     _ = p.add_argument("--base", default=str(DEFAULT_BASE), help=f"parent folder (default {DEFAULT_BASE})")
     _ = p.add_argument("--archive", default=str(DEFAULT_ARCHIVE), help="archive folder recorded in STATUS.md")
+    _ = p.add_argument("--browser", required=True, choices=BROWSERS, help="browser backend the user chose for this run")
     p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("merge", help="merge worker files into the ledger")
