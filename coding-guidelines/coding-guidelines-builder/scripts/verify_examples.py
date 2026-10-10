@@ -107,6 +107,7 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
     """Returns (mismatches, unresolved, unmarked)."""
     lines = md.read_text(encoding="utf-8-sig").splitlines()
     out: list[str] = []
+    synced: list[str] = []
     mismatches = unresolved = unmarked = 0
     i = 0
     pending_ref: str | None = None
@@ -180,7 +181,7 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
                         out.append(indent + wide + f.group("info"))
                         out.extend(indent + l if l else l for l in src.splitlines())
                         out.append(indent + wide)
-                        print(f"{md.name}: {pending_ref}: synced" + (" (fence widened)" if wide != fence else ""))
+                        synced.append(pending_ref + (" (fence widened)" if wide != fence else ""))
                     else:
                         hint = "; the source contains a fence of this length, widen the fence" if wide != fence else ""
                         print(f"{md.name}: {pending_ref}: differs from examples{hint}")
@@ -201,6 +202,11 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
         unresolved += 1
     if sync and mismatches and not unresolved and not unmarked:
         _ = md.write_text("\n".join(out) + "\n", encoding="utf-8")
+        for ref in synced:
+            print(f"{md.name}: {ref}: synced")
+    elif synced:
+        for ref in synced:
+            print(f"{md.name}: {ref}: not written ({unresolved} unresolved, {unmarked} unmarked block(s) in this file)")
     return mismatches, unresolved, unmarked
 
 

@@ -34,11 +34,12 @@ Write `research/components.json`:
 For a language or runtime with no registry, the release line comes from source tags or the official
 download page, verified by running the toolchain's version command inside the pinned image.
 
-After the probe, run `python "$BUILDER_DIR/scripts/registry_versions.py" research/components.json > research/versions.json`.
-This snapshots registry stable candidates, not dependency resolution. A missing, ambiguous, or
-unsupported version must be resolved against official release metadata and recorded with its source;
-do not continue with an unresolved registry error. Record the selected mutually compatible versions
-separately in component facts, preserving the snapshot even when explicit constraints select older lines.
+After the probe, run `python3 "$BUILDER_DIR/scripts/registry_versions.py" research/components.json >
+research/versions.json`. This snapshots registry stable candidates, not dependency resolution. A
+missing, ambiguous, or unsupported version must be resolved against official release metadata and
+recorded with its source; do not continue with an unresolved registry error. Record the selected
+mutually compatible versions separately in component facts, preserving the snapshot even when
+explicit constraints select older lines.
 
 ## 2. Knowledge probe
 
@@ -46,12 +47,13 @@ Before any web access, spawn one subagent with no tools except file writing and 
 block and `components.json`. Its prompt:
 
 > Without searching or reading anything, write what you believe to be true about this stack as of
-> your training data. State your training cutoff only if known, otherwise say unknown. For each component: the latest
-> stable release line you know of; the recommended way to do the five most common things with it
-> (name them); any APIs, features, or patterns you believe are deprecated or superseded, and what
-> replaced them; the minimum runtime or platform it supports; and the configuration keys and
-> commands you would use. Mark each statement with your confidence (high, medium, low). Do not hedge
-> into vagueness; a confident wrong belief is more useful here than a vague right one.
+> your training data. State your training cutoff only if known, otherwise say unknown. For each
+> component: the latest stable release line you know of; the recommended way to do the five most
+> common things with it (name them); any APIs, features, or patterns you believe are deprecated or
+> superseded, and what replaced them; the minimum runtime or platform it supports; and the
+> configuration keys and commands you would use. Mark each statement with your confidence (high,
+> medium, low). Do not hedge into vagueness; a confident wrong belief is more useful here than a
+> vague right one.
 
 Save the output as `research/probe.md`. Every statement in it is a hypothesis for step 3, and the
 cutoff, if known, helps prioritize research but never limits verification. The probe is cheap and it
@@ -60,11 +62,12 @@ must correct even if no baseline task happened to exercise it.
 
 ## 3. Verification
 
-One subagent per component, with web access and a shell, within available concurrency limits. Each receives: the stack
-block, its component entry, `versions.json`, the probe statements for its component, the model's
-reported cutoff, and the facts format below. It writes `research/facts/<component>.md` and returns
-its source list; the orchestrator merges source lists into `research/sources.md` to avoid concurrent
-writes. The `integration` subagent runs last with all other facts files as input.
+One subagent per component, with web access and a shell, within available concurrency limits. Each
+receives: the stack block, its component entry, `versions.json`, the probe statements for its
+component, the model's reported cutoff, and the facts format below. It writes
+`research/facts/<component>.md` and returns its source list; the orchestrator merges source lists
+into `research/sources.md` to avoid concurrent writes. The `integration` subagent runs last with all
+other facts files as input.
 
 ### Source hierarchy
 
@@ -94,8 +97,8 @@ cd research/clones/<name>
 git sparse-checkout set docs src examples
 ```
 
-Cone mode includes root-level files such as `CHANGELOG.md`. Record each clone in `manifest.md`. Delete `research/clones/` in phase 5; `sources.md` keeps the
-tag and the paths that were used.
+Cone mode includes root-level files such as `CHANGELOG.md`. Record each clone in `manifest.md`.
+Delete `research/clones/` in phase 5; `sources.md` keeps the tag and the paths that were used.
 
 ### What to establish per component
 

@@ -29,7 +29,7 @@ networks.
 │   │   └── <task-name>/             # task.md and fixture files
 │   ├── baseline/
 │   │   ├── eval-<id>/
-│   │   │   ├── eval_metadata.json
+│   │   │   ├── eval_metadata.json       # for the aggregator; the viewer reads a copy in <config>/
 │   │   │   ├── without_skill/run-<N>/   # outputs/, transcript.jsonl, timing.json, grading.json
 │   │   │   └── without_skill/invalid/   # voided runs, kept for diagnosis
 │   │   ├── benchmark.json, benchmark.md
@@ -58,7 +58,8 @@ The manifest is the cleanup contract and the resume state. Sections:
 - **Stack**: the stack block verbatim.
 - **Models**: orchestrator, probe subagent, and model under test (the ID `claude -p` runs report),
   with the CLI version and the flags `claude --help` lists.
-- **Paths**: `SKILL_CREATOR`, `BUILDER_DIR`, the root.
+- **Paths and limits**: `SKILL_CREATOR`, `BUILDER_DIR`, `RUN_DIR` (this folder, absolute), the
+  root, and `RUN_BUDGET`, the `--max-budget-usd` cap for one task run.
 - **Resources**: one row per image (tag, digest, pre-existing or pulled by this run), volume,
   network, clone, cache, and service, each marked created by this run or pre-existing. Only
   resources marked created exclusively by this run are removed in phase 5.
@@ -83,7 +84,7 @@ Skills go stale in two directions: the stack moves, and the model improves. A re
    input:
 
    ```bash
-   python "$BUILDER_DIR/scripts/registry_versions.py" research/components.json \
+   python3 "$BUILDER_DIR/scripts/registry_versions.py" research/components.json \
      --previous research/versions-<date>.json > research/versions.json
    ```
 

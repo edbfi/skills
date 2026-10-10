@@ -14,9 +14,10 @@ syntax"), the baseline measures reading comprehension, not knowledge.
 
 Start with 10 to 15 tasks, expanding when needed for component/split coverage. Each is what a
 developer on this stack would type into a coding agent: a feature in an existing small project, a
-bug to fix, a review of a given file, a new service from scratch. Concrete names, a little context, realistic sloppiness. Not "write a web server"; rather
-"add a `POST /orders` endpoint that validates the body, writes to Postgres in a transaction, and
-returns 201 with the new id; the handler module is `src/orders.rs`".
+bug to fix, a review of a given file, a new service from scratch. Concrete names, a little context,
+realistic sloppiness. Not "write a web server"; rather "add a `POST /orders` endpoint that validates
+the body, writes to Postgres in a transaction, and returns 201 with the new id; the handler module
+is `src/orders.rs`".
 
 Stratify so that:
 
@@ -66,7 +67,11 @@ are what skill-creator's aggregator and viewer glob (`eval-*`, `run-*`); the tas
 `eval_metadata.json`. The directory contains only the task's fixture files, the compose file for
 services if the task needs them, and, for `with_skill`, the skill installed as a project skill at
 `.claude/skills/<skill-name>/`. The prompt is the task prompt and nothing more: no paths outside the
-directory, no mention of a skill.
+directory, no mention of a skill. A task that needs services keeps its compose file in
+`tasks/<name>/`, outside the run directory; the harness starts it before the run under a unique
+project name (`docker compose -p "${RUN_ID}-e<id>-<config>-r<N>" up -d --wait`), the runner joins
+that project's network (`--network "<project>_default"`), and the task's fixture `.env` carries the
+connection string with the service name as host, as a developer's checkout would.
 
 A new directory alone is not isolation. Use a disposable container or OS account with a clean
 home/configuration, no ancestor instruction files, plugins, user skills, or mounts of research and
@@ -78,36 +83,41 @@ claim a measured skill improvement. Installing a project skill tests real descri
 
 ```bash
 cd "<root>/_runs/<run-id>/eval-<id>/<config>/run-<N>"
-timeout 30m claude -p "$(cat ../../../../../tasks/<name>/task.md)" \
-  --model "$MODEL_UNDER_TEST" --setting-sources project \
+timeout 30m claude -p "$(cat "$RUN_DIR/tasks/<name>/task.md")" \
+  --model "$MODEL_UNDER_TEST" --setting-sources project --permission-mode bypassPermissions \
   --output-format stream-json --verbose --max-budget-usd "$RUN_BUDGET" \
   > transcript.jsonl
 ```
 
-- The prompt file stays outside the task directory, so it is neither a project file the agent sees
-  nor part of `outputs/`. Check `claude --help` for the flags this CLI version supports and record
-  them; `--setting-sources project` keeps user and local settings out. Record the model ID each
-  run reports and reject comparisons if the actual models differ.
-- Unattended runs need permission handling. Prefer running the CLI inside the runner container
-  with only the task directory mounted when skipping permission prompts; the directory is disposable
-  either way.
-- Write `timing.json` with skill-creator's keys `total_tokens`, `duration_ms`, and
-  `total_duration_seconds`, plus `model` (the ID the run reported), `exit_status`, `result_status`
-  (`complete`, `invalid`, or `contaminated`), and `reason` when not complete. Missing completion
-  events, timeouts, budget exhaustion, CLI/tool failures, and a build on an unpinned toolchain are
-  invalid runs, not zero-scoring task outputs. An invalid or contaminated run gets no `grading.json`; move
-  it to `eval-<id>/<config>/invalid/run-<N>-<attempt>/` with its transcript and `timing.json` but
-  without `outputs/`, so neither the aggregator (`run-*`) nor the viewer (`outputs/`) picks it up,
-  then retry into a fresh `run-<N>`. Diagnose before retrying; stop after two failed retries.
+- `RUN_DIR` and `RUN_BUDGET` come from `manifest.md`. The prompt file stays in the run folder, so it
+  is neither a project file the agent sees nor part of `outputs/`; the `$(...)` expands on the host
+  even when the command is wrapped in `docker run`. `timeout` is coreutils (`gtimeout` on a stock
+  macOS host). Check `claude --help` for the flags this CLI version supports and record them;
+  `--setting-sources project` keeps user and local settings out. Record the model ID each run
+  reports and reject comparisons if the actual models differ.
+- Unattended runs need permission handling. `--permission-mode bypassPermissions` is acceptable
+  inside the runner container, where a non-root user sees only the task directory. In host mode use
+  `--permission-mode acceptEdits --allowedTools "Bash(cargo *)" ...` with the stack's commands
+  listed, and record the flags in `manifest.md` under Models.
+- Write `timing.json` with skill-creator's keys `total_tokens` (the sum of every token field under
+  `usage` in the final stream-json `result` event), `duration_ms`, and `total_duration_seconds`,
+  plus `total_cost_usd` from the same event, `model` (the ID the run reported), `exit_status`,
+  `result_status` (`complete`, `invalid`, or `contaminated`), and `reason` when not complete.
+  Missing completion events, timeouts, budget exhaustion, CLI/tool failures, and a build on an
+  unpinned toolchain are invalid runs, not zero-scoring task outputs. An invalid or contaminated run
+  gets no `grading.json`; move it to `eval-<id>/<config>/invalid/run-<N>-<attempt>/` with its
+  transcript and `timing.json` but without `outputs/`, so neither the aggregator (`run-*`) nor the
+  viewer (`outputs/`) picks it up, then retry into a fresh `run-<N>`. Diagnose before retrying; stop
+  after two failed retries.
 - Run the development tasks in parallel, as many as the machine and the toolchain cache tolerate.
 - After the run, copy the directory's working files to `outputs/` and move the whole thing under
   `baseline/eval-<id>/without_skill/run-<N>/` (phase 2) or
   `skill-workspace/iteration-N/eval-<id>/<config>/run-<N>/` (phase 4). Write `eval_metadata.json`
   with skill-creator's keys `eval_id`, `eval_name`, `prompt`, `assertions` (the frozen expectations)
   plus `split` and `components`, once at `eval-<id>/` for the aggregator and once in each
-  `eval-<id>/<config>/` for the viewer, which looks only beside and above a run directory. Every
-  `eval-<id>/` holds both configurations; the aggregator takes its configuration order from the
-  first one it finds. The viewer lists only top-level files of `outputs/`, so for coding tasks
+  `eval-<id>/<config>/` for the viewer, which looks only beside and above a run directory. In phase
+  4 every `eval-<id>/` holds both configurations; the aggregator takes its configuration order from
+  the first one it finds. The viewer lists only top-level files of `outputs/`, so for coding tasks
   share `benchmark.md` and the transcripts rather than relying on its Outputs tab.
 
 ### Contamination check
@@ -176,9 +186,10 @@ Store assertions in `tasks/evals.json` under `expectations` and in each task's `
 Keep the generic scripted checks in `tasks/check.sh`, taking the project directory as its argument,
 plus a small task-specific script in `tasks/<name>/` where needed, so that every iteration grades
 the same way. `check.sh` contains only the stack's own commands, never `docker`, `RUN_ID`, or
-`.toolchain/` paths: the caller supplies the environment, the evals as
-`docker run ... "${RUN_ID}-runner" scripts/check.sh /work` and the end user's agent directly. Phase 3
-copies it unchanged to `skill/scripts/check.sh`, so the agent and the evals run the same command.
+`.toolchain/` paths: the caller supplies the environment. The evals mount it read-only into the
+runner after the run, `docker run ... -v "$RUN_DIR/tasks/check.sh":/check.sh:ro "${RUN_ID}-runner"
+/check.sh /work`, so the agent never sees it; the end user's agent runs it directly. Phase 3 copies
+it unchanged to `skill/scripts/check.sh`, so the agent and the evals run the same command.
 
 ## 4. Grading baselines
 
@@ -194,7 +205,7 @@ Write `grading.json` per run in skill-creator's shape:
 
 ```json
 {
-  "expectations": [{"text": "...", "passed": true, "evidence": "facts row axum-02; cargo build log line 14"}],
+  "expectations": [{"text": "...", "passed": true, "evidence": "facts row axum-02; build log line 14"}],
   "unverifiable": [{"text": "...", "evidence": "no facts row covers connection pool sizing"}],
   "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.83, "unverifiable": 1}
 }
@@ -203,18 +214,20 @@ Write `grading.json` per run in skill-creator's shape:
 `expectations` holds only scored assertions (`passed` true or false), because the viewer renders
 anything else as a failure; unverifiable ones go in the sibling `unverifiable` array, outside
 numerator and denominator, with their count in `summary`. Aggregate
-with `python "$SKILL_CREATOR/scripts/aggregate_benchmark.py" <dir> --skill-name <name>` when that
+with `python3 "$SKILL_CREATOR/scripts/aggregate_benchmark.py" <dir> --skill-name <name>` when that
 helper exists; it reads `eval-*/<config>/run-*/grading.json` and `timing.json`, ignores extra keys,
 and writes `benchmark.json` and `benchmark.md` into `<dir>` (`baseline/` in phase 2,
 `skill-workspace/iteration-N/` in phase 4). Its delta is the first configuration minus the second in
 the order it finds them (alphabetical within the first eval directory): right for `with_skill`
-against `without_skill`, inverted for `old_skill` against `with_skill`, so say which in the notes. The helper writes placeholder `metadata` values
-(`executor_model`, `runs_per_configuration`); correct them, and add invalid-run counts and
+against `without_skill`, inverted for `old_skill` against `with_skill`, so say which in the notes.
+The helper writes placeholder `metadata` values (`executor_model`, `runs_per_configuration`);
+correct them, and add invalid-run counts and
 per-split rates to `benchmark.md` by hand. With a single configuration, as in phase 2, ignore its
 second column and delta. Without the helper, write both files in its schema yourself. Report run
 spread for repeats.
 
-Then adjudicate development results only. Read each development failure and write `baseline/mistakes.md`:
+Then adjudicate development results only. Read each development failure and write
+`baseline/mistakes.md`:
 
 ```md
 # Baseline mistakes (model: <model id>, <date>)
@@ -254,8 +267,8 @@ Use these settings, with installed compatible skill-creator reporting helpers if
   run writes the same lint config or helper) means the skill should ship that file in `assets/` or
   `scripts/`.
 - **Budget.** `$BUILDER_DIR/scripts/token_budget.py` runs every iteration and its numbers go into
-  the iteration notes next to the pass rate. A pass-rate gain bought with a large token increase is examined for a
-  cheaper version.
+  the iteration notes next to the pass rate. A pass-rate gain bought with a large token increase is
+  examined for a cheaper version.
 
 ### Description optimization
 

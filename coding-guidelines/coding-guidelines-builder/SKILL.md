@@ -54,7 +54,7 @@ rather than measured mistakes.
 - The skill-creator skill. Read its installed SKILL.md and record its path as `SKILL_CREATOR`.
   Distributions differ: list its `scripts/` and use only helpers that exist. Never invent one.
 - This skill's directory, recorded as `BUILDER_DIR`. Run its scripts from the run folder as
-  `python "$BUILDER_DIR/scripts/<name>.py"`.
+  `python3 "$BUILDER_DIR/scripts/<name>.py"`.
 - Docker, or a host toolchain for platform-bound stacks (Apple SDKs, Windows-only frameworks).
 - Network access for research, registries, image pulls, and clones.
 
@@ -71,7 +71,7 @@ the file audit, and the re-run procedure.
 | 1 Research | `probe.md`, `facts/`, `sources.md`, `versions.json` | `references/research.md` |
 | 2 Tasks and baseline | toolchain installed, `tasks/`, `baseline/`, `mistakes.md` | `references/toolchain.md`, `references/eval-tasks.md` §1-4 |
 | 3 Draft | `examples/`, `skill/` | `references/content-rules.md`, `references/skill-layout.md` |
-| 4 Evaluate | `skill-workspace/iteration-N/`, frozen `skill/` with its description | `references/eval-tasks.md` §5-6, skill-creator SKILL.md |
+| 4 Evaluate | `skill-workspace/iteration-N/`, frozen `skill/` with its description | `references/eval-tasks.md` §2 and §4-6, skill-creator SKILL.md |
 | 5 Finish | packaged skill copied out, cleanup | this file |
 
 Phases are sequential and checkpointed in `manifest.md`. Changed inputs invalidate dependent phases.
@@ -113,17 +113,12 @@ blocks are copies of files in `examples/`, checked by `verify_examples.py`.
 
 ### Phase 4: Evaluate
 
-Hand off to skill-creator's loop with the adaptations in `references/eval-tasks.md` §5:
-
-- Development tasks drive iteration; held-out tasks run only in the final iteration and are never
-  read while revising.
-- Both configurations run through `claude -p` in isolated directories, the skill installed as a
-  project skill so triggering is real rather than a path in the prompt.
-- Assertions are scripted wherever the check is mechanical; reference reads are diagnostics.
-- `token_budget.py` runs every iteration and its numbers sit next to the pass rate.
-- Before the final iteration: description optimization, then ablation, both on development tasks.
-  Freeze the candidate, description included, before the holdout evaluation; never tune on holdout
-  results.
+Hand off to skill-creator's loop with the adaptations in `references/eval-tasks.md` §5: the same
+isolated `claude -p` runs and grading as phase 2, now in both configurations; development tasks
+drive iteration and held-out tasks are never read while revising; `token_budget.py` runs every
+iteration. Before the final iteration come description optimization and ablation, both on
+development tasks. Freeze the candidate, description included, before the holdout evaluation;
+never tune on holdout results.
 
 Stop development when the pass rate stops improving, when the user is satisfied, or after three
 iterations.

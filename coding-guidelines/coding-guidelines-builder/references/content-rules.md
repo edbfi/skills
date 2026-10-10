@@ -18,7 +18,8 @@ tags, recorded in `skill/PROVENANCE.md` against the section that holds it:
   a Contents list in a long reference. These hold no claims of their own; every row inside them
   still traces to one of the four tags above.
 
-No tag, no content. In particular, anything listed under "Done correctly without help" in
+A file in `assets/` or `scripts/` is cited by its path with section `*`. No tag, no content. In
+particular, anything listed under "Done correctly without help" in
 `mistakes.md` is excluded, however fundamental it feels. The model already does it; a sentence
 restating it costs tokens and buys nothing. `$BUILDER_DIR/scripts/check_provenance.py` fails on
 sections with no row and on anti-pattern rows with no grep. This is a structural check: separately
@@ -74,8 +75,8 @@ them.
   may use `<!-- example-exempt: reason -->`; the verifier reports exemptions for manual review.
   Use standalone fences with at most three leading spaces; normalize blockquote/list-prefixed
   fences and unfenced indented code before verification. The verifier conservatively rejects
-  indentation of four spaces outside fenced blocks, including prose with that indentation, so
-  nested lists use two-space indentation.
+  indentation of four spaces outside fenced blocks, including prose and HTML comments with that
+  indentation, so nested lists use two-space indentation.
 - Blocks are complete: real imports, realistic names, the setup the behaviour depends on. No
   ellipses, no undefined helpers in the logic being taught. A block that depends on omitted
   application code is labelled an excerpt and names what it depends on.

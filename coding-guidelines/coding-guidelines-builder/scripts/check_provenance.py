@@ -14,7 +14,9 @@ file | section | evidence | reference, and checks:
   with a nonempty reference; `structure` is accepted only for the fixed layout
   sections of SKILL.md (Decisions, Top mistakes, Check, Routing) and a Contents
   table of contents;
-- every row points at a heading that still exists (stale rows are reported);
+- every row naming SKILL.md or a references/*.md file points at a heading that
+  still exists (stale rows are reported); rows for other files, such as
+  assets/ or scripts/, are accepted as written;
 - every data row of the wrong / why / right / grep table in
   references/anti-patterns.md has a non-empty grep column. The table is found
   by its header, wherever it sits in the file.
@@ -159,6 +161,8 @@ def main(argv: list[str]) -> int:
                 print(f"{rel}: '{h}' has no evidence row")
                 failures += 1
     for key in sorted(covered - actual):
+        if key[0] != "skill.md" and not key[0].startswith("references/"):
+            continue
         print(f"stale evidence row: {key[0]} / {key[1]} (heading not found)")
         failures += 1
 

@@ -89,6 +89,12 @@ class ArtifactChecks(unittest.TestCase):
         self.assert_code(1, result)
         self.assertIn("'structure' is only for", result.stdout)
 
+    def test_provenance_accepts_rows_for_assets_and_scripts(self) -> None:
+        self.provenance("| SKILL.md | Rules | baseline | m-01 |\n| assets/clippy.toml | * | decision | d-03 |")
+        self.assert_code(0, self.run_script("check_provenance.py", self.skill))
+        self.provenance("| SKILL.md | Rules | baseline | m-01 |\n| references/gone.md | * | decision | d-03 |")
+        self.assert_code(1, self.run_script("check_provenance.py", self.skill))
+
     def test_provenance_requires_file_level_row_without_sections(self) -> None:
         self.provenance()
         self.write(self.skill / "references/versions.md", "# Versions\n\n| a | b |\n|---|---|\n| 1 | 2 |\n")
@@ -189,6 +195,16 @@ class ArtifactChecks(unittest.TestCase):
         synced = (self.skill / "SKILL.md").read_text()
         self.assertIn("~~~rust\nfn outer() {\n    let a = 1;\n}\n~~~", synced)
         self.assertIn("```md\n# Setup\n\n# region: Config\n\nSet FOO=1\nkeep\n```", synced)
+
+    def test_examples_sync_reports_unwritten_files(self) -> None:
+        self.write(self.examples / "a.py", "print(1)\n")
+        content = "<!-- example: a.py -->\n```python\nold\n```\n\n```text\nunmarked\n```\n"
+        self.write(self.skill / "SKILL.md", content)
+        result = self.run_script("verify_examples.py", self.skill, self.examples, "--sync")
+        self.assert_code(1, result)
+        self.assertIn("a.py: not written (0 unresolved, 1 unmarked block(s) in this file)", result.stdout)
+        self.assertNotIn(": synced", result.stdout)
+        self.assertEqual(content, (self.skill / "SKILL.md").read_text())
 
     def test_examples_widen_fence_when_source_contains_one(self) -> None:
         self.write(self.examples / "doc.md", "# Readme\n```sh\ncargo run\n```\n")
