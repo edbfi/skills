@@ -1,15 +1,14 @@
 # Tasks, baselines, and evaluation
 
-Baselines tell you what the model writes on this stack with no help. Graded against the facts, they
-give two lists: mistakes the skill must correct, and things the model already does right, which the
-skill must not restate. The same tasks later measure whether the skill works. Everything here is
-built to keep those measurements honest: the task author cannot see the answers, the baseline runner
-cannot see the skill, and the grader cannot grade from memory.
+Baselines identify mistakes the skill must correct and things it must not restate. The same tasks
+later measure the skill's effect. Task authors cannot see answers, baseline runners cannot see the
+skill, and graders must use evidence.
 
 ## 1. Writing tasks
 
-Spawn one subagent whose only inputs are the stack block, `services`, and this section. It never
-reads `research/`. If the task prompts contain the facts ("use the 2024 edition", "use `{id}` path
+Use an independent author whose only inputs are the stack block, `services`, and this section,
+with the tool/context restrictions in `runtime.md`. It never reads `research/` or researches the
+answers itself. If the task prompts contain facts ("use the 2024 edition", "use `{id}` path
 syntax"), the baseline measures reading comprehension, not knowledge.
 
 Start with 10 to 15 tasks, expanding when needed for component/split coverage. Each is what a
@@ -35,8 +34,10 @@ task author delivers them; their assertions are sealed in step 3. Run and adjudi
 development baselines during drafting. Holdouts run in both configurations only after the candidate
 is frozen; their outputs and failures never enter `baseline/mistakes.md` or any revision.
 
-Save as `tasks/evals.json` in skill-creator's format with three extra fields (`name`, `components`,
-`split`), and write each prompt with any fixture files to `tasks/<name>/`:
+Save as `tasks/evals.json` in the builder's schema below and write each prompt with any fixture
+files to `tasks/<name>/`. IDs are unique integers, names unique directory slugs, `files` fixture
+paths, `components` coverage tags, `split` either `dev` or `holdout`, and `expectations` an array
+of assertion strings sealed in §3. `expected_output` describes the requested artifact:
 
 ```json
 {
@@ -62,74 +63,101 @@ Assertions are written in step 3, after research, by you, not by the task author
 
 Each run happens in its own directory outside the run tree:
 `<root>/_runs/<run-id>/eval-<id>/<config>/run-<N>/`, where `<id>` is the task's integer id from
-`evals.json` and `<config>` is `without_skill`, `with_skill`, or `old_skill`. These directory names
-are what skill-creator's aggregator and viewer glob (`eval-*`, `run-*`); the task's name lives in
-`eval_metadata.json`. The directory contains only the task's fixture files, the compose file for
-services if the task needs them, and, for `with_skill`, the skill installed as a project skill at
-`.claude/skills/<skill-name>/`. The prompt is the task prompt and nothing more: no paths outside the
-directory, no mention of a skill. A task that needs services keeps its compose file in
-`tasks/<name>/`, outside the run directory; the harness starts it before the run under a unique
-project name (`docker compose -p "${RUN_ID}-e<id>-<config>-r<N>" up -d --wait`), the runner joins
-that project's network (`--network "<project>_default"`), and the task's fixture `.env` carries the
-connection string with the service name as host, as a developer's checkout would.
+`evals.json`. The controller supplies the task prompt from outside the workspace and captures logs
+outside the agent's access. Expose only fixture files, selected guidance, and declared tool/service
+paths. A service compose file stays in `tasks/<name>/`; the controller starts it with a unique
+project (`docker compose -p "${RUN_ID}-e<id>-<config>-r<N>" up -d --wait`) and joins the runner to
+its network. The fixture `.env` uses the service hostname. Reset service state for each condition.
 
-A new directory alone is not isolation. Use a disposable container or OS account with a clean
-home/configuration, no ancestor instruction files, plugins, user skills, or mounts of research and
-prior outputs. Provision authentication separately without copying personal instruction/settings
-directories. Inspect effective settings and record the runner configuration before any calls.
-Allow only task files, the selected project skill, and explicitly listed toolchain/system/cache
-paths. If effective instruction sources cannot be verified, mark isolation unverified and do not
-claim a measured skill improvement. Installing a project skill tests real description triggering.
+### Runner contract
 
-```bash
-cd "<root>/_runs/<run-id>/eval-<id>/<config>/run-<N>"
-timeout 30m claude -p "$(cat "$RUN_DIR/tasks/<name>/task.md")" \
-  --model "$MODEL_UNDER_TEST" --setting-sources project --permission-mode bypassPermissions \
-  --output-format stream-json --verbose --max-budget-usd "$RUN_BUDGET" \
-  > transcript.jsonl
-```
+Discover and record the runner/version, invocation, requested model/effort, runtime-reported model,
+supported permissions, instruction sources, loading method, completion signals, and limits before
+coding calls. Select native execution, a CLI, or an API/MCP coding harness meeting the same contract.
+`claude-runner-example.md` is an optional recipe only when that runner is selected.
 
-- `RUN_DIR` and `RUN_BUDGET` come from `manifest.md`. The prompt file stays in the run folder, so it
-  is neither a project file the agent sees nor part of `outputs/`; the `$(...)` expands on the host
-  even when the command is wrapped in `docker run`. `timeout` is coreutils (`gtimeout` on a stock
-  macOS host). Check `claude --help` for the flags this CLI version supports and record them;
-  `--setting-sources project` keeps user and local settings out. Record the model ID each run
-  reports and reject comparisons if the actual models differ.
-- Unattended runs need permission handling. `--permission-mode bypassPermissions` is acceptable
-  inside the runner container, where a non-root user sees only the task directory. In host mode use
-  `--permission-mode acceptEdits --allowedTools "Bash(cargo *)" ...` with the stack's commands
-  listed, and record the flags in `manifest.md` under Models.
-- Write `timing.json` with skill-creator's keys `total_tokens` (the sum of every token field under
-  `usage` in the final stream-json `result` event), `duration_ms`, and `total_duration_seconds`,
-  plus `total_cost_usd` from the same event, `model` (the ID the run reported), `exit_status`,
-  `result_status` (`complete`, `invalid`, or `contaminated`), and `reason` when not complete.
-  Missing completion events, timeouts, budget exhaustion, CLI/tool failures, and a build on an
-  unpinned toolchain are invalid runs, not zero-scoring task outputs. An invalid or contaminated run
-  gets no `grading.json`; move it to `eval-<id>/<config>/invalid/run-<N>-<attempt>/` with its
-  transcript and `timing.json` but without `outputs/`, so neither the aggregator (`run-*`) nor the
-  viewer (`outputs/`) picks it up, then retry into a fresh `run-<N>`. Diagnose before retrying; stop
-  after two failed retries.
-- Run the development tasks in parallel, as many as the machine and the toolchain cache tolerate.
-- After the run, copy the directory's working files to `outputs/` and move the whole thing under
-  `baseline/eval-<id>/without_skill/run-<N>/` (phase 2) or
-  `skill-workspace/iteration-N/eval-<id>/<config>/run-<N>/` (phase 4). Write `eval_metadata.json`
-  with skill-creator's keys `eval_id`, `eval_name`, `prompt`, `assertions` (the frozen expectations)
-  plus `split` and `components`, once at `eval-<id>/` for the aggregator and once in each
-  `eval-<id>/<config>/` for the viewer, which looks only beside and above a run directory. In phase
-  4 every `eval-<id>/` holds both configurations; the aggregator takes its configuration order from
-  the first one it finds. The viewer lists only top-level files of `outputs/`, so for coding tasks
-  share `benchmark.md` and the transcripts rather than relying on its Outputs tab.
+A new directory alone is not isolation. Use a disposable container/account or equivalent enforced
+access controls, with verified effective instructions: no inherited memory, ancestor instructions,
+user skills, plugins, hooks, or MCP access to research/other runs. Provision authentication separately
+from personal configuration. Record the allowed paths/tools/network and actual pinned toolchain.
+Research tools chosen for the orchestrator are not automatically enabled for task executors.
+Unknown isolation or model identity invalidates a run for measurement.
+
+Use the same runner/version, model, effort, fixtures, toolchain, tool access, limits, instruction
+baseline, and loading strategy across conditions. Only intended guidance presence/content differs.
+Changing those settings requires fresh baselines. Compare providers separately; their difference
+cannot be attributed to the skill. Record finite wall-clock/attempt limits and optional monetary
+caps as defined in `runtime.md`, with enforcement and completion/cancellation evidence. A final
+answer saying "done" is insufficient without the runner's completion signal and captured artifacts.
+
+### Loading and activation
+
+| Mode | Configurations | Treatment |
+|---|---|---|
+| `native` | `without_skill`, `with_skill`, `old_skill` | Discover the runner's supported project-skill path and test actual automatic discovery |
+| `explicit` | `without_skill`, `with_instructions`, `old_instructions` | Supply guidance through a separate instruction channel/file; this measures content, not triggering |
+
+Keep the task prompt byte-identical across conditions, with no instruction to invoke a skill.
+In explicit mode load the entrypoint and make references available on demand where supported;
+allowlist guidance paths only for that treatment. If all content must be injected eagerly, record
+strategy `eager` instead of `on_demand`; routing/reference-read diagnostics are not applicable and
+ablation measures content effects only. Record mode/strategy in benchmarks and delivered provenance.
+
+Smoke-test loading on a disposable fixture before evaluations, then use fresh task workspaces.
+Define activation evidence from actual runner observations: `observed`, `not_observed`, or `unknown`.
+Missing events mean `not_observed` only when logging of that event class is known to be complete;
+otherwise use `unknown`. For explicit mode use `not_applicable`. Neither a read nor an activation
+miss is a correctness assertion. Unknown native activation measures the effect of making the skill
+available without establishing that it was loaded.
+
+### Run artifacts
+
+Keep raw logs in their original format as `transcript.raw.<format>`; existing `transcript.jsonl`
+is also a raw artifact. Write the following records after the executor exits, never inside its
+accessible instruction/fixture set. JSON null denotes unknown, accompanied by a reason.
+
+`run.json` has `schema_version: 1` and these required fields:
+
+| Field | Shape and meaning |
+|---|---|
+| `runner` | Object: `name`, `version`, `invocation` (string), `settings` (object with instruction sources, tools, paths, network, permissions, toolchain identity) |
+| `model` | Object: `requested`, `reported`, `effort_requested`, `effort_reported`; strings or null, with `evidence` identifying trusted runtime/config output |
+| `loading` | Object: `mode` (`native`/`explicit`), `strategy` (`on_demand`/`eager`), `guidance_paths` (array; empty in baseline), `channel` (string) |
+| `isolation` | Object: `status` (`verified`/`unknown`/`contaminated`), `evidence` (array), `scan` (`checked`/`not_available`) |
+| `activation` | Object: `state` (`observed`/`not_observed`/`unknown`/`not_applicable`), `evidence` (array) |
+| `limits` | Object: positive `timeout_seconds`, positive total `max_attempts`, `max_cost_usd` (number or null), `cost_required` (boolean), `enforcement` (object) |
+| `completion` | Object: `state` (`complete`/`failed`/`timeout`/`cancelled`/`unknown`), `evidence` (array) |
+| `raw_logs`, `limitations` | Arrays of run-relative paths and explanatory strings, respectively; retain evidence/derivation references here |
+
+`timing.json` requires `duration_ms`, `total_duration_seconds` (duration/1000), `total_tokens`,
+`total_cost_usd`, `model` (reported ID or null), `exit_status` (integer or null for no process),
+`result_status` (`complete`/`invalid`/`contaminated`), `reason` (string or null), and
+`metric_notes` (object explaining null metrics and token-total basis/formula). Tokens use a documented
+provider total or a sum of verified disjoint categories; never sum overlapping cache fields. Retain
+raw categories; missing usage/cost is null, not zero. Derived estimates are identified in notes and
+kept separate from reported metrics in aggregation.
+
+Missing completion evidence, timeouts, exhausted limits, runner/tool failures, and unpinned builds
+are invalid, not zero-scoring task outputs. A task's ordinary compiler/test failure on the correct
+toolchain is a scored outcome. Invalid/contaminated runs get no `grading.json`; move their raw logs,
+`run.json`, and `timing.json` to `eval-<id>/<config>/invalid/run-<N>-<attempt>/`, without `outputs/`.
+Diagnose before retrying fresh; stop after two failed retries or the total attempt limit, whichever
+comes first. They never populate measured `mistakes.md` rows.
+
+For valid runs copy working artifacts to `outputs/` under `baseline/eval-<id>/without_skill/run-<N>/`
+or `skill-workspace/iteration-N/eval-<id>/<config>/run-<N>/`. Put `eval_metadata.json` at `eval-<id>/`
+and each configuration directory: `eval_id`, `eval_name`, `prompt`, `assertions` (frozen expectation
+strings), `split`, and `components`, copied from the sealed task record. Paired configurations must
+have identical metadata. Parallelize independent development runs only within available capacity.
 
 ### Contamination check
 
-Before grading, scan `transcript.jsonl` for any file read, glob, grep, or shell command whose path
-resolves outside the task directory and declared toolchain/system/cache allowlist, and for any
-skill/research/other-run access in a `without_skill` run. This supplements the clean-runner setup;
-transcripts cannot prove the absence of automatically injected instructions.
-A hit voids the run: treat it as invalid (no `grading.json`, `result_status: "contaminated"`) and
-re-run it. Also scan `with_skill` transcripts for the trigger signal: a `Skill` tool use naming the
-skill, or a `Read` of its `SKILL.md`. A with-skill run with neither is a triggering failure, graded
-as such, and the strongest signal that the description needs work (§5, Description optimization).
+Enforced access boundaries and verified instruction sources are primary evidence. Before grading,
+scan raw file/tool events when available for access outside the task and declared allowlist, including
+research/other-run access and any skill access in `without_skill`. Allow selected guidance only in
+the relevant treatment. A hit invalidates the run as contaminated regardless of other claims.
+When event logs are unavailable, record `scan: not_available`; verified controls may still establish
+isolation. A scan alone never proves it. Unknown isolation excludes measurement even if code builds.
 
 ## 3. Assertions
 
@@ -153,7 +181,7 @@ tasks only, later from the skill's anti-pattern table.
 
 Generic, scripted:
 
-- The project builds with the pinned toolchain in the container.
+- The project builds with the pinned toolchain in the selected execution environment.
 - The linter passes with warnings treated as errors, using the configuration the stack names (or the
   chosen default).
 - The formatter reports no changes.
@@ -186,45 +214,38 @@ Store assertions in `tasks/evals.json` under `expectations` and in each task's `
 Keep the generic scripted checks in `tasks/check.sh`, taking the project directory as its argument,
 plus a small task-specific script in `tasks/<name>/` where needed, so that every iteration grades
 the same way. `check.sh` contains only the stack's own commands, never `docker`, `RUN_ID`, or
-`.toolchain/` paths: the caller supplies the environment. The evals mount it read-only into the
-runner after the run, `docker run ... -v "$RUN_DIR/tasks/check.sh":/check.sh:ro "${RUN_ID}-runner"
-/check.sh /work`, so the agent never sees it; the end user's agent runs it directly. Phase 3 copies
+`.toolchain/` paths: the caller supplies the environment. The controller exposes the checks
+read-only after the coding run, through the selected runner, so the coding agent never sees the
+sealed assertions; the end user's agent runs the delivered checks directly. Phase 3 copies
 it unchanged to `skill/scripts/check.sh`, so the agent and the evals run the same command.
 
 ## 4. Grading baselines
 
-Spawn an independent grader with the task, frozen expectations, facts folder, `versions.json`,
-outputs/transcript, and scripted results. Use an installed compatible grader guide if available.
-Apply this rule:
+Use an independent grader with read-only access to the task, frozen expectations, facts folder,
+`versions.json`, outputs/transcript, and scripted results. Enforce the boundaries in `runtime.md`;
+the orchestrator runs checks separately. Apply this rule:
 
 > Your own knowledge of this stack may be out of date in exactly the ways the output is. For every
 > failed assertion, cite the facts row or the tool output that establishes the failure. An assertion
 > you cannot tie to a facts row or a tool output is graded `unverifiable`, not failed.
 
-Write `grading.json` per run in skill-creator's shape:
+Write `grading.json` per valid run using this builder-owned contract:
 
 ```json
 {
   "expectations": [{"text": "...", "passed": true, "evidence": "facts row axum-02; build log line 14"}],
   "unverifiable": [{"text": "...", "evidence": "no facts row covers connection pool sizing"}],
-  "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.83, "unverifiable": 1}
+  "summary": {"passed": 1, "failed": 0, "total": 1, "pass_rate": 1.0, "unverifiable": 1}
 }
 ```
 
-`expectations` holds only scored assertions (`passed` true or false), because the viewer renders
-anything else as a failure; unverifiable ones go in the sibling `unverifiable` array, outside
-numerator and denominator, with their count in `summary`. Aggregate
-with `python3 "$SKILL_CREATOR/scripts/aggregate_benchmark.py" <dir> --skill-name <name>` when that
-helper exists; it reads `eval-*/<config>/run-*/grading.json` and `timing.json`, ignores extra keys,
-and writes `benchmark.json` and `benchmark.md` into `<dir>` (`baseline/` in phase 2,
-`skill-workspace/iteration-N/` in phase 4). Its delta is the first configuration minus the second in
-the order it finds them (alphabetical within the first eval directory): right for `with_skill`
-against `without_skill`, inverted for `old_skill` against `with_skill`, so say which in the notes.
-The helper writes placeholder `metadata` values (`executor_model`, `runs_per_configuration`);
-correct them, and add invalid-run counts and
-per-split rates to `benchmark.md` by hand. With a single configuration, as in phase 2, ignore its
-second column and delta. Without the helper, write both files in its schema yourself. Report run
-spread for repeats.
+`expectations` holds only scored assertions (`passed` true or false); unverifiable ones go in the
+sibling `unverifiable` array, outside numerator and denominator. `summary.total` is passed + failed;
+`pass_rate` is passed / total, or null when total is zero. Counts must match the arrays.
+
+Use `benchmark-report.md` to write canonical `benchmark.json` and `benchmark.md`, including
+coverage, null metrics, invalid attempts, and explicit comparison direction. Reporting helpers are
+optional and must preserve that contract.
 
 Then adjudicate development results only. Read each development failure and write
 `baseline/mistakes.md`:
@@ -243,24 +264,23 @@ Then adjudicate development results only. Read each development failure and writ
 - Structured logging with `tracing`; spans around handlers.
 ```
 
-The second list is binding on phase 3: nothing in it goes into the skill. Resist the urge to add it
-"for completeness"; completeness is the bloat.
+The second list is binding on phase 3: nothing in it goes into the skill.
 
 Grader false positives happen. A failure you cannot reproduce against the facts is dropped, with a
 note in the grading file's `evidence`, not promoted to a mistake.
 
 ## 5. The iteration loop
 
-Use these settings, with installed compatible skill-creator reporting helpers if available:
+Use these settings; compatible reporting helpers are optional:
 
 - **Configurations.** New skill: `with_skill` vs `without_skill`. Re-run: `with_skill` vs
   `old_skill`, installed from `skill-workspace/skill-snapshot/`, the copy phase 0 made before
-  anything edited `skill/`.
-- **Repeats.** One run per task per configuration while iterating; three in the final iteration so
-  the mean and spread are meaningful. Variance between runs of the same prompt is large enough that
-  a single-run delta on one task means little; look at the pattern across tasks.
-- **What to read when revising.** The development tasks' transcripts and outputs, the viewer
-  feedback, and `benchmark.md`. Not the held-out tasks.
+  anything edited `skill/`. Explicit loading uses `with_instructions` vs `without_skill`, or
+  `with_instructions` vs `old_instructions` for a refresh. Keep the loading strategy fixed.
+- **Repeats.** One run per task per configuration while iterating; three in the final iteration.
+  Report mean and spread; a single-run delta on one task is insufficient evidence.
+- **What to read when revising.** The development tasks' transcripts and outputs, `benchmark.md`,
+  and viewer feedback when available. Not the held-out tasks.
 - **Where improvements come from.** A failed assertion with the skill present means the skill either
   did not say it, said it where the agent did not look (routing), or said it in a way the agent
   overrode. Read the transcript to find which before adding text. Repeated work across runs (every
@@ -272,46 +292,38 @@ Use these settings, with installed compatible skill-creator reporting helpers if
 
 ### Description optimization
 
-Before ablation, on development tasks only. Write about twenty trigger queries to
-`skill-workspace/description/trigger-evals.json` in skill-creator's shape,
+Before ablation, on development tasks only and only for observable native discovery. Write about
+twenty trigger queries to `skill-workspace/description/trigger-evals.json` as
 `[{"query": "...", "should_trigger": true}]`: coding tasks whose project context establishes the
 stack without naming a framework, adjacent-stack near misses, projects using one component outside
-this combination, and non-coding questions about the stack. If `run_loop.py` is installed, run it
-from a disposable directory that contains an empty `.claude/`: it plants a command stub in the
-nearest `.claude/commands/` above its working directory and measures triggering of that stub, not of
-the installed project skill, so its result is a candidate description, not a measurement.
+this combination, and non-coding questions about the stack. Run fresh contexts through the actual
+project-skill discovery path. In `description/results.json`, record each query, expected decision,
+observed activation state, and supporting events. Revise from observed development misses within
+the run budget, then recheck the real discovery path. Helpers may propose descriptions only after
+their behavior is inspected; command-stub triggering is not installed-skill triggering.
 
-```bash
-mkdir -p skill-workspace/description/.claude && cd skill-workspace/description
-PYTHONPATH="$SKILL_CREATOR" python -m scripts.run_loop \
-  --eval-set trigger-evals.json --skill-path ../../skill --model "$MODEL_UNDER_TEST" \
-  --max-iterations 5 --results-dir . --report none --verbose
-```
-
-It writes `<timestamp>/results.json` under the results directory and, by default, holds out 40%
-of the queries (`--holdout`) to pick `best_description`. Apply that description to
-`skill/SKILL.md`, then confirm it on the real path: the ablation's `with_skill` runs, which follow
-next, must all show the trigger signal (§2). A failure there is fixed and re-confirmed on
-development tasks before the freeze. Without the helper, inspect triggering in development
-transcripts and revise the description by hand.
+Unknown activation does not become a failed correctness assertion, an invented triggering rate,
+or an unbounded retry loop. If activation remains unobservable, freeze when the other gates pass
+and record the limitation in the manifest, benchmark, provenance, and delivery. Explicit loading
+skips description optimization and reports automatic discovery as untested. Never tune from holdout
+queries or held-out coding results.
 
 ### Ablation
 
 Before the final iteration, compare each removable H2 section or reference against the full skill
 on the affected development tasks, three runs per condition. Each comparison gets its own
 directory, `skill-workspace/ablation/<section-slug>/eval-<id>/<config>/run-<N>/`, with the
-configurations `with_skill` (the full candidate) and `without_section` (the variant), so the
-aggregator's delta reads full minus variant; aggregate each `<section-slug>/` directory
+configurations `with_skill` (or `with_instructions`, the full candidate) and `without_section`
+(the variant), with the same loading strategy. Declare the delta as full minus variant; aggregate
+each `<section-slug>/` directory
 separately. Run the full candidate once, three runs per task, and copy those runs into every
-`<section-slug>/` directory, so the cost is (sections + 1) × tasks × 3. Keeping ablation outside `iteration-N/` keeps it out of the viewer. Repair routing when
+`<section-slug>/` directory, so the cost is (sections + 1) × tasks × 3. Keeping ablation outside
+`iteration-N/` keeps its comparisons separate. Repair routing when
 removing a reference. Grade task outcomes, not file reads or missing provenance rows in the
 temporary variant. Restore after each comparison. Delete content only when outcomes consistently
 show no loss; retain guidance when results are noisy or coverage is insufficient. Explicit
 constraints and verified compatibility requirements remain even if tasks do not exercise them.
 Record the comparisons in `skill-workspace/ablation/ablation.md`.
-
-Ablation is where "it seemed important" meets measurement. Expect to delete more than feels
-comfortable.
 
 ### Final iteration
 
@@ -325,7 +337,9 @@ A full iteration is tasks × configurations × repeats coding runs, each with bu
 the budget is tight: repeats during iteration (already one), blind comparison (skip entirely),
 iterations beyond two, parallelism rather than task count. Do not cut the held-out split, the
 scripted assertions, or the ablation; they are what makes the output trustworthy. Description
-optimization is many calls but each is a trigger decision rather than a coding run; keep it.
+optimization applies when native discovery is observable. Count trigger calls, coding calls, and
+retries against the declared attempt budget. Reduce scope or checkpoint incomplete work before
+exceeding a limit; do not omit mandatory evidence and claim completion.
 
-Share the viewer or Markdown benchmark as soon as it is ready. Continue authorized development
-work while feedback is pending; a viewer is not a required approval gate.
+Share the Markdown benchmark and optional viewer when ready. Continue authorized development
+while feedback is pending; a viewer is not an approval gate.

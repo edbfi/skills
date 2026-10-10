@@ -18,6 +18,12 @@ tags, recorded in `skill/PROVENANCE.md` against the section that holds it:
   a Contents list in a long reference. These hold no claims of their own; every row inside them
   still traces to one of the four tags above.
 
+Baseline evidence and the binding "Done correctly without help" exclusions apply to the recorded
+model, runner, effort, and instruction baseline. Re-baseline before transferring them to another
+configuration. When no independent probe was available, the `probe` tag is unavailable; record that
+coverage limit and admit claims through the remaining evidence tags. Do not create probe beliefs
+from the orchestrator's post-research knowledge.
+
 A file in `assets/` or `scripts/` is cited by its path with section `*`. No tag, no content. In
 particular, anything listed under "Done correctly without help" in
 `mistakes.md` is excluded, however fundamental it feels. The model already does it; a sentence
