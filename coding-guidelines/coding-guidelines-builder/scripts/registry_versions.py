@@ -39,7 +39,10 @@ def fetch_json(url: str) -> object:
 
 def load_json(path: str) -> object:
     with open(path, encoding="utf-8") as fh:
-        return cast("object", json.load(fh))
+        try:
+            return cast("object", json.load(fh))
+        except ValueError as e:  # JSONDecodeError and UnicodeDecodeError name no file
+            raise ValueError(f"{path}: {e}") from e
 
 
 def get(value: object, key: str) -> object:
@@ -129,14 +132,18 @@ def main(argv: list[str]) -> int:
     if not args:
         print(__doc__, file=sys.stderr)
         return 2
-    components = array(load_json(args[0]))
+    prev_path = argv[argv.index("--previous") + 1] if "--previous" in argv else None
+    try:
+        components = array(load_json(args[0]))
+        prev = load_json(prev_path) if prev_path else None
+    except (OSError, ValueError) as e:  # unreadable file or invalid JSON
+        print(f"cannot read input: {e}", file=sys.stderr)
+        return 2
     if components is None:
         print(f"{args[0]}: expected a JSON array of components", file=sys.stderr)
         return 2
     previous: dict[object, object] = {}
-    if "--previous" in argv:
-        prev_path = argv[argv.index("--previous") + 1]
-        prev = load_json(prev_path)
+    if prev_path:
         previous = {require(c, "name"): get(c, "latest") for c in array(get(prev, "components")) or []}
 
     out: list[dict[str, object]] = []
