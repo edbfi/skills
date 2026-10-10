@@ -61,7 +61,7 @@ agent-browser skills get core --full   # full command reference, when you need a
 
 The run uses **one browser**. Every agent attaches to it over CDP with its own session and a pinned tab. One browser means Cloudflare clearance is earned once and shared by every tab. It also keeps the run to one license seat when agent-browser launches a seat-licensed browser through `executablePath`, such as CloakBrowser, whose cheaper plans allow a single concurrent session. Separate sessions would each launch a browser and take a seat each.
 
-Names come from the run folder's random suffix (`2026-09-27_1415_k3f9qa1x` gives `k3f9qa1x`):
+Names come from the run folder's random suffix, everything after the date and time (`2026-09-27_1415_k3f9qa1x` gives `k3f9qa1x`; the suffix can itself contain `_`). `init` writes the host name into `STATUS.md`, so copy it from there rather than deriving it:
 
 | Session | Name | Used for |
 |---|---|---|

@@ -184,8 +184,8 @@ def cmd_init(args: argparse.Namespace) -> None:
         _ = (run / "fonts" / font.name).write_bytes(font.read_bytes())
     browser = cast("str", args.browser)
     if browser == "agent-browser":
-        # The random suffix of the run folder keeps session names unique per run.
-        host = f"letvps-{run.name.rsplit('_', 1)[-1].lower()}"
+        # The whole random suffix keeps session names unique per run; it may itself contain "_".
+        host = f"letvps-{run.name.removeprefix(f'{stamp}_')}"
         handle = f"host session `{host}`, CDP URL not recorded yet; workers use `{host}-<assignment>`"
     else:
         handle = "TaskSpace ID not recorded yet"
