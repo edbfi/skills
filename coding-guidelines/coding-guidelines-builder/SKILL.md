@@ -76,7 +76,7 @@ the file audit, and the re-run procedure.
 | 1 Research | `probe.md`, `facts/`, `sources.md`, `versions.json` | `references/research.md` |
 | 2 Tasks and baseline | toolchain installed, `tasks/`, `baseline/`, `mistakes.md` | `references/toolchain.md`, `references/eval-tasks.md` §1-4, `references/benchmark-report.md` |
 | 3 Draft | `examples/`, `skill/` | `references/content-rules.md`, `references/skill-layout.md` |
-| 4 Evaluate | `skill-workspace/iteration-N/`, frozen `skill/` with its description | `references/eval-tasks.md` §2 and §4-6 |
+| 4 Evaluate | `skill-workspace/iteration-N/`, frozen `skill/` with its description | `references/eval-tasks.md` §2 and §4-6, `references/benchmark-report.md` |
 | 5 Finish | packaged skill copied out, cleanup | this file |
 
 Phases are sequential and checkpointed in `manifest.md`. Changed inputs invalidate dependent phases.
