@@ -20,7 +20,9 @@ import os
 import re
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
+from typing import NoReturn, cast
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 ASSETS = SKILL_DIR / "assets"
@@ -101,7 +103,7 @@ def now() -> str:
     return dt.datetime.now().astimezone().isoformat(timespec="seconds")
 
 
-def fail(message: str) -> None:
+def fail(message: str) -> NoReturn:
     raise SystemExit(f"error: {message}")
 
 
@@ -163,8 +165,10 @@ def apply(rows: dict[str, dict[str, str]], table: str, incoming: dict[str, str])
     return "updated" if existing else "added"
 
 
+# Each cmd_* reads its options with cast(): argparse produced them from the parser in main().
 def cmd_init(args: argparse.Namespace) -> None:
-    base = Path(args.base).expanduser()
+    base = Path(cast("str", args.base)).expanduser()
+    archive = Path(cast("str", args.archive)).expanduser()
     base.mkdir(parents=True, exist_ok=True)
     stamp = dt.datetime.now().strftime("%Y-%m-%d_%H%M")
     run = Path(tempfile.mkdtemp(prefix=f"{stamp}_", dir=base))
@@ -172,23 +176,25 @@ def cmd_init(args: argparse.Namespace) -> None:
         (run / sub).mkdir(parents=True, exist_ok=True)
     for table in TABLES:
         write_table(run, table, {})
-    (run / "report.html").write_text(TEMPLATE.read_text(encoding="utf-8"), encoding="utf-8")
+    _ = (run / "report.html").write_text(TEMPLATE.read_text(encoding="utf-8"), encoding="utf-8")
     for font in (ASSETS / "fonts").glob("*.woff2"):
-        (run / "fonts" / font.name).write_bytes(font.read_bytes())
-    (run / "STATUS.md").write_text(
-        STATUS_TEMPLATE.format(run_id=run.name, run=run, archive=Path(args.archive).expanduser(), now=now(), script=Path(__file__).resolve()),
+        _ = (run / "fonts" / font.name).write_bytes(font.read_bytes())
+    _ = (run / "STATUS.md").write_text(
+        STATUS_TEMPLATE.format(run_id=run.name, run=run, archive=archive, now=now(), script=Path(__file__).resolve()),
         encoding="utf-8",
     )
     print(run)
 
 
 def cmd_merge(args: argparse.Namespace) -> None:
-    run = Path(args.run)
+    run = Path(cast("str", args.run))
+    files = cast("list[str]", args.files)
+    dry_run = cast("bool", args.dry_run)
     loaded: dict[str, dict[str, dict[str, str]]] = {}
     counts: dict[tuple[str, str], int] = {}
-    for name in args.files:
+    for name in files:
         text = Path(name).read_text(encoding="utf-8")
-        blocks = BLOCK_RE.findall(text)
+        blocks = [(match[1], match[2]) for match in BLOCK_RE.finditer(text)]
         if not blocks:
             print(f"warning: {name} has no ```csv <table>``` blocks", file=sys.stderr)
         for table, body in blocks:
@@ -200,31 +206,34 @@ def cmd_merge(args: argparse.Namespace) -> None:
                     fail(f"{name}: {table} row has more cells than its header: {incoming[None]}")
                 result = apply(rows, table, incoming)
                 counts[(table, result)] = counts.get((table, result), 0) + 1
-    if not args.dry_run:
+    if not dry_run:
         for table, rows in loaded.items():
             write_table(run, table, rows)
     for (table, result), count in sorted(counts.items()):
         print(f"{table}: {count} {result}")
-    if args.dry_run:
+    if dry_run:
         print("dry run: ledger unchanged")
 
 
 def cmd_upsert(args: argparse.Namespace) -> None:
-    run = Path(args.run)
-    if args.table not in TABLES:
-        fail(f"unknown table {args.table!r}")
-    key = TABLES[args.table][0]
-    incoming = {key: args.key}
-    for pair in args.fields:
+    run = Path(cast("str", args.run))
+    table = cast("str", args.table)
+    ident = cast("str", args.key)
+    fields = cast("list[str]", args.fields)
+    if table not in TABLES:
+        fail(f"unknown table {table!r}")
+    key = TABLES[table][0]
+    incoming = {key: ident}
+    for pair in fields:
         column, sep, value = pair.partition("=")
         if not sep:
             fail(f"expected column=value, got {pair!r}")
         incoming[column] = value
-    if "updated" in TABLES[args.table][1] and "updated" not in incoming:
+    if "updated" in TABLES[table][1] and "updated" not in incoming:
         incoming["updated"] = now()
-    rows = read_table(run, args.table)
-    print(f"{args.table} {args.key}: {apply(rows, args.table, incoming)}")
-    write_table(run, args.table, rows)
+    rows = read_table(run, table)
+    print(f"{table} {ident}: {apply(rows, table, incoming)}")
+    write_table(run, table, rows)
 
 
 def tally(rows: dict[str, dict[str, str]], column: str) -> str:
@@ -243,7 +252,8 @@ def as_float(value: str) -> float:
 
 
 def cmd_summary(args: argparse.Namespace) -> None:
-    run = Path(args.run)
+    run = Path(cast("str", args.run))
+    top = cast("int", args.top)
     t = {table: read_table(run, table) for table in TABLES}
     pages = sorted(int(p) for p in t["listings"] if p.isdigit())
     comment_pages = sum(len(split_list(row["pages_read"])) for row in t["threads"].values())
@@ -260,7 +270,7 @@ def cmd_summary(args: argparse.Namespace) -> None:
     annual = sorted((c for c in verified if c["billing_term"] == "annual" and c["connectivity"] in {"", "ipv4"}), key=lambda c: as_float(c["first_year_eur"]))
     if annual:
         print("\nVerified annual plans with public IPv4, cheapest first:")
-        for rank, c in enumerate(annual[: args.top], 1):
+        for rank, c in enumerate(annual[:top], 1):
             print(f"{rank}. {c['candidate_id']}: {c['plan']} ({c['location']}) {c['vcpu']} vCPU/{c['ram_gb']} GB, EUR {c['first_year_eur']} first year, renewal {c['renewal_eur'] or 'unknown'}")
         six = next((c for c in annual if as_float(c["vcpu"]) >= 6), None)
         if six:
@@ -268,19 +278,22 @@ def cmd_summary(args: argparse.Namespace) -> None:
 
 
 def locked_blocks(html: str) -> list[tuple[str, str]]:
-    return [(tag.lower(), body.strip()) for tag, body in LOCKED_RE.findall(html)]
+    return [(match[1].lower(), match[2].strip()) for match in LOCKED_RE.finditer(html)]
 
 
 def slots(html: str) -> list[tuple[str, str]]:
-    return SLOT_RE.findall(html)
+    return [(match[1], match[2]) for match in SLOT_RE.finditer(html)]
 
 
 def cmd_publish(args: argparse.Namespace) -> None:
-    run = Path(args.run)
+    run = Path(cast("str", args.run))
+    archive = Path(cast("str", args.archive)).expanduser()
+    partial = cast("bool", args.partial)
+    date_text = cast("str | None", args.date)
     report = run / "report.html"
     html = report.read_text(encoding="utf-8")
     template = TEMPLATE.read_text(encoding="utf-8")
-    errors = []
+    errors: list[str] = []
     if locked_blocks(html) != locked_blocks(template):
         errors.append("<style> or <script> differs from the template; fill slots only and leave the design unchanged")
     if slots(html) != slots(template):
@@ -302,10 +315,10 @@ def cmd_publish(args: argparse.Namespace) -> None:
         return f'url("data:font/woff2;base64,{base64.b64encode(path.read_bytes()).decode()}")'
 
     output = FONT_URL_RE.sub(inline, html)
-    date = dt.date.fromisoformat(args.date) if args.date else dt.date.today()
-    folder = Path(args.archive).expanduser() / f"{date:%Y}"
+    date = dt.date.fromisoformat(date_text) if date_text else dt.date.today()
+    folder = archive / f"{date:%Y}"
     folder.mkdir(parents=True, exist_ok=True)
-    suffix = "_PARTIAL" if args.partial else ""
+    suffix = "_PARTIAL" if partial else ""
     marker = run / ".published"
     previous = Path(marker.read_text(encoding="utf-8").strip()) if marker.is_file() else None
     target = folder / f"{date:%Y-%m-%d}_let-vps-report{suffix}.html"
@@ -317,16 +330,16 @@ def cmd_publish(args: argparse.Namespace) -> None:
             n += 1
     fd, tmp = tempfile.mkstemp(dir=folder, prefix=".let-vps-", suffix=".html")
     with os.fdopen(fd, "w", encoding="utf-8") as handle:
-        handle.write(output)
+        _ = handle.write(output)
     umask = os.umask(0)
-    os.umask(umask)
+    _ = os.umask(umask)
     os.chmod(tmp, 0o666 & ~umask)
     os.replace(tmp, target)
     # One archived document per run: a later publish replaces this run's earlier file.
     if previous and previous != target and previous.is_file():
         previous.unlink()
         print(f"replaced {previous}")
-    marker.write_text(str(target), encoding="utf-8")
+    _ = marker.write_text(str(target), encoding="utf-8")
     print(target)
 
 
@@ -335,37 +348,38 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("init", help="create a run folder and print its path")
-    p.add_argument("--base", default=str(DEFAULT_BASE), help=f"parent folder (default {DEFAULT_BASE})")
-    p.add_argument("--archive", default=str(DEFAULT_ARCHIVE), help="archive folder recorded in STATUS.md")
+    _ = p.add_argument("--base", default=str(DEFAULT_BASE), help=f"parent folder (default {DEFAULT_BASE})")
+    _ = p.add_argument("--archive", default=str(DEFAULT_ARCHIVE), help="archive folder recorded in STATUS.md")
     p.set_defaults(func=cmd_init)
 
     p = sub.add_parser("merge", help="merge worker files into the ledger")
-    p.add_argument("run")
-    p.add_argument("files", nargs="+")
-    p.add_argument("--dry-run", action="store_true")
+    _ = p.add_argument("run")
+    _ = p.add_argument("files", nargs="+")
+    _ = p.add_argument("--dry-run", action="store_true")
     p.set_defaults(func=cmd_merge)
 
     p = sub.add_parser("upsert", help="set fields on one row: upsert RUN TABLE KEY col=value ...")
-    p.add_argument("run")
-    p.add_argument("table")
-    p.add_argument("key")
-    p.add_argument("fields", nargs="*")
+    _ = p.add_argument("run")
+    _ = p.add_argument("table")
+    _ = p.add_argument("key")
+    _ = p.add_argument("fields", nargs="*")
     p.set_defaults(func=cmd_upsert)
 
     p = sub.add_parser("summary", help="print counters and the verified ranking")
-    p.add_argument("run")
-    p.add_argument("--top", type=int, default=10)
+    _ = p.add_argument("run")
+    _ = p.add_argument("--top", type=int, default=10)
     p.set_defaults(func=cmd_summary)
 
     p = sub.add_parser("publish", help="validate report.html and copy it to <archive>/<year>/")
-    p.add_argument("run")
-    p.add_argument("--archive", default=str(DEFAULT_ARCHIVE), help=f"archive folder (default {DEFAULT_ARCHIVE})")
-    p.add_argument("--partial", action="store_true", help="mark the report as partial coverage")
-    p.add_argument("--date", help="report date YYYY-MM-DD (default today)")
+    _ = p.add_argument("run")
+    _ = p.add_argument("--archive", default=str(DEFAULT_ARCHIVE), help=f"archive folder (default {DEFAULT_ARCHIVE})")
+    _ = p.add_argument("--partial", action="store_true", help="mark the report as partial coverage")
+    _ = p.add_argument("--date", help="report date YYYY-MM-DD (default today)")
     p.set_defaults(func=cmd_publish)
 
     args = parser.parse_args()
-    args.func(args)
+    func = cast("Callable[[argparse.Namespace], None]", args.func)  # every subparser sets func
+    func(args)
 
 
 if __name__ == "__main__":

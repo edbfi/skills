@@ -116,7 +116,7 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
         out.append(line)
         i += 1
     if sync and mismatches:
-        md.write_text("\n".join(out) + "\n", encoding="utf-8")
+        _ = md.write_text("\n".join(out) + "\n", encoding="utf-8")
     return mismatches, missing, unmarked
 
 

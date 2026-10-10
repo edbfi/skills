@@ -23,22 +23,64 @@ import sys
 import urllib.parse
 import urllib.request
 from datetime import date
+from http.client import HTTPResponse
+from typing import cast
 
 UA = "coding-guidelines-builder/1 (+registry version snapshot)"
 PRERELEASE = re.compile(r"[-+]|(?:a|b|rc|alpha|beta|dev|pre|preview|nightly)\d*$", re.I)
 
 
-def fetch_json(url: str) -> dict | list:
+def fetch_json(url: str) -> object:
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        return json.load(resp)
+    # urlopen is typed Any; for http(s) URLs it is documented to return an HTTPResponse.
+    with cast("HTTPResponse", urllib.request.urlopen(req, timeout=30)) as resp:
+        return cast("object", json.load(resp))
+
+
+def load_json(path: str) -> object:
+    with open(path, encoding="utf-8") as fh:
+        try:
+            return cast("object", json.load(fh))
+        except ValueError as e:  # JSONDecodeError and UnicodeDecodeError name no file
+            raise ValueError(f"{path}: {e}") from e
+
+
+def get(value: object, key: str) -> object:
+    """``value.get(key)`` on a parsed JSON object; None for any other JSON value."""
+    if not isinstance(value, dict):
+        return None
+    return cast("dict[str, object]", value).get(key)  # JSON object keys are always strings
+
+
+def require(value: object, key: str) -> object:
+    """``value[key]`` on a parsed JSON object; KeyError like the lookup it replaces."""
+    if isinstance(value, dict):
+        members = cast("dict[str, object]", value)  # JSON object keys are always strings
+        if key in members:
+            return members[key]
+    raise KeyError(key)
+
+
+def array(value: object) -> list[object] | None:
+    """The items of a parsed JSON array; None for any other JSON value."""
+    return cast("list[object]", value) if isinstance(value, list) else None
+
+
+def text(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"expected a string, got {value!r}")
+    return value
+
+
+def version(value: object) -> str | None:
+    return value if isinstance(value, str) else None
 
 
 def is_stable(v: str) -> bool:
     return not PRERELEASE.search(v)
 
 
-def version_key(v: str) -> tuple:
+def version_key(v: str) -> tuple[int, ...]:
     return tuple(int(p) if p.isdigit() else -1 for p in re.split(r"[.\-+]", v))
 
 
@@ -53,33 +95,35 @@ def go_escape(module: str) -> str:
 
 def latest(registry: str, package: str) -> str | None:
     if registry == "crates":
-        d = fetch_json(f"https://crates.io/api/v1/crates/{urllib.parse.quote(package)}")
-        return d["crate"].get("max_stable_version") or d["crate"].get("max_version")
+        crate = require(fetch_json(f"https://crates.io/api/v1/crates/{urllib.parse.quote(package)}"), "crate")
+        return version(get(crate, "max_stable_version")) or version(get(crate, "max_version"))
     if registry == "npm":
         d = fetch_json(f"https://registry.npmjs.org/{urllib.parse.quote(package, safe='@')}")
-        return d.get("dist-tags", {}).get("latest")
+        return version(get(get(d, "dist-tags"), "latest"))
     if registry == "pypi":
         d = fetch_json(f"https://pypi.org/pypi/{urllib.parse.quote(package)}/json")
-        v = d["info"]["version"]
-        return v if is_stable(v) else newest_stable(list(d.get("releases", {})))
+        v = text(require(require(d, "info"), "version"))
+        releases = get(d, "releases")
+        keys = list(cast("dict[str, object]", releases)) if isinstance(releases, dict) else []  # JSON object keys are always strings
+        return v if is_stable(v) else newest_stable(keys)
     if registry == "go":
         d = fetch_json(f"https://proxy.golang.org/{go_escape(package)}/@latest")
-        return d.get("Version")
+        return version(get(d, "Version"))
     if registry == "rubygems":
         d = fetch_json(f"https://rubygems.org/api/v1/versions/{urllib.parse.quote(package)}/latest.json")
-        return d.get("version")
+        return version(get(d, "version"))
     if registry == "hex":
         d = fetch_json(f"https://hex.pm/api/packages/{urllib.parse.quote(package)}")
-        return d.get("latest_stable_version") or d.get("latest_version")
+        return version(get(d, "latest_stable_version")) or version(get(d, "latest_version"))
     if registry == "maven":
         group, _, artifact = package.partition(":")
         q = urllib.parse.quote(f'g:"{group}" AND a:"{artifact}"')
         d = fetch_json(f"https://search.maven.org/solrsearch/select?q={q}&rows=1&wt=json")
-        docs = d.get("response", {}).get("docs", [])
-        return docs[0].get("latestVersion") if docs else None
+        docs = array(get(get(d, "response"), "docs")) or []
+        return version(get(docs[0], "latestVersion")) if docs else None
     if registry == "nuget":
         d = fetch_json(f"https://api.nuget.org/v3-flatcontainer/{package.lower()}/index.json")
-        return newest_stable(d.get("versions", []))
+        return newest_stable([v for v in array(get(d, "versions")) or [] if isinstance(v, str)])
     raise ValueError(f"unsupported registry: {registry}")
 
 
@@ -88,32 +132,42 @@ def main(argv: list[str]) -> int:
     if not args:
         print(__doc__, file=sys.stderr)
         return 2
-    components = json.load(open(args[0], encoding="utf-8"))
-    previous: dict[str, str | None] = {}
-    if "--previous" in argv:
-        prev_path = argv[argv.index("--previous") + 1]
-        prev = json.load(open(prev_path, encoding="utf-8"))
-        previous = {c["name"]: c.get("latest") for c in prev.get("components", [])}
+    prev_path = argv[argv.index("--previous") + 1] if "--previous" in argv else None
+    try:
+        components = array(load_json(args[0]))
+        prev = load_json(prev_path) if prev_path else None
+    except (OSError, ValueError) as e:  # unreadable file or invalid JSON
+        print(f"cannot read input: {e}", file=sys.stderr)
+        return 2
+    if components is None:
+        print(f"{args[0]}: expected a JSON array of components", file=sys.stderr)
+        return 2
+    previous: dict[object, object] = {}
+    if prev_path:
+        previous = {require(c, "name"): get(c, "latest") for c in array(get(prev, "components")) or []}
 
-    out = []
+    out: list[dict[str, object]] = []
     failures = 0
     for c in components:
-        entry = {"name": c["name"], "registry": c.get("registry"), "package": c.get("package"), "latest": None}
-        if c.get("registry"):
+        name = require(c, "name")
+        registry = get(c, "registry")
+        entry: dict[str, object] = {"name": name, "registry": registry, "package": get(c, "package"), "latest": None}
+        if registry:
             try:
-                entry["latest"] = latest(c["registry"], c["package"])
+                entry["latest"] = latest(text(registry), text(require(c, "package")))
             except (OSError, KeyError, ValueError) as e:  # OSError covers URLError and read timeouts
                 entry["error"] = str(e)
                 failures += 1
-                print(f"{c['name']}: {e}", file=sys.stderr)
+                print(f"{name}: {e}", file=sys.stderr)
         else:
             entry["note"] = "no registry; fill from source tags or toolchain version command"
         if previous:
-            before = previous.get(c["name"])
+            before = previous.get(name)
             entry["previous"] = before
-            entry["changed"] = bool(entry["latest"]) and before != entry["latest"]
-            if entry["changed"]:
-                print(f"changed: {c['name']} {before} -> {entry['latest']}", file=sys.stderr)
+            changed = bool(entry["latest"]) and before != entry["latest"]
+            entry["changed"] = changed
+            if changed:
+                print(f"changed: {name} {before} -> {entry['latest']}", file=sys.stderr)
         out.append(entry)
 
     json.dump({"generated": date.today().isoformat(), "components": out}, sys.stdout, indent=2)

@@ -6,7 +6,7 @@ import subprocess
 root = Path(__file__).resolve().parents[1]
 tracked = subprocess.check_output(["git", "ls-files", "-z"], cwd=root).decode().split("\0")
 skills = [root / path for path in tracked if re.fullmatch(r"[^/]+/[^/]+/SKILL\.md", path)]
-errors = []
+errors: list[str] = []
 index = (root / "README.md").read_text()
 if not skills:
     errors.append("No published skills found")
@@ -16,7 +16,7 @@ for path in skills:
     if len(parts) != 3 or parts[0].strip():
         errors.append(f"{path.relative_to(root)}: missing frontmatter")
         continue
-    fields = dict(re.findall(r"^([a-z]+):[ \t]*(.*)$", parts[1], re.M))
+    fields = {m[1]: m[2] for m in re.finditer(r"^([a-z]+):[ \t]*(.*)$", parts[1], re.M)}
     if fields.get("name", "").strip("\"'") != path.parent.name:
         errors.append(f"{path.relative_to(root)}: name must match directory")
     if not fields.get("description") or fields["description"] in {"|", ">", "|-", ">-"}:
@@ -28,10 +28,10 @@ for path in skills:
         errors.append(f"{path.relative_to(root)}: vendor must match namespace")
     if f"({path.relative_to(root)})" not in index:
         errors.append(f"{path.relative_to(root)}: missing README index entry")
-    for target in set(re.findall(r"references/[A-Za-z0-9_./-]+\.md", parts[2])):
+    for target in {m[0] for m in re.finditer(r"references/[A-Za-z0-9_./-]+\.md", parts[2])}:
         if not (path.parent / target).is_file():
             errors.append(f"{path.relative_to(root)}: missing {target}")
-for target in re.findall(r"\]\(([^)]+/SKILL\.md)\)", index):
+for target in (m[1] for m in re.finditer(r"\]\(([^)]+/SKILL\.md)\)", index)):
     if not (root / target).is_file():
         errors.append(f"README.md: missing {target}")
 if errors:

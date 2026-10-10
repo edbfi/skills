@@ -43,7 +43,7 @@ def declared_additional(manifest: Path) -> set[str]:
     m = re.search(r"^## Additional files\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
     if not m:
         return set()
-    paths = set()
+    paths: set[str] = set()
     for line in m.group(1).splitlines():
         line = line.strip()
         if not line.startswith(("-", "*")):

@@ -17,9 +17,25 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 BUDGETS = {"SKILL.md": (2000, 3000), "reference": (4000, 6000)}
 DESC_CEILING_CHARS = 1000
+
+
+class FileRow(TypedDict):
+    file: str
+    tokens: int
+    aim: int
+    ceiling: int
+    lines: int
+
+
+class DescriptionRow(TypedDict):
+    file: str
+    tokens: int
+    chars: int
+    ceiling_chars: int
 
 
 def estimate(text: str) -> int:
@@ -41,7 +57,7 @@ def main(argv: list[str]) -> int:
         return 2
     skill = Path(args[0])
     as_json = "--json" in argv
-    rows = []
+    files: list[FileRow] = []
     over = 0
 
     skill_md = skill / "SKILL.md"
@@ -49,10 +65,10 @@ def main(argv: list[str]) -> int:
         text = skill_md.read_text(encoding="utf-8")
         aim, ceil = BUDGETS["SKILL.md"]
         t = estimate(text)
-        rows.append({"file": "SKILL.md", "tokens": t, "aim": aim, "ceiling": ceil, "lines": text.count("\n") + 1})
+        files.append({"file": "SKILL.md", "tokens": t, "aim": aim, "ceiling": ceil, "lines": text.count("\n") + 1})
         over += t > ceil
         desc = description_of(text)
-        rows.append({"file": "description", "tokens": estimate(desc), "chars": len(desc), "ceiling_chars": DESC_CEILING_CHARS})
+        description: DescriptionRow = {"file": "description", "tokens": estimate(desc), "chars": len(desc), "ceiling_chars": DESC_CEILING_CHARS}
         over += len(desc) > DESC_CEILING_CHARS
     else:
         print("SKILL.md missing", file=sys.stderr)
@@ -62,21 +78,21 @@ def main(argv: list[str]) -> int:
         text = ref.read_text(encoding="utf-8")
         aim, ceil = BUDGETS["reference"]
         t = estimate(text)
-        rows.append({"file": f"references/{ref.name}", "tokens": t, "aim": aim, "ceiling": ceil, "lines": text.count("\n") + 1})
+        files.append({"file": f"references/{ref.name}", "tokens": t, "aim": aim, "ceiling": ceil, "lines": text.count("\n") + 1})
         over += t > ceil
 
-    total = sum(r["tokens"] for r in rows if r["file"] != "description")
+    total = sum(r["tokens"] for r in files)
     if as_json:
+        rows = [files[0], description, *files[1:]]
         print(json.dumps({"rows": rows, "total_tokens": total, "over_ceiling": over}, indent=2))
     else:
         print(f"{'file':<36}{'tokens':>8}{'aim':>8}{'ceiling':>9}{'lines':>7}")
-        for r in rows:
-            if r["file"] == "description":
-                flag = " OVER" if r["chars"] > DESC_CEILING_CHARS else ""
-                print(f"{'description':<36}{r['tokens']:>8}{'':>8}{r['ceiling_chars']:>8}c{'':>7}{flag}")
-                continue
+        for index, r in enumerate(files):
             flag = " OVER" if r["tokens"] > r["ceiling"] else (" high" if r["tokens"] > r["aim"] else "")
             print(f"{r['file']:<36}{r['tokens']:>8}{r['aim']:>8}{r['ceiling']:>9}{r['lines']:>7}{flag}")
+            if index == 0:  # the description row follows SKILL.md
+                flag = " OVER" if description["chars"] > DESC_CEILING_CHARS else ""
+                print(f"{'description':<36}{description['tokens']:>8}{'':>8}{description['ceiling_chars']:>8}c{'':>7}{flag}")
         print(f"{'total (loaded files)':<36}{total:>8}")
     return 1 if over else 0
 
