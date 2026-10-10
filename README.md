@@ -17,6 +17,7 @@ installable via the [`skills`](https://github.com/vercel-labs/skills) CLI.
 |---|---|---|
 | astro | [`starlight-docs`](astro/starlight-docs/SKILL.md) | Build, configure, and author Starlight (Astro-based) documentation sites. |
 | augmentcode | [`codebase-retrieval`](augmentcode/codebase-retrieval/SKILL.md) | Semantic codebase search via Augment's context engine. |
+| basedpyright | [`basedpyright-python-gate`](basedpyright/basedpyright-python-gate/SKILL.md) | Drive Python to 0 errors / 0 warnings under basedpyright `recommended` mode by fixing code, never by suppressing globally. |
 | bevy | [`bevy`](bevy/bevy/SKILL.md) | Build, debug, test, and migrate Bevy games and apps with version-checked ECS, rendering, assets, UI, and platform guidance. |
 | coding-guidelines | [`coding-guidelines-builder`](coding-guidelines/coding-guidelines-builder/SKILL.md) | Build version-verified coding-guidelines skills for a tech stack, written as the delta from what agents already know. |
 | docendo | [`docendo-orchestrate-bricks`](docendo/docendo-orchestrate-bricks/SKILL.md) | Plan and operate Docendo calendar bricks with ego-browser, task-overview accounting, and configurable module profiles. |

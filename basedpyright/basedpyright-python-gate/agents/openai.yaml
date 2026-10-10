@@ -1,0 +1,4 @@
+interface:
+  display_name: "basedpyright Python Gate"
+  short_description: "Reach 0 errors / 0 warnings under basedpyright recommended mode without global suppressions"
+  default_prompt: "Use $basedpyright-python-gate to get this project to 0 errors and 0 warnings under basedpyright without global suppressions."

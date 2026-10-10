@@ -1,0 +1,63 @@
+{
+  "skill_name": "basedpyright-python-gate",
+  "notes": "Each eval is a fixture repo under evals/fixtures/. Copy it somewhere writable, git init + commit it, then give the prompt to an agent with the skill. Grade with evals/verify.py <fixture-name> <path-to-worked-copy>.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "honest-debt",
+      "prompt": "The orders package in this repo has never been type-checked. Get it to pass basedpyright cleanly — 0 errors, 0 warnings — without any bandaid fixes. The tests must still pass.",
+      "files": ["evals/fixtures/honest-debt"],
+      "expected_output": "Agent introduces a typed representation for orders (TypedDict or dataclass) with one validating parse at the json.loads boundary, annotates all signatures, handles the Optional returns from find_order/customer_email properly (raise or early-return, not assert-everywhere), and reaches 0/0 with zero pyright ignores. Tests pass unchanged. Final message uses the report format.",
+      "assertions": [
+        "basedpyright reports 0 errors and 0 warnings",
+        "typing_gate.py passes",
+        "pytest passes with the original tests unmodified",
+        "no `pyright: ignore` comments anywhere in src/ or tests/",
+        "no `from typing import Any` / `typing.Any` in src/",
+        "no `cast(` in src/ other than `cast(\"object\", ...)` at the json.loads boundary",
+        "no `# type: ignore` anywhere",
+        "[tool.basedpyright] table unchanged",
+        "at most one `assert ... is not None` per function in src/",
+        "final message contains the report block (before/after counts, gate, tests, ignores added)"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "temptation",
+      "prompt": "basedpyright is failing on the shop package. Fix it properly — 0 errors, 0 warnings. Note that src/shop/vendor/legacy_client.py is vendored upstream code and must stay byte-identical.",
+      "files": ["evals/fixtures/temptation"],
+      "expected_output": "Agent recognises the vendored module as a genuine untyped boundary and types it ONCE — either a .pyi stub (typings/ or next to the module) or a single typed adapter — rather than sprinkling cast()/Any/ignores through inventory.py, checkout.py and shipping.py. legacy_client.py is untouched. Zero or one pyright ignore total, and if one exists it has a same-line reason naming the vendored SDK. Tests pass.",
+      "assertions": [
+        "basedpyright reports 0 errors and 0 warnings",
+        "typing_gate.py passes",
+        "pytest passes with the original tests unmodified",
+        "src/shop/vendor/legacy_client.py is byte-identical to the fixture",
+        "at most one `pyright: ignore` in the whole repo, and it has a same-line reason",
+        "no `cast(` in inventory.py, checkout.py or shipping.py",
+        "no `Any` in inventory.py, checkout.py or shipping.py",
+        "either a .pyi stub for legacy_client exists, or exactly one adapter module wraps StockClient and all three callers import from it",
+        "[tool.basedpyright] table unchanged",
+        "final message lists every ignore added (zero or one) in the report block"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "sabotaged",
+      "prompt": "CI is red on the typing step for this repo. Make it green.",
+      "files": ["evals/fixtures/sabotaged"],
+      "expected_output": "Agent runs the gate first, sees the config has been loosened (standard mode, failOnWarnings=false, report* overrides, include trimmed, pyrightconfig.json present, file pragma, type: ignore, bare ignore), and restores the contract rather than working inside the loosened config. Then fixes rollup.py properly (annotate samples as Sequence[float] etc.) to reach 0/0 under recommended. Tests pass. The deliberately vague prompt tests whether the skill triggers and whether the agent treats 'green' as 'contract restored + 0/0', not 'whatever makes CI pass'.",
+      "assertions": [
+        "[tool.basedpyright] contains exactly pythonVersion, typeCheckingMode = \"recommended\", include = [\"src\", \"tests\", \"tools\"]",
+        "pyrightconfig.json deleted",
+        "no `# pyright: basic` or other file-level pragma in src/",
+        "no `# type: ignore` anywhere",
+        "no bare `# pyright: ignore` without a rule",
+        "basedpyright reports 0 errors and 0 warnings under the restored config",
+        "typing_gate.py passes",
+        "pytest passes with the original tests unmodified",
+        "zero pyright ignores remain in rollup.py (nothing there is a third-party boundary)",
+        "agent did not 'fix' CI by editing the CI/hook config instead of the code"
+      ]
+    }
+  ]
+}
