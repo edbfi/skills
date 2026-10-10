@@ -1,0 +1,116 @@
+#!/usr/bin/env python3
+"""Audit a run folder against the closed file set in SKILL.md.
+
+Usage: audit_files.py <run-dir> [--delete]
+
+Lists every file that is not part of the allowed layout and not declared under
+"## Additional files" in manifest.md. Exits 1 if any are found. With --delete,
+removes them instead (asks nothing; the run folder is disposable by design).
+"""
+from __future__ import annotations
+
+import fnmatch
+import re
+import sys
+from pathlib import Path
+
+ALLOWED = [
+    "manifest.md",
+    "research/components.json",
+    "research/probe.md",
+    "research/sources.md",
+    "research/versions.json",
+    "research/versions-*.json",
+    "research/facts/*.md",
+    "research/clones/**",
+    "tasks/evals.json",
+    "tasks/*/**",
+    "baseline/mistakes.md",
+    "baseline/*/**",
+    "examples/**",
+    "skill/**",
+    "skill-workspace/**",
+    ".toolchain/**",
+]
+
+TRANSIENT = ["research/clones/**"]  # allowed during the run, must be gone by cleanup
+
+
+def declared_additional(manifest: Path) -> set[str]:
+    if not manifest.exists():
+        return set()
+    text = manifest.read_text(encoding="utf-8")
+    m = re.search(r"^## Additional files\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
+    if not m:
+        return set()
+    paths = set()
+    for line in m.group(1).splitlines():
+        line = line.strip()
+        if not line.startswith(("-", "*")):
+            continue
+        body = line.lstrip("-* ").strip()
+        token = body.split()[0] if body else ""
+        token = token.strip("`")
+        if token:
+            paths.add(token.rstrip("/"))
+    return paths
+
+
+def matches(rel: str, pattern: str) -> bool:
+    if pattern.endswith("/**"):
+        base = pattern[:-3]
+        if "*" in base:
+            parts = rel.split("/")
+            bparts = base.split("/")
+            if len(parts) <= len(bparts):
+                return False
+            return all(fnmatch.fnmatchcase(p, b) for p, b in zip(parts, bparts))
+        return rel == base or rel.startswith(base + "/")
+    return fnmatch.fnmatchcase(rel, pattern)
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 2:
+        print(__doc__)
+        return 2
+    run = Path(argv[1]).resolve()
+    delete = "--delete" in argv
+    if not run.is_dir():
+        print(f"not a directory: {run}", file=sys.stderr)
+        return 2
+
+    extra = declared_additional(run / "manifest.md")
+    offenders: list[Path] = []
+    transient: list[Path] = []
+    for path in sorted(run.rglob("*")):
+        if path.is_dir():
+            continue
+        rel = path.relative_to(run).as_posix()
+        if any(rel == e or rel.startswith(e + "/") for e in extra):
+            continue
+        if any(matches(rel, t) for t in TRANSIENT):
+            transient.append(path)
+            continue
+        if any(matches(rel, a) for a in ALLOWED):
+            continue
+        offenders.append(path)
+
+    if transient:
+        print(f"{len(transient)} transient file(s) under research/clones/ (remove in phase 5)")
+    if not offenders:
+        print("file set clean")
+        return 0
+    print(f"{len(offenders)} file(s) outside the closed set:")
+    for p in offenders:
+        print(f"  {p.relative_to(run).as_posix()}")
+        if delete:
+            p.unlink()
+    if delete:
+        print("deleted")
+        return 0
+    print("delete them, or declare each under '## Additional files' in manifest.md with a reason")
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
