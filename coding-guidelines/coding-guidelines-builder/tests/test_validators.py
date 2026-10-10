@@ -43,6 +43,8 @@ class ArtifactChecks(unittest.TestCase):
 
     def provenance(self, evidence: str = "| SKILL.md | Rules | baseline | m-01 |") -> None:
         self.write(self.skill / "SKILL.md", "# Skill\n\n## Rules\nUse the verified form.\n")
+        if "anti-patterns.md" not in evidence:  # the sectionless default table needs a file-level row
+            evidence += "\n| references/anti-patterns.md | * | baseline | m-01 |"
         self.write(self.skill / "PROVENANCE.md", "# Provenance\n\n## Evidence\n\n"
                    + "| file | section | evidence | reference |\n|---|---|---|---|\n" + evidence + "\n")
         self.write(self.skill / "references/anti-patterns.md",
@@ -87,6 +89,22 @@ class ArtifactChecks(unittest.TestCase):
         self.assert_code(1, result)
         self.assertIn("'structure' is only for", result.stdout)
 
+    def test_provenance_requires_file_level_row_without_sections(self) -> None:
+        self.provenance()
+        self.write(self.skill / "references/versions.md", "# Versions\n\n| a | b |\n|---|---|\n| 1 | 2 |\n")
+        result = self.run_script("check_provenance.py", self.skill)
+        self.assert_code(1, result)
+        self.assertIn("references/versions.md: no sections and no file-level evidence row", result.stdout)
+        for section in ("Versions", "*"):
+            self.provenance(f"| SKILL.md | Rules | baseline | m-01 |\n| references/versions.md | {section} | compat | v-01 |")
+            self.write(self.skill / "references/versions.md", "# Versions\n\n| a | b |\n|---|---|\n| 1 | 2 |\n")
+            self.assert_code(0, self.run_script("check_provenance.py", self.skill))
+        self.write(self.skill / "references/anti-patterns.md",
+                   "# Anti-patterns\n\n| wrong | why | right | grep |\n|---|---|---|---|\n| `a|b` | w | r | g |\n")
+        result = self.run_script("check_provenance.py", self.skill)
+        self.assert_code(1, result)
+        self.assertIn("expected 4 cells, got 5", result.stdout)
+
     def test_audit_layout_and_symlink_escape(self) -> None:
         run = self.root / "run"
         self.write(run / "manifest.md", "# Run\n\n## Additional files\n\n- `notes.txt` scratch\n")
@@ -99,6 +117,10 @@ class ArtifactChecks(unittest.TestCase):
         self.write(run / "tasks/stray.md", "x\n")
         self.assert_code(1, self.run_script("audit_files.py", run))
         (run / "tasks/stray.md").unlink()
+        (run / "examples").mkdir()
+        (run / "examples/link").symlink_to(run / "tasks")
+        (run / "examples/broken").symlink_to(run / "missing")
+        self.assert_code(0, self.run_script("audit_files.py", run))
         (run / "skill").symlink_to(self.root)
         result = self.run_script("audit_files.py", run)
         self.assert_code(1, result)
@@ -145,6 +167,19 @@ class ArtifactChecks(unittest.TestCase):
         self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples))
         self.write(self.skill / "references/x.md", "<!-- example: src/lib.rs#missing -->\n```rust\nold\n```\n")
         self.assert_code(1, self.run_script("verify_examples.py", self.skill, self.examples))
+
+    def test_examples_nested_regions_prose_markers_and_tilde_fences(self) -> None:
+        self.write(self.examples / "lib.rs",
+                   "// region: outer\nfn outer() {\n    // region: inner\n    let a = 1;\n    // endregion: inner\n}\n// endregion: outer\n")
+        self.write(self.examples / "README.md", "# Setup\n\n# region: Config\n\nSet FOO=1\n<!-- region: x -->\nkeep\n<!-- endregion: x -->\n")
+        self.write(self.skill / "SKILL.md",
+                   "<!-- example: lib.rs#outer -->\n~~~rust\nold\n~~~\n\n<!-- example: README.md -->\n```md\nold\n```\n")
+        result = self.run_script("verify_examples.py", self.skill, self.examples, "--sync")
+        self.assert_code(0, result)
+        self.assertIn("README.md: omitted 2 region marker line(s)", result.stdout)
+        synced = (self.skill / "SKILL.md").read_text()
+        self.assertIn("~~~rust\nfn outer() {\n    let a = 1;\n}\n~~~", synced)
+        self.assertIn("```md\n# Setup\n\n# region: Config\n\nSet FOO=1\nkeep\n```", synced)
 
     def test_examples_widen_fence_when_source_contains_one(self) -> None:
         self.write(self.examples / "doc.md", "# Readme\n```sh\ncargo run\n```\n")

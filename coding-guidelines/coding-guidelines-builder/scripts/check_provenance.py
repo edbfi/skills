@@ -8,7 +8,8 @@ file | section | evidence | reference, and checks:
 
 - every ATX H2 and H3 heading (`##`, `###`; setext underlines are not
   recognized) in SKILL.md and references/*.md has a row whose file and section
-  match (case-insensitive, whitespace-normalized);
+  match (case-insensitive, whitespace-normalized); a loaded file with no H2 or
+  H3 needs one row whose section is its H1 title or `*`;
 - every evidence value is one of baseline, probe, decision, compat, or structure,
   with a nonempty reference; `structure` is accepted only for the fixed layout
   sections of SKILL.md (Decisions, Top mistakes, Check, Routing) and a Contents
@@ -17,6 +18,8 @@ file | section | evidence | reference, and checks:
 - every data row of the wrong / why / right / grep table in
   references/anti-patterns.md has a non-empty grep column. The table is found
   by its header, wherever it sits in the file.
+
+Table rows must start with `|`, and a literal pipe inside a cell is written as a backslash-escaped pipe.
 
 Exits 1 on any structural failure. Evidence support must be audited separately.
 Frontmatter and headings inside code fences are ignored.
@@ -35,7 +38,9 @@ def norm(s: str) -> str:
     return re.sub(r"\s+", " ", s.strip().strip("`").lower())
 
 
-def headings(md: Path) -> list[str]:
+def headings(md: Path) -> tuple[str, list[str]]:
+    """The H1 title (or "") and the H2/H3 headings outside frontmatter and code fences."""
+    title = ""
     found: list[str] = []
     fence_marker = ""
     fence_length = 0
@@ -58,10 +63,12 @@ def headings(md: Path) -> list[str]:
             continue
         if fence_marker:
             continue
-        m = re.match(r"^(##|###)\s+(.+?)(?:\s+#+)?\s*$", line)
-        if m:
+        m = re.match(r"^(#|##|###)\s+(.+?)(?:\s+#+)?\s*$", line)
+        if m and m.group(1) == "#":
+            title = title or m.group(2)
+        elif m:
             found.append(m.group(2))
-    return found
+    return title, found
 
 
 def structural(file: str, section: str) -> bool:
@@ -131,7 +138,15 @@ def main(argv: list[str]) -> int:
         if not md.is_file():
             continue
         rel = md.relative_to(skill).as_posix()
-        for h in headings(md):
+        title, sections = headings(md)
+        if not sections:
+            file_keys = {(norm(rel), "*"), (norm(rel), norm(title))} - {(norm(rel), "")}
+            actual |= file_keys
+            if not file_keys & covered:
+                print(f"{rel}: no sections and no file-level evidence row (section '*' or '{title}')")
+                failures += 1
+            continue
+        for h in sections:
             key = (norm(rel), norm(h))
             actual.add(key)
             if key not in covered:
@@ -148,8 +163,11 @@ def main(argv: list[str]) -> int:
             print("anti-patterns.md: wrong / why / right / grep table missing or malformed")
             failures += 1
         for r in anti_rows or []:
-            if len(r) != 4 or any(not norm(cell) for cell in r):
-                print(f"anti-patterns.md: row without grep: {r[0][:60] if r else r}")
+            if len(r) != 4:
+                print(f"anti-patterns.md: expected 4 cells, got {len(r)} (escape pipes as \\|): {r[0][:60] if r else r}")
+                failures += 1
+            elif any(not norm(cell) for cell in r):
+                print(f"anti-patterns.md: row without grep: {r[0][:60]}")
                 failures += 1
     else:
         print("references/anti-patterns.md missing")

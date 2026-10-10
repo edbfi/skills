@@ -17,9 +17,13 @@ or, for part of a file, a named region:
 
 where the file contains comment lines whose whole content is
 `region: create_order` and `endregion: create_order` (any comment leader:
-`//`, `#`, `--`, `;`, `/* */`, `<!-- -->`, ...). A line that merely contains
-the word `region:` inside code or data is not a marker. The block must equal
-the file or region exactly, after stripping trailing whitespace on each line.
+`//`, `#`, `--`, `;`, `/* */`, `<!-- -->`, ...; in Markdown, reStructuredText
+and plain-text sources only `<!-- -->`, so a heading is never a marker). A line
+that merely contains the word `region:` inside code or data is not a marker.
+Marker lines are navigation, not content: a full-file block omits them and
+reports how many it omitted, and a region block omits nested markers. The block
+must equal the file or region exactly, after stripping trailing whitespace on
+each line.
 
 Default mode fails on mismatches, missing sources, malformed fences, and unmarked
 blocks. Non-executable illustration can use an explicit exemption comment:
@@ -45,17 +49,20 @@ from pathlib import Path
 MARKER = re.compile(r"^\s*<!--\s*example:\s*(?P<ref>[^\s]+)\s*-->\s*$")
 # A region marker is a whole comment line: an optional closer follows the name.
 REGION = re.compile(
-    r"^\s*(?://+|#+|--+|;+|/\*+|<!--|\*+|%+|'+|\(\*|\{-|REM\b)\s*(?P<end>end)?region:\s*(?P<name>\S+?)\s*(?:\*/|-->|\*\)|-\})?\s*$"
+    r"^\s*(?P<leader>//+|#+|--+|;+|/\*+|<!--|\*+|%+|'+|\(\*|\{-|REM\b)\s*(?P<end>end)?region:\s*(?P<name>\S+?)\s*(?:\*/|-->|\*\)|-\})?\s*$"
 )
+PROSE_SUFFIXES = {".md", ".markdown", ".rst", ".txt"}
 EXEMPT = re.compile(r"^\s*<!--\s*example-exempt:\s*(\S.*?)\s*-->\s*$")
 FENCE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<info>.*)$")
 CONTAINER_FENCE = re.compile(r"^(?:[ \t]*(?:>|[-+*]|\d+[.)])[ \t]*)+[`~]{3,}")
 
 
-def region_marker(line: str) -> tuple[bool, str] | None:
+def region_marker(line: str, prose: bool = False) -> tuple[bool, str] | None:
     """(is_end, name) when the line is a region marker comment, else None."""
     m = REGION.match(line)
-    return (m.group("end") is not None, m.group("name")) if m else None
+    if not m or (prose and m.group("leader") != "<!--"):
+        return None
+    return (m.group("end") is not None, m.group("name"))
 
 
 def widen_fence(fence: str, source: str) -> str:
@@ -73,13 +80,16 @@ def load_source(examples: Path, ref: str) -> tuple[str | None, str]:
     if not file.is_file():
         return None, f"missing file {path_part}"
     lines = file.read_text(encoding="utf-8-sig").splitlines()
+    prose = file.suffix.lower() in PROSE_SUFFIXES
     if not region:
         # Region markers are navigation for this script, not content to teach.
-        kept = [l for l in lines if region_marker(l) is None]
+        kept = [l for l in lines if region_marker(l, prose) is None]
+        if len(kept) != len(lines):
+            print(f"{ref}: omitted {len(lines) - len(kept)} region marker line(s)")
         return "\n".join(l.rstrip() for l in kept), ""
     start = end = None
     for i, line in enumerate(lines):
-        marker = region_marker(line)
+        marker = region_marker(line, prose)
         if marker == (False, region):
             start = i
         elif marker == (True, region) and start is not None:
@@ -87,7 +97,7 @@ def load_source(examples: Path, ref: str) -> tuple[str | None, str]:
             break
     if start is None or end is None or end <= start:
         return None, f"region {region} not found in {path_part}"
-    body = lines[start + 1 : end]
+    body = [l for l in lines[start + 1 : end] if region_marker(l, prose) is None]
     # Drop common leading indentation so a nested region reads cleanly.
     indents = [len(l) - len(l.lstrip()) for l in body if l.strip()]
     cut = min(indents) if indents else 0
