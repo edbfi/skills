@@ -26,6 +26,7 @@ ALLOWED = [
     "research/clones/**",
     "tasks/evals.json",
     "tasks/check.sh",
+    "tasks/anti-patterns.sh",
     "tasks/*/**",
     "baseline/mistakes.md",
     "baseline/benchmark.json",

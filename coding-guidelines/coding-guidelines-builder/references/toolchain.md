@@ -25,9 +25,35 @@ docker run --rm --user "$(id -u):$(id -g)" \
   rust:1.91.0 cargo clippy --all-targets --all-features -- -D warnings
 ```
 
-`RUN_ID` is the run folder name. Services run on a dedicated network from a compose file inside
-`examples/`. Give each concurrent task, configuration, and run a unique compose project and reset
-its database and volumes, so configurations never share mutable service state.
+`RUN_ID` is the run folder name. A fresh named volume mounted at a path the image does not have is
+root-owned and unwritable under `--user`, so initialize each one once:
+`docker run --rm -v "${RUN_ID}-cargo-target":/v alpine chown "$(id -u):$(id -g)" /v`. Services run
+on a dedicated network from a compose file inside `examples/`. Give each concurrent task,
+configuration, and run a unique compose project and reset its database and volumes, so
+configurations never share mutable service state.
+
+## The task runner
+
+`claude -p` must build with the same pinned toolchain as the examples, so in Docker mode it runs
+inside a runner image derived from the pinned one, built once per run as `${RUN_ID}-runner` and
+recorded in `manifest.md` with its digest and the CLI version (the same one as the host's
+`claude --version`):
+
+```Dockerfile
+FROM rust:1.91.0
+COPY --from=node:22-bookworm /usr/local/bin/node /usr/local/bin/
+COPY --from=node:22-bookworm /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+ && npm install -g @anthropic-ai/claude-code@<cli-version>
+```
+
+Run each task with only its directory mounted as `/work`, an empty per-run directory mounted as
+`HOME`, and credentials in the environment (`CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, or
+`ANTHROPIC_API_KEY`); never mount `~/.claude`. In host mode, run `claude -p` with `HOME` set to an
+empty per-run directory, the same credential variable, and the `.toolchain/` variables exported
+with `.toolchain/bin` first on `PATH`, so every build the agent starts uses the pinned tools.
+Record the effective tool versions from the first transcript of each configuration; a run that
+built with another toolchain is invalid.
 
 ## Fallback: the host, with tool homes in `.toolchain/`
 

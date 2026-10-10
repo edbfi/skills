@@ -91,10 +91,13 @@ claude -p "$(cat task.md)" \
   with only the task directory mounted when skipping permission prompts; the directory is disposable
   either way.
 - Write `timing.json` with skill-creator's keys `total_tokens`, `duration_ms`, and
-  `total_duration_seconds`, plus `model` (the ID the run reported), `exit_status`, and
-  `result_status`. Missing completion events, exhausted turns, and CLI/tool failures are invalid
-  runs, not zero-scoring task outputs: write no `grading.json`, record `invalid` with the reason in
-  `timing.json`, diagnose before retrying, and stop after two failed retries per run.
+  `total_duration_seconds`, plus `model` (the ID the run reported), `exit_status`, `result_status`
+  (`complete`, `invalid`, or `contaminated`), and `reason` when not complete. Missing completion
+  events, exhausted turns, CLI/tool failures, and a build on an unpinned toolchain are invalid
+  runs, not zero-scoring task outputs. An invalid or contaminated run gets no `grading.json`; move
+  it to `eval-<id>/<config>/invalid/run-<N>-<attempt>/` with its transcript and `timing.json` but
+  without `outputs/`, so neither the aggregator (`run-*`) nor the viewer (`outputs/`) picks it up,
+  then retry into a fresh `run-<N>`. Diagnose before retrying; stop after two failed retries.
 - Run the development tasks in parallel, as many as the machine and the toolchain cache tolerate.
 - After the run, copy the directory's working files to `outputs/` and move the whole thing under
   `baseline/eval-<id>/without_skill/run-<N>/` (phase 2) or
@@ -108,7 +111,8 @@ Before grading, scan `transcript.jsonl` for any file read, glob, grep, or shell 
 resolves outside the task directory and declared toolchain/system/cache allowlist, and for any
 skill/research/other-run access in a `without_skill` run. This supplements the clean-runner setup;
 transcripts cannot prove the absence of automatically injected instructions.
-A hit voids the run: record `contaminated` in its grading summary and re-run it. Also scan
+A hit voids the run: treat it as invalid (no `grading.json`, `result_status: "contaminated"`) and
+re-run it. Also scan
 `with_skill` transcripts for a read of the skill's `SKILL.md`; a with-skill run that never read the
 skill is a triggering failure, graded as such, and the strongest signal that the description needs
 work (§5, Description optimization).
@@ -116,10 +120,17 @@ work (§5, Description optimization).
 ## 3. Assertions
 
 Write assertions for every task, development and held-out, after research and before any
-baseline run, from the facts and never from outputs. Then seal the holdout set: record in
-`manifest.md` the SHA-256 of the holdout entries of `tasks/evals.json` and of `tasks/check.sh`.
-Holdout assertions never change after this point; the final iteration's freeze covers the candidate
-and the development assertions. Each assertion is a sentence that a script or a grader can check
+baseline run, from the facts and never from outputs. Then seal the holdout set by recording three
+hashes in `manifest.md`:
+
+```bash
+jq -S -c '[.evals[] | select(.split == "holdout")]' tasks/evals.json | shasum -a 256
+find tasks/<holdout-name>... -type f | sort | xargs shasum -a 256 | shasum -a 256
+shasum -a 256 tasks/check.sh
+```
+
+Holdout prompts, fixtures, assertions, and `tasks/check.sh` never change after this point; the
+final iteration's freeze covers the candidate and the development assertions. Each assertion is a sentence that a script or a grader can check
 against the outputs and transcript, with a descriptive name that reads clearly in the viewer.
 Generic assertions apply to every task; derived assertions come from the facts and, for development
 tasks only, later from the skill's anti-pattern table.
@@ -143,8 +154,9 @@ Derived, mostly scripted:
 - For each `contradicted` or `cutoff-relevant` fact a task touches: the correct pattern is present
   and the stale one absent, as a grep.
 - For each anti-pattern row in the skill (phase 4 onward, development tasks only): the row's grep
-  finds nothing. The assertion names the `m-NN` or facts id the row came from, so it measures the
-  mistake rather than obedience to the skill.
+  finds nothing. These greps live in `tasks/anti-patterns.sh`, which is neither sealed nor shipped,
+  and each names the `m-NN` or facts id the row came from, so it measures the mistake rather than
+  obedience to the skill.
 - Diagnostic only: whether the relevant routed reference was read. Do not count file reads as
   correctness assertions or as outcomes in ablation.
 
@@ -155,10 +167,10 @@ Grader-judged, kept few:
 - A review task identifies the planted problem.
 
 Store assertions in `tasks/evals.json` under `expectations` and in each task's `eval_metadata.json`.
-Keep the scripted checks in `tasks/check.sh`, taking the project directory as its argument, plus a
-small task-specific script in `tasks/<name>/` where needed, so that every iteration grades the same
-way. Phase 3 copies `tasks/check.sh` unchanged to `skill/scripts/check.sh`; the agent and the evals
-then run the same command.
+Keep the generic scripted checks in `tasks/check.sh`, taking the project directory as its argument,
+plus a small task-specific script in `tasks/<name>/` where needed, so that every iteration grades
+the same way. Phase 3 copies `tasks/check.sh` unchanged to `skill/scripts/check.sh`; the agent and
+the evals then run the same command.
 
 ## 4. Grading baselines
 
@@ -186,8 +198,10 @@ helper exists; it reads `eval-*/<config>/run-*/grading.json` and `timing.json`, 
 and writes `benchmark.json` and `benchmark.md` into `<dir>` (`baseline/` in phase 2,
 `skill-workspace/iteration-N/` in phase 4). Its delta is the first configuration minus the second in
 alphabetical order: right for `with_skill` against `without_skill`, inverted for `old_skill` against
-`with_skill`, so say which in the notes. Add invalid-run counts and per-split rates to
-`benchmark.md` by hand; without the helper, write both files in its schema yourself. Report run
+`with_skill`, so say which in the notes. The helper writes placeholder `metadata` values
+(`executor_model`, `runs_per_configuration`); correct them, and add invalid-run counts and
+per-split rates to `benchmark.md` by hand. With a single configuration, as in phase 2, ignore its
+second column and delta. Without the helper, write both files in its schema yourself. Report run
 spread for repeats.
 
 Then adjudicate development results only. Read each development failure and write `baseline/mistakes.md`:
@@ -217,7 +231,8 @@ note in the grading file's `evidence`, not promoted to a mistake.
 Use these settings, with installed compatible skill-creator reporting helpers if available:
 
 - **Configurations.** New skill: `with_skill` vs `without_skill`. Re-run: `with_skill` vs
-  `old_skill` (snapshot the existing skill before editing, as skill-creator describes).
+  `old_skill`, installed from `skill-workspace/skill-snapshot/`, the copy phase 0 made before
+  anything edited `skill/`.
 - **Repeats.** One run per task per configuration while iterating; three in the final iteration so
   the mean and spread are meaningful. Variance between runs of the same prompt is large enough that
   a single-run delta on one task means little; look at the pattern across tasks.
@@ -250,18 +265,25 @@ PYTHONPATH="$SKILL_CREATOR" python -m scripts.run_loop \
   --max-iterations 5 --results-dir . --report none --verbose
 ```
 
-Apply `best_description` from its `results.json` to `skill/SKILL.md`, then confirm it on the real
-path: every `with_skill` transcript of the next iteration must show a read of `SKILL.md`. Without
-the helper, inspect triggering in development transcripts and revise the description by hand.
+It writes `<timestamp>/results.json` under the results directory and, by default, holds out 40%
+of the queries (`--holdout`) to pick `best_description`. Apply that description to
+`skill/SKILL.md`, then confirm it on the real path: every `with_skill` transcript of the next
+iteration must show a read of `SKILL.md`. Without the helper, inspect triggering in development
+transcripts and revise the description by hand.
 
 ### Ablation
 
-Before the final iteration, compare each removable H2 section/reference against the full skill
-on the affected development tasks, using three repeats per condition. Repair routing when removing
-a reference. Grade task outcomes, not file reads or missing provenance rows in the temporary variant.
-Restore after each comparison. Delete content only when outcomes consistently show no loss; retain
-guidance when results are noisy or coverage is insufficient. Explicit constraints and verified
-compatibility requirements remain even if tasks do not exercise them. Record the comparisons.
+Before the final iteration, compare each removable H2 section or reference against the full skill
+on the affected development tasks, three runs per condition. Each comparison gets its own
+directory, `skill-workspace/ablation/<section-slug>/eval-<id>/<config>/run-<N>/`, with the
+configurations `with_skill` (the full candidate) and `without_section` (the variant), so the
+aggregator's delta reads full minus variant; aggregate each `<section-slug>/` directory
+separately. Keeping ablation outside `iteration-N/` keeps it out of the viewer. Repair routing when
+removing a reference. Grade task outcomes, not file reads or missing provenance rows in the
+temporary variant. Restore after each comparison. Delete content only when outcomes consistently
+show no loss; retain guidance when results are noisy or coverage is insufficient. Explicit
+constraints and verified compatibility requirements remain even if tasks do not exercise them.
+Record the comparisons in `skill-workspace/ablation/ablation.md`.
 
 Ablation is where "it seemed important" meets measurement. Expect to delete more than feels
 comfortable.

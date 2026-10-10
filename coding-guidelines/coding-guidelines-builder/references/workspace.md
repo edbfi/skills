@@ -24,19 +24,26 @@ networks.
 │   │   └── versions-<date>.json     # earlier snapshots, kept on re-runs
 │   ├── tasks/
 │   │   ├── evals.json               # skill-creator format plus name, components, split
-│   │   ├── check.sh                 # scripted checks every run is graded by
+│   │   ├── check.sh                 # generic scripted checks; sealed with the holdouts
+│   │   ├── anti-patterns.sh         # phase 4 greps, development tasks only; never shipped
 │   │   └── <task-name>/             # task.md and fixture files
 │   ├── baseline/
 │   │   ├── eval-<id>/
 │   │   │   ├── eval_metadata.json
-│   │   │   └── without_skill/run-<N>/   # outputs/, transcript.jsonl, timing.json, grading.json
+│   │   │   ├── without_skill/run-<N>/   # outputs/, transcript.jsonl, timing.json, grading.json
+│   │   │   └── without_skill/invalid/   # voided runs, kept for diagnosis
 │   │   ├── benchmark.json, benchmark.md
 │   │   └── mistakes.md              # adjudicated list; drives the draft
 │   ├── examples/                    # one real project; source of truth for every code block
 │   ├── skill/                       # the generated skill
-│   ├── skill-workspace/             # iteration-N/eval-<id>/<config>/run-<N>/, description/
+│   ├── skill-workspace/
+│   │   ├── skill-snapshot/          # the existing skill as delivered; the old_skill configuration
+│   │   ├── iteration-N/eval-<id>/<config>/run-<N>/
+│   │   ├── ablation/<section-slug>/eval-<id>/<config>/run-<N>/
+│   │   └── description/             # trigger-evals.json and run_loop output
 │   └── .toolchain/                  # tool homes and caches, host mode only
-└── _runs/<run-id>/eval-<id>/<config>/run-<N>/   # isolated task directories, eval-tasks.md §2
+├── _runs/<run-id>/eval-<id>/<config>/run-<N>/   # isolated task directories, eval-tasks.md §2
+└── dist/<stack-slug>/               # delivered skills
 ```
 
 `audit_files.py` holds this set. Run it at the end of every phase; any file it lists is moved into
@@ -58,8 +65,8 @@ The manifest is the cleanup contract and the resume state. Sections:
 - **Phases**: one line per phase: `pending`, `done <timestamp>`, or `failed <reason>`, plus the
   task, configuration, and run numbers completed inside phases 2 and 4 so an interrupted
   evaluation resumes without overwriting results.
-- **Holdout seal**: SHA-256 of the holdout entries of `tasks/evals.json` and of `tasks/check.sh`,
-  written at the end of eval-tasks.md §3.
+- **Holdout seal**: the three hashes from eval-tasks.md §3 (holdout entries of `tasks/evals.json`,
+  holdout fixture files, `tasks/check.sh`).
 - **Additional files**: anything outside the layout, with a reason.
 
 Resume a phase marked done only if its inputs and outputs still match the manifest; changed inputs
@@ -68,8 +75,9 @@ invalidate every dependent phase.
 ## Re-runs
 
 Skills go stale in two directions: the stack moves, and the model improves. A refresh with
-`existing-skill` set starts a new run folder, copies the old skill to `skill/` and the old
-`research/versions.json` to `research/versions-<date>.json`, and costs a fraction of a fresh run:
+`existing-skill` set starts a new run folder, copies the old skill to both `skill/` and
+`skill-workspace/skill-snapshot/`, copies the old `research/versions.json` to
+`research/versions-<date>.json`, and costs a fraction of a fresh run:
 
 1. Regenerate the snapshot against the preserved one; never redirect output over the `--previous`
    input:
@@ -84,6 +92,6 @@ Skills go stale in two directions: the stack moves, and the model improves. A re
 2. Re-probe and re-baseline with the current model under test. Any mistake in `mistakes.md` the
    model no longer makes is demoted out of `SKILL.md` into the relevant reference, or deleted if
    that reference section existed only for it.
-3. Run skill-creator's loop with the old skill as the `old_skill` configuration.
+3. Run skill-creator's loop with `skill-workspace/skill-snapshot/` as the `old_skill` configuration.
 4. The expected outcome is a shorter skill. A re-run that only adds content needs a reason in
    `manifest.md`.

@@ -58,7 +58,8 @@ Nothing else. No tutorial, no architecture overview, no restated basics.
 
 One file per component or tightly coupled pair, plus `integration.md`, `anti-patterns.md`, and
 `versions.md`. Budget: aim under 4,000 tokens per file, ceiling 6,000; a file approaching the
-ceiling is split by concern, and any file over 300 lines starts with a table of contents.
+ceiling is split by concern, and any file over 300 lines starts with a `## Contents` list (that
+exact heading carries the `structure` evidence tag).
 
 A reference file holds, for its component: the mistakes and contradicted beliefs that need more
 than a line, each with its verified example; the configuration blocks; the decision tables where a
@@ -101,6 +102,10 @@ Model under test: <id>. Research date: <date>. Toolchain: <image tag @ digest or
 | SKILL.md | Routing | structure | layout |
 | references/axum.md | Path parameters | probe | axum-02, axum-04 |
 | references/sqlx.md | Pool configuration | decision | facts sqlx-07 |
+
+## Evidence records
+
+<for each reference above, the cited mistake row, facts row, or decision, quoted>
 
 ## Sources
 

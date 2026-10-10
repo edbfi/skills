@@ -60,10 +60,8 @@ rather than measured mistakes.
 
 ## Workspace
 
-Every run gets one folder under a durable root (`~/skill-playground/` by default, never `/tmp`).
-`references/workspace.md` holds the layout, the `manifest.md` contract, resume rules, and the
-re-run procedure. Run `python "$BUILDER_DIR/scripts/audit_files.py" <run-dir>` at the end of every
-phase and resolve everything it lists; it is read-only.
+`references/workspace.md` holds the run folder layout, the `manifest.md` contract, resume rules,
+the file audit, and the re-run procedure.
 
 ## Phases
 
@@ -83,8 +81,8 @@ Phases are sequential and checkpointed in `manifest.md`. Changed inputs invalida
 Create the run folder and `manifest.md` with the stack block, the three model IDs, `SKILL_CREATOR`,
 `BUILDER_DIR`, and the phase table. Check that Docker or the required host SDK is present; exact
 toolchain versions are chosen after phase 1 resolves compatibility and installed before phase 2
-runs tasks. If `existing-skill` is set, copy it to `skill/` now and follow the re-run procedure in
-`references/workspace.md`.
+runs tasks. If `existing-skill` is set, copy it to `skill/` and to `skill-workspace/skill-snapshot/`
+now and follow the re-run procedure in `references/workspace.md`.
 
 ### Phase 1: Research
 
