@@ -22,7 +22,7 @@ file | section | evidence | reference, and checks:
 Table rows must start with `|`, and a literal pipe inside a cell is written as a backslash-escaped pipe.
 
 Exits 1 on any structural failure. Evidence support must be audited separately.
-Frontmatter and headings inside code fences are ignored.
+Frontmatter and headings inside code fences or HTML comments are ignored.
 """
 from __future__ import annotations
 
@@ -44,7 +44,7 @@ def headings(md: Path) -> tuple[str, list[str]]:
     found: list[str] = []
     fence_marker = ""
     fence_length = 0
-    in_front = False
+    in_front = in_comment = False
     for i, line in enumerate(md.read_text(encoding="utf-8-sig").splitlines()):
         if i == 0 and line.strip() == "---":
             in_front = True
@@ -52,6 +52,12 @@ def headings(md: Path) -> tuple[str, list[str]]:
         if in_front:
             if line.strip() == "---":
                 in_front = False
+            continue
+        if in_comment:
+            in_comment = "-->" not in line
+            continue
+        if not fence_marker and line.lstrip().startswith("<!--") and "-->" not in line:
+            in_comment = True
             continue
         fence = re.match(r"^\s*(`{3,}|~{3,})(.*)$", line)
         if fence:

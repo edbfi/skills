@@ -66,10 +66,10 @@ class ArtifactChecks(unittest.TestCase):
         (self.skill / "SKILL.md").unlink()
         self.assert_code(1, self.run_script("check_provenance.py", self.skill))
 
-    def test_headings_inside_nested_fences_are_ignored(self) -> None:
+    def test_headings_inside_nested_fences_and_comments_are_ignored(self) -> None:
         self.provenance()
         with (self.skill / "SKILL.md").open("a") as stream:
-            _ = stream.write("\n````md\n```python\n## Not a section\n```\n````\n")
+            _ = stream.write("\n````md\n```python\n## Not a section\n```\n````\n<!--\n## Hidden\n-->\n<!-- ## Inline -->\n")
         self.assert_code(0, self.run_script("check_provenance.py", self.skill))
 
     def test_provenance_headings_tables_and_structure_tag(self) -> None:
@@ -167,6 +167,15 @@ class ArtifactChecks(unittest.TestCase):
         self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples))
         self.write(self.skill / "references/x.md", "<!-- example: src/lib.rs#missing -->\n```rust\nold\n```\n")
         self.assert_code(1, self.run_script("verify_examples.py", self.skill, self.examples))
+        self.write(self.examples / "dup.rs", "// region: a\nx\n// endregion: a\n// region: a\ny\n// endregion: a\n")
+        self.write(self.skill / "references/x.md", "<!-- example: dup.rs#a -->\n```rust\nold\n```\n")
+        result = self.run_script("verify_examples.py", self.skill, self.examples)
+        self.assert_code(1, result)
+        self.assertIn("starts twice", result.stdout)
+        self.write(self.examples / "blank.py", "a = 1\n\nb = 2\n")
+        self.write(self.skill / "references/x.md", " <!-- example: blank.py -->\n ```python\n old\n ```\n")
+        self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples, "--sync"))
+        self.assertEqual(" <!-- example: blank.py -->\n ```python\n a = 1\n\n b = 2\n ```\n", (self.skill / "references/x.md").read_text())
 
     def test_examples_nested_regions_prose_markers_and_tilde_fences(self) -> None:
         self.write(self.examples / "lib.rs",

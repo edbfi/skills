@@ -25,7 +25,8 @@ reports how many it omitted, and a region block omits nested markers. The block
 must equal the file or region exactly, after stripping trailing whitespace on
 each line.
 
-Default mode fails on mismatches, missing sources, malformed fences, and unmarked
+Default mode fails on mismatches, unresolved blocks (missing sources, duplicate
+region names, malformed fences, unsupported Markdown containers), and unmarked
 blocks. Non-executable illustration can use an explicit exemption comment:
     <!-- example-exempt: reason -->
 Exemptions are reported for manual review. With --sync, rewrites
@@ -87,15 +88,13 @@ def load_source(examples: Path, ref: str) -> tuple[str | None, str]:
         if len(kept) != len(lines):
             print(f"{ref}: omitted {len(lines) - len(kept)} region marker line(s)")
         return "\n".join(l.rstrip() for l in kept), ""
-    start = end = None
-    for i, line in enumerate(lines):
-        marker = region_marker(line, prose)
-        if marker == (False, region):
-            start = i
-        elif marker == (True, region) and start is not None:
-            end = i
-            break
-    if start is None or end is None or end <= start:
+    markers = [(i, region_marker(line, prose)) for i, line in enumerate(lines)]
+    starts = [i for i, m in markers if m == (False, region)]
+    if len(starts) > 1:
+        return None, f"region {region} starts twice in {path_part}"
+    start = starts[0] if starts else None
+    end = next((i for i, m in markers if m == (True, region) and start is not None and i > start), None)
+    if start is None or end is None:
         return None, f"region {region} not found in {path_part}"
     body = [l for l in lines[start + 1 : end] if region_marker(l, prose) is None]
     # Drop common leading indentation so a nested region reads cleanly.
@@ -105,10 +104,10 @@ def load_source(examples: Path, ref: str) -> tuple[str | None, str]:
 
 
 def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
-    """Returns (mismatches, missing, unmarked)."""
+    """Returns (mismatches, unresolved, unmarked)."""
     lines = md.read_text(encoding="utf-8-sig").splitlines()
     out: list[str] = []
-    mismatches = missing = unmarked = 0
+    mismatches = unresolved = unmarked = 0
     i = 0
     pending_ref: str | None = None
     exempt_reason: str | None = None
@@ -128,7 +127,7 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
             continue
         if CONTAINER_FENCE.match(line) or (line.strip() and re.match(r"^(?: {4}|\t)", line)):
             print(f"{md.name}:{i + 1}: unsupported Markdown code/container indentation; use standalone fences")
-            missing += 1
+            unresolved += 1
             pending_ref = exempt_reason = None
             out.append(line)
             i += 1
@@ -157,7 +156,7 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
                 j += 1
             if j == len(lines):
                 print(f"{md.name}:{i + 1}: unclosed code fence")
-                missing += 1
+                unresolved += 1
                 out.extend(lines[i:])
                 break
             block = [l[len(indent):] if l.startswith(indent) else l for l in lines[i + 1 : j]]
@@ -171,7 +170,7 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
             else:
                 src, err = load_source(examples, pending_ref)
                 if src is None:
-                    missing += 1
+                    unresolved += 1
                     print(f"{md.name}: {pending_ref}: {err}")
                     out.extend(lines[i : j + 1])
                 elif src != block_text:
@@ -179,7 +178,7 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
                     wide = widen_fence(fence, src)
                     if sync:
                         out.append(indent + wide + f.group("info"))
-                        out.extend(indent + l for l in src.splitlines())
+                        out.extend(indent + l if l else l for l in src.splitlines())
                         out.append(indent + wide)
                         print(f"{md.name}: {pending_ref}: synced" + (" (fence widened)" if wide != fence else ""))
                     else:
@@ -199,10 +198,10 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
         i += 1
     if in_frontmatter:
         print(f"{md.name}: unclosed frontmatter")
-        missing += 1
-    if sync and mismatches and not missing and not unmarked:
+        unresolved += 1
+    if sync and mismatches and not unresolved and not unmarked:
         _ = md.write_text("\n".join(out) + "\n", encoding="utf-8")
-    return mismatches, missing, unmarked
+    return mismatches, unresolved, unmarked
 
 
 class Arguments(argparse.Namespace):
@@ -227,11 +226,11 @@ def main(argv: list[str]) -> int:
         if md.is_file():
             r = process_file(md, examples, sync)
             totals = [a + b for a, b in zip(totals, r)]
-    mismatches, missing, unmarked = totals
-    print(f"mismatched: {mismatches}  missing sources: {missing}  unmarked blocks: {unmarked}")
+    mismatches, unresolved, unmarked = totals
+    print(f"mismatched: {mismatches}  unresolved blocks: {unresolved}  unmarked blocks: {unmarked}")
     if sync:
-        return 1 if (missing or unmarked) else 0
-    return 1 if (mismatches or missing or unmarked) else 0
+        return 1 if (unresolved or unmarked) else 0
+    return 1 if (mismatches or unresolved or unmarked) else 0
 
 
 if __name__ == "__main__":

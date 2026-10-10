@@ -41,6 +41,7 @@ recorded in `manifest.md` with its digest and the CLI version (the same one as t
 
 ```Dockerfile
 FROM rust:1.91.0
+# Copying Node needs a glibc base (Debian/Ubuntu tags); alpine tags need the node:22-alpine source.
 COPY --from=node:22-bookworm /usr/local/bin/node /usr/local/bin/
 COPY --from=node:22-bookworm /usr/local/lib/node_modules /usr/local/lib/node_modules
 RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
@@ -52,8 +53,9 @@ Run each task with only its directory mounted as `/work`, an empty per-run direc
 `ANTHROPIC_API_KEY`); never mount `~/.claude`. In host mode, run `claude -p` with `HOME` set to an
 empty per-run directory, the same credential variable, and the `.toolchain/` variables exported
 with `.toolchain/bin` first on `PATH`, so every build the agent starts uses the pinned tools.
-Record the effective tool versions from the first transcript of each configuration; a run that
-built with another toolchain is invalid.
+`.toolchain/bin` holds a symlink to each pinned tool binary (from `$CARGO_HOME/bin`,
+`$GOPATH/bin`, `$UV_PYTHON_INSTALL_DIR/.../bin`, and so on). Grep every transcript for the tool
+version lines; a run that built with another toolchain is invalid.
 
 ## Fallback: the host, with tool homes in `.toolchain/`
 

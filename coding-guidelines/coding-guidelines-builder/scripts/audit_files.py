@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit a run folder against the closed file set in SKILL.md.
+"""Audit a run folder against the closed file set in references/workspace.md.
 
 Usage: audit_files.py <run-dir>
 

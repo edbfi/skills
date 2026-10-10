@@ -133,10 +133,12 @@ iterations.
 1. Confirm the delivered candidate matches the frozen one, description included. Record unresolved
    validation limits in `manifest.md` and the delivery report.
 2. Run `token_budget.py skill/`, `check_provenance.py skill/`, `verify_examples.py skill/ examples/`,
-   and skill-creator's validator if it ships one.
-3. Copy the skill to the user's destination or `<root>/dist/<stack-slug>/`. Use skill-creator's
-   packager for a `.skill` archive when it exists; otherwise deliver the folder and say that no
-   archive was produced. Verify the copy matches before cleanup; preserve earlier deliveries.
+   and, when it exists, `PYTHONPATH="$SKILL_CREATOR" python -m scripts.quick_validate skill/`
+   (it needs PyYAML; if it cannot run, record that as a validation limit).
+3. Copy the skill to the user's destination or `<root>/dist/<stack-slug>/`. When
+   `PYTHONPATH="$SKILL_CREATOR" python -m scripts.package_skill <copy> <root>/dist/` runs, deliver
+   the `.skill` archive too; if it errors or is absent, deliver the folder and say that no archive
+   was produced. Verify the copy matches before cleanup; preserve earlier deliveries.
 4. Clean up only resources `manifest.md` marks as created exclusively by this run: services,
    volumes, networks, clones, `_runs/<run-id>/`. Leave shared resources and Docker images. Keep the
    run folder for refreshes.

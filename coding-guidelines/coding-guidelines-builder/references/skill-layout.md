@@ -113,8 +113,10 @@ Model under test: <id>. Research date: <date>. Toolchain: <image tag @ digest or
 ```
 
 `check_provenance.py` structurally requires a row with a nonempty reference for every ATX H2 and H3
-in `SKILL.md` and `references/`, accepts `structure` only for the four fixed `SKILL.md` sections and
-a `Contents` list, and requires a non-empty grep column for each anti-pattern row. Manually audit
+in `SKILL.md` and `references/`, one row with section `*` or the H1 title for a file with no H2 or
+H3 (`versions.md` is always such a file), `structure` only for the four fixed `SKILL.md` sections
+and a `Contents` list, and a non-empty grep column for each anti-pattern row. The description
+contains no angle brackets; skill-creator's validator rejects them. Manually audit
 evidence support as described in content-rules.md; include cited excerpts under an Evidence records
 section. An anti-pattern table may have no data rows if the baseline/probe found none, but its header
 and separator are still required. The file is never linked from loaded files.
