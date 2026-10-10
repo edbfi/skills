@@ -14,11 +14,18 @@ tags, recorded in `skill/PROVENANCE.md` against the section that holds it:
 - **`decision`**: a tool, configuration, version, or project convention chosen for this stack.
   Nothing could infer it; it has to be stated.
 - **`compat`**: a verified incompatibility or availability floor that changes what code is correct.
+- **`structure`**: one of the fixed `SKILL.md` sections (Decisions, Top mistakes, Check, Routing) or
+  a Contents list in a long reference. These hold no claims of their own; every row inside them
+  still traces to one of the four tags above.
 
-No tag, no content. In particular, anything listed under "Done correctly without help" in
+A file in `assets/` or `scripts/` is cited by its path with section `*`. No tag, no content. In
+particular, anything listed under "Done correctly without help" in
 `mistakes.md` is excluded, however fundamental it feels. The model already does it; a sentence
 restating it costs tokens and buys nothing. `$BUILDER_DIR/scripts/check_provenance.py` fails on
-sections with no row and on anti-pattern rows with no grep.
+sections with no row and on anti-pattern rows with no grep. This is a structural check: separately
+resolve every reference against the cited mistakes/facts/decision and verify that it supports the
+claim before delivery. Preserve the cited evidence excerpts in `PROVENANCE.md` so the delivered
+artifact remains auditable without access to the run folder.
 
 Evidence tags live in `PROVENANCE.md`, not in the loaded files; the skill's reader does not need
 them.
@@ -64,7 +71,12 @@ them.
   errors, and passes its tests on the pinned toolchain. The line before the fence names the source:
   `<!-- example: src/handlers.rs -->` or `<!-- example: src/handlers.rs#create_order -->` for the
   lines between `region: create_order` and `endregion: create_order`. Never edit a block in the
-  skill; edit the example and run `verify_examples.py --sync`.
+  skill; edit the example and run `verify_examples.py --sync`. Non-executable illustrative text
+  may use `<!-- example-exempt: reason -->`; the verifier reports exemptions for manual review.
+  Use standalone fences with at most three leading spaces; normalize blockquote/list-prefixed
+  fences and unfenced indented code before verification. The verifier conservatively rejects
+  indentation of four spaces outside fenced blocks, including prose and HTML comments with that
+  indentation, so nested lists use two-space indentation.
 - Blocks are complete: real imports, realistic names, the setup the behaviour depends on. No
   ellipses, no undefined helpers in the logic being taught. A block that depends on omitted
   application code is labelled an excerpt and names what it depends on.
@@ -100,7 +112,8 @@ them.
   prose. Applying good patterns to the code it touches is the agent's job.
 - Roadmap, history, release narrative, "coming soon".
 - Citations, URLs, footnotes, source names, dates, quotations in loaded files. They live in
-  `PROVENANCE.md`. A URL a working configuration needs is content, not a citation.
+  `PROVENANCE.md`. Two exceptions: a URL a working configuration needs is content, not a citation,
+  and `references/versions.md` ends with its single research-date line.
 - References to this builder, the stack block, or "what was specified". Every constraint is a fact
   about the stack.
 - Tutorials, surveys, API catalogs, marketing, onboarding. The reader knows how to program.
@@ -121,6 +134,6 @@ anything else:
 
 ## Shrinking
 
-A skill is finished when nothing can be removed without an assertion failing. Ablation in phase 4
-enforces this once; re-runs enforce it again as models improve. Content a newer model gets right is
+Ablation in phase 4 supplies evidence for cuts, within the task coverage and observed variance;
+it does not prove every remaining sentence necessary. Content a newer model gets right is
 demoted from `SKILL.md` to a reference, and deleted when its reference section carried nothing else.
