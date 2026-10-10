@@ -21,7 +21,7 @@ installable via the [`skills`](https://github.com/vercel-labs/skills) CLI.
 | codex | [`codex-second-opinion`](codex/codex-second-opinion/SKILL.md) | Get an independent read-only Codex review via the codex CLI, verify each finding, fix only what is real and report a verdict table. |
 | coding-guidelines | [`coding-guidelines-builder`](coding-guidelines/coding-guidelines-builder/SKILL.md) | Build version-verified coding-guidelines skills for a tech stack, written as the delta from what agents already know. |
 | docendo | [`docendo-orchestrate-bricks`](docendo/docendo-orchestrate-bricks/SKILL.md) | Plan and operate Docendo calendar bricks with ego-browser, task-overview accounting, and configurable module profiles. |
-| lowendtalk | [`let-vps-scout`](lowendtalk/let-vps-scout/SKILL.md) | Find and purchase-verify the cheapest European VPS from LowEndTalk offers with ego-browser, subagents and one archived HTML report. |
+| lowendtalk | [`let-vps-scout`](lowendtalk/let-vps-scout/SKILL.md) | Find and purchase-verify the cheapest European VPS from LowEndTalk offers with ego-browser or agent-browser, subagents and one archived HTML report. |
 | pelican-eggs | [`panel-egg-roundtrip`](pelican-eggs/panel-egg-roundtrip/SKILL.md) | Round-trip Pelican and Pterodactyl eggs through temporary panel installations. |
 
 ## License
