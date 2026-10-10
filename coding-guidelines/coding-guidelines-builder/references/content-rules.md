@@ -14,6 +14,9 @@ tags, recorded in `skill/PROVENANCE.md` against the section that holds it:
 - **`decision`**: a tool, configuration, version, or project convention chosen for this stack.
   Nothing could infer it; it has to be stated.
 - **`compat`**: a verified incompatibility or availability floor that changes what code is correct.
+- **`structure`**: one of the fixed `SKILL.md` sections (Decisions, Top mistakes, Check, Routing) or
+  a Contents list in a long reference. These hold no claims of their own; every row inside them
+  still traces to one of the four tags above.
 
 No tag, no content. In particular, anything listed under "Done correctly without help" in
 `mistakes.md` is excluded, however fundamental it feels. The model already does it; a sentence
@@ -107,7 +110,8 @@ them.
   prose. Applying good patterns to the code it touches is the agent's job.
 - Roadmap, history, release narrative, "coming soon".
 - Citations, URLs, footnotes, source names, dates, quotations in loaded files. They live in
-  `PROVENANCE.md`. A URL a working configuration needs is content, not a citation.
+  `PROVENANCE.md`. Two exceptions: a URL a working configuration needs is content, not a citation,
+  and `references/versions.md` ends with its single research-date line.
 - References to this builder, the stack block, or "what was specified". Every constraint is a fact
   about the stack.
 - Tutorials, surveys, API catalogs, marketing, onboarding. The reader knows how to program.

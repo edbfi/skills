@@ -25,20 +25,22 @@ Budget: aim under 2,000 tokens, hard ceiling 3,000 (`$BUILDER_DIR/scripts/token_
 both).
 Prefer short routing plus the verified delta; these budgets are ceilings, not targets.
 
-Contents, in order:
+Contents, in order, with these exact ATX headings (`check_provenance.py` keys its `structure` tag
+to them and does not see setext underlines):
 
 1. **Frontmatter.** `name` and a discriminating `description` (below).
-2. **Thesis.** One or two paragraphs: the stack's current posture, what to optimize for, and the two
-   or three biggest ways an agent writes wrong-but-plausible code here, usually by importing habits
-   from an adjacent ecosystem. This is the only place for framing prose.
-3. **Decisions.** The tools in use and the one-line reason for each non-obvious choice, the
+2. **Thesis.** Prose directly under the title, no heading. One or two paragraphs: the stack's
+   current posture, what to optimize for, and the two or three biggest ways an agent writes
+   wrong-but-plausible code here, usually by importing habits from an adjacent ecosystem. This is
+   the only place for framing prose.
+3. **`## Decisions`.** The tools in use and the one-line reason for each non-obvious choice, the
    language mode, the minimum target. A short table if there are more than four.
-4. **Top mistakes.** The highest-frequency, highest-severity rows from `mistakes.md` and the
+4. **`## Top mistakes`.** The highest-frequency, highest-severity rows from `mistakes.md` and the
    contradicted probe rows, one line each: the wrong form, the right form, the reason. Six to ten
    lines at most; fewer when the evidence warrants fewer.
-5. **Check command.** `scripts/check.sh` and the instruction to run it before finishing a task. One
+5. **`## Check`.** `scripts/check.sh` and the instruction to run it before finishing a task. One
    sentence on why: it is the same check the stack's CI and these guidelines are graded by.
-6. **Routing table.** Which reference to read for which kind of work, keyed by what the agent is
+6. **`## Routing`.** Which reference to read for which kind of work, keyed by what the agent is
    doing, not by component name alone:
 
    | When the task involves | Read |
@@ -71,9 +73,9 @@ cutoff-relevant facts gets no file, and its decisions live in `SKILL.md`.
 ## assets/ and scripts/
 
 Ship what every run otherwise reinvents. If three baseline transcripts each wrote a linter config, the
-skill ships the config in `assets/` and `SKILL.md` says to copy it. `scripts/check.sh` is the build,
-lint, format-check, and test sequence from `examples/`, taking the project directory as its argument,
-so an agent runs one command and the evals grade with the same one.
+skill ships the config in `assets/` and `SKILL.md` says to copy it. `scripts/check.sh` is the run's
+`tasks/check.sh`, copied unchanged: the build, lint, format-check, and test sequence, taking the
+project directory as its argument, so an agent runs one command and the evals grade with the same one.
 
 ## examples/
 
@@ -93,7 +95,10 @@ Model under test: <id>. Research date: <date>. Toolchain: <image tag @ digest or
 
 | file | section | evidence | reference |
 |---|---|---|---|
+| SKILL.md | Decisions | structure | layout |
 | SKILL.md | Top mistakes | baseline | m-01, m-02, m-04 |
+| SKILL.md | Check | structure | layout |
+| SKILL.md | Routing | structure | layout |
 | references/axum.md | Path parameters | probe | axum-02, axum-04 |
 | references/sqlx.md | Pool configuration | decision | facts sqlx-07 |
 
@@ -102,8 +107,9 @@ Model under test: <id>. Research date: <date>. Toolchain: <image tag @ digest or
 <the contents of research/sources.md>
 ```
 
-`check_provenance.py` structurally requires a row with a nonempty reference for every H2 and H3 in
-`SKILL.md` and `references/`, and a non-empty grep column for each anti-pattern row. Manually audit
+`check_provenance.py` structurally requires a row with a nonempty reference for every ATX H2 and H3
+in `SKILL.md` and `references/`, accepts `structure` only for the four fixed `SKILL.md` sections and
+a `Contents` list, and requires a non-empty grep column for each anti-pattern row. Manually audit
 evidence support as described in content-rules.md; include cited excerpts under an Evidence records
 section. An anti-pattern table may have no data rows if the baseline/probe found none, but its header
 and separator are still required. The file is never linked from loaded files.

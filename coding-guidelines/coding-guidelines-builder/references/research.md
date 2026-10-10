@@ -163,7 +163,8 @@ never referenced from the skill's loaded files.
 
 ## Hand-off
 
-Phase 2's grader receives `research/facts/` and `versions.json`. Phase 3 draws on three things from
+Phase 2's grader receives `research/facts/` and `versions.json`. Phase 3 draws on four things from
 this phase: `contradicted` rows (what the model believes wrongly), `cutoff-relevant` rows (what it
-cannot know), and the decisions made for `choose: true` components. Nothing else from research
-appears in the skill unless a baseline mistake calls for it.
+cannot know), the decisions made for `choose: true` components, and verified compatibility or
+availability constraints (the `compat` evidence tag). Nothing else from research appears in the
+skill unless a baseline mistake calls for it.

@@ -29,13 +29,13 @@ Stratify so that:
   choices are visible.
 
 Tag each task with its components and assign a split: roughly two thirds `dev`, one third
-`holdout`, with every component appearing in both. Seal holdout prompts, assertions, and fixtures
-after the independent task author and grader prepare them. Run and adjudicate only development
-baselines during drafting. Holdouts run in both configurations only after the candidate is frozen;
-their outputs and failures must not enter `baseline/mistakes.md` or any revision.
+`holdout`, with every component appearing in both. Holdout prompts and fixtures are sealed when the
+task author delivers them; their assertions are sealed in step 3. Run and adjudicate only
+development baselines during drafting. Holdouts run in both configurations only after the candidate
+is frozen; their outputs and failures never enter `baseline/mistakes.md` or any revision.
 
-Save as `tasks/evals.json` in skill-creator's format with two extra fields, and write each prompt
-with any fixture files to `tasks/<task-id>/`:
+Save as `tasks/evals.json` in skill-creator's format with three extra fields (`name`, `components`,
+`split`), and write each prompt with any fixture files to `tasks/<name>/`:
 
 ```json
 {
@@ -60,9 +60,11 @@ Assertions are written in step 3, after research, by you, not by the task author
 ## 2. Running a task in isolation
 
 Each run happens in its own directory outside the run tree:
-`<root>/_runs/<run>/<task-id>/<config>/repeat-<N>/`, where `<config>` is `without_skill`, `with_skill`, or
-`old_skill`. The directory contains only the task's fixture files, the compose file for services if
-the task needs them, and, for `with_skill`, the skill installed as a project skill at
+`<root>/_runs/<run-id>/eval-<id>/<config>/run-<N>/`, where `<id>` is the task's integer id from
+`evals.json` and `<config>` is `without_skill`, `with_skill`, or `old_skill`. These directory names
+are what skill-creator's aggregator and viewer glob (`eval-*`, `run-*`); the task's name lives in
+`eval_metadata.json`. The directory contains only the task's fixture files, the compose file for
+services if the task needs them, and, for `with_skill`, the skill installed as a project skill at
 `.claude/skills/<skill-name>/`. The prompt is the task prompt and nothing more: no paths outside the
 directory, no mention of a skill.
 
@@ -75,7 +77,7 @@ paths. If effective instruction sources cannot be verified, mark isolation unver
 claim a measured skill improvement. Installing a project skill tests real description triggering.
 
 ```bash
-cd "<root>/_runs/<run>/<task-id>/<config>/repeat-<N>"
+cd "<root>/_runs/<run-id>/eval-<id>/<config>/run-<N>"
 claude -p "$(cat task.md)" \
   --model "$MODEL_UNDER_TEST" \
   --output-format stream-json --verbose \
@@ -88,13 +90,17 @@ claude -p "$(cat task.md)" \
 - Unattended runs need permission handling. Prefer running the CLI inside the toolchain container
   with only the task directory mounted when skipping permission prompts; the directory is disposable
   either way.
-- Record elapsed time, token usage when reported, CLI exit status, and final result status in
-  `timing.json`. Missing completion events, exhausted turns, and CLI/tool failures are invalid runs,
-  not zero-scoring task outputs. Diagnose before retrying; stop after two failed retries per run.
+- Write `timing.json` with skill-creator's keys `total_tokens`, `duration_ms`, and
+  `total_duration_seconds`, plus `model` (the ID the run reported), `exit_status`, and
+  `result_status`. Missing completion events, exhausted turns, and CLI/tool failures are invalid
+  runs, not zero-scoring task outputs: write no `grading.json`, record `invalid` with the reason in
+  `timing.json`, diagnose before retrying, and stop after two failed retries per run.
 - Run the development tasks in parallel, as many as the machine and the toolchain cache tolerate.
 - After the run, copy the directory's working files to `outputs/` and move the whole thing under
-  `baseline/<task-id>/repeat-<N>/` (phase 2) or
-  `skill-workspace/iteration-N/<task-id>/<config>/repeat-<N>/` (phase 4).
+  `baseline/eval-<id>/without_skill/run-<N>/` (phase 2) or
+  `skill-workspace/iteration-N/eval-<id>/<config>/run-<N>/` (phase 4). Beside the configuration
+  directories, write `eval-<id>/eval_metadata.json` with skill-creator's keys `eval_id`, `eval_name`,
+  `prompt`, `assertions` (the frozen expectations) plus `split` and `components`.
 
 ### Contamination check
 
@@ -105,14 +111,18 @@ transcripts cannot prove the absence of automatically injected instructions.
 A hit voids the run: record `contaminated` in its grading summary and re-run it. Also scan
 `with_skill` transcripts for a read of the skill's `SKILL.md`; a with-skill run that never read the
 skill is a triggering failure, graded as such, and the strongest signal that the description needs
-work in phase 5.
+work (§5, Description optimization).
 
 ## 3. Assertions
 
-Write assertions after research and before reading any baseline output. Each assertion is a
-sentence that a script or a grader can check against the outputs and transcript, with a descriptive
-name that reads clearly in the viewer. Generic assertions apply to every task; derived assertions
-come from the facts and, later, from the skill's anti-pattern table.
+Write assertions for every task, development and held-out, after research and before any
+baseline run, from the facts and never from outputs. Then seal the holdout set: record in
+`manifest.md` the SHA-256 of the holdout entries of `tasks/evals.json` and of `tasks/check.sh`.
+Holdout assertions never change after this point; the final iteration's freeze covers the candidate
+and the development assertions. Each assertion is a sentence that a script or a grader can check
+against the outputs and transcript, with a descriptive name that reads clearly in the viewer.
+Generic assertions apply to every task; derived assertions come from the facts and, for development
+tasks only, later from the skill's anti-pattern table.
 
 Generic, scripted:
 
@@ -132,7 +142,9 @@ Derived, mostly scripted:
 
 - For each `contradicted` or `cutoff-relevant` fact a task touches: the correct pattern is present
   and the stale one absent, as a grep.
-- For each anti-pattern row in the skill (phase 4 onward): the row's grep finds nothing.
+- For each anti-pattern row in the skill (phase 4 onward, development tasks only): the row's grep
+  finds nothing. The assertion names the `m-NN` or facts id the row came from, so it measures the
+  mistake rather than obedience to the skill.
 - Diagnostic only: whether the relevant routed reference was read. Do not count file reads as
   correctness assertions or as outcomes in ablation.
 
@@ -142,9 +154,11 @@ Grader-judged, kept few:
   request) without panicking or swallowing the error.
 - A review task identifies the planted problem.
 
-Store assertions in `tasks/evals.json` under `expectations` and in each run's `eval_metadata.json`.
-Keep the scripted checks in `examples/scripts/check.sh` (shipped later with the skill) plus a small
-task-specific script per task where needed, so that every iteration grades the same way.
+Store assertions in `tasks/evals.json` under `expectations` and in each task's `eval_metadata.json`.
+Keep the scripted checks in `tasks/check.sh`, taking the project directory as its argument, plus a
+small task-specific script in `tasks/<name>/` where needed, so that every iteration grades the same
+way. Phase 3 copies `tasks/check.sh` unchanged to `skill/scripts/check.sh`; the agent and the evals
+then run the same command.
 
 ## 4. Grading baselines
 
@@ -156,12 +170,25 @@ Apply this rule:
 > failed assertion, cite the facts row or the tool output that establishes the failure. An assertion
 > you cannot tie to a facts row or a tool output is graded `unverifiable`, not failed.
 
-Write `grading.json` per run with an `expectations` array of `{text, passed, evidence}` records.
-Use `passed: null` for unverifiable assertions, report their count, and exclude them from both
-numerator and denominator. Store task ID, configuration, repeat, model, and frozen expectations in
-`eval_metadata.json`; write pass counts, scored counts, invalid counts, and rates per split and
-configuration in `benchmark.json` and a readable `benchmark.md`. Report run spread for repeats.
-If optional skill-creator helpers require another schema, adapt explicitly after reading theirs.
+Write `grading.json` per run in skill-creator's shape:
+
+```json
+{
+  "expectations": [{"text": "...", "passed": true, "evidence": "facts row axum-02; cargo build log line 14"}],
+  "summary": {"passed": 5, "failed": 1, "total": 6, "pass_rate": 0.83, "unverifiable": 1}
+}
+```
+
+`passed` is `true`, `false`, or `null` for unverifiable; `total` counts only scored assertions, so
+null entries are in neither numerator nor denominator, and `unverifiable` counts them. Aggregate
+with `python "$SKILL_CREATOR/scripts/aggregate_benchmark.py" <dir> --skill-name <name>` when that
+helper exists; it reads `eval-*/<config>/run-*/grading.json` and `timing.json`, ignores extra keys,
+and writes `benchmark.json` and `benchmark.md` into `<dir>` (`baseline/` in phase 2,
+`skill-workspace/iteration-N/` in phase 4). Its delta is the first configuration minus the second in
+alphabetical order: right for `with_skill` against `without_skill`, inverted for `old_skill` against
+`with_skill`, so say which in the notes. Add invalid-run counts and per-split rates to
+`benchmark.md` by hand; without the helper, write both files in its schema yourself. Report run
+spread for repeats.
 
 Then adjudicate development results only. Read each development failure and write `baseline/mistakes.md`:
 
@@ -204,6 +231,28 @@ Use these settings, with installed compatible skill-creator reporting helpers if
 - **Budget.** `$BUILDER_DIR/scripts/token_budget.py` runs every iteration and its numbers go into
   the iteration notes next to the pass rate. A pass-rate gain bought with a large token increase is examined for a
   cheaper version.
+
+### Description optimization
+
+Before ablation, on development tasks only. Write about twenty trigger queries to
+`skill-workspace/description/trigger-evals.json` in skill-creator's shape,
+`[{"query": "...", "should_trigger": true}]`: coding tasks whose project context establishes the
+stack without naming a framework, adjacent-stack near misses, projects using one component outside
+this combination, and non-coding questions about the stack. If `run_loop.py` is installed, run it
+from a disposable directory that contains an empty `.claude/`: it plants a command stub in the
+nearest `.claude/commands/` above its working directory and measures triggering of that stub, not of
+the installed project skill, so its result is a candidate description, not a measurement.
+
+```bash
+mkdir -p skill-workspace/description/.claude && cd skill-workspace/description
+PYTHONPATH="$SKILL_CREATOR" python -m scripts.run_loop \
+  --eval-set trigger-evals.json --skill-path ../../skill --model "$MODEL_UNDER_TEST" \
+  --max-iterations 5 --results-dir . --report none --verbose
+```
+
+Apply `best_description` from its `results.json` to `skill/SKILL.md`, then confirm it on the real
+path: every `with_skill` transcript of the next iteration must show a read of `SKILL.md`. Without
+the helper, inspect triggering in development transcripts and revise the description by hand.
 
 ### Ablation
 
