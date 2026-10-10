@@ -16,7 +16,6 @@ installable via the [`skills`](https://github.com/vercel-labs/skills) CLI.
 | Vendor | Skill | Description |
 |---|---|---|
 | astro | [`starlight-docs`](astro/starlight-docs/SKILL.md) | Build, configure, and author Starlight (Astro-based) documentation sites. |
-| augmentcode | [`codebase-retrieval`](augmentcode/codebase-retrieval/SKILL.md) | Semantic codebase search via Augment's context engine. |
 | basedpyright | [`basedpyright-python-gate`](basedpyright/basedpyright-python-gate/SKILL.md) | Drive Python to 0 errors / 0 warnings under basedpyright `recommended` mode by fixing code, never by suppressing globally. |
 | bevy | [`bevy`](bevy/bevy/SKILL.md) | Build, debug, test, and migrate Bevy games and apps with version-checked ECS, rendering, assets, UI, and platform guidance. |
 | codex | [`codex-second-opinion`](codex/codex-second-opinion/SKILL.md) | Get an independent read-only Codex review via the codex CLI, verify each finding, fix only what is real and report a verdict table. |
