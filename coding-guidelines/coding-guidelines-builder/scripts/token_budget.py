@@ -3,9 +3,8 @@
 
 Usage: token_budget.py <skill-dir> [--json]
 
-Tokens are estimated as characters / 4, which is within about 20% for English
-prose and code on current tokenizers and errs high for prose. The point is the
-trend across iterations and the ceilings, not the exact number.
+Tokens are a rough characters / 4 estimate, not a tokenizer measurement.
+Descriptions must be a single-line YAML scalar, as required by this repository.
 
 Budgets (aim / ceiling): SKILL.md 2000 / 3000; each references/*.md 4000 / 6000.
 The description is reported separately (ceiling ~1000 characters). Exits 1 if
@@ -45,9 +44,14 @@ def estimate(text: str) -> int:
 def description_of(skill_md: str) -> str:
     m = re.match(r"^---\s*\n(.*?)\n---", skill_md, re.S)
     if not m:
-        return ""
+        raise ValueError("YAML frontmatter missing")
     d = re.search(r"^description:\s*(.*)$", m.group(1), re.M)
-    return d.group(1).strip().strip('"\'') if d else ""
+    if not d or not d.group(1).strip():
+        raise ValueError("description missing")
+    value = d.group(1).strip()
+    if value.startswith((">", "|")) or re.match(r"\n[ \t]+\S", m.group(1)[d.end():]):
+        raise ValueError("description must be a single-line YAML scalar")
+    return value.strip('"\'')
 
 
 def main(argv: list[str]) -> int:
@@ -67,7 +71,11 @@ def main(argv: list[str]) -> int:
         t = estimate(text)
         files.append({"file": "SKILL.md", "tokens": t, "aim": aim, "ceiling": ceil, "lines": text.count("\n") + 1})
         over += t > ceil
-        desc = description_of(text)
+        try:
+            desc = description_of(text)
+        except ValueError as error:
+            print(str(error), file=sys.stderr)
+            return 1
         description: DescriptionRow = {"file": "description", "tokens": estimate(desc), "chars": len(desc), "ceiling_chars": DESC_CEILING_CHARS}
         over += len(desc) > DESC_CEILING_CHARS
     else:

@@ -73,6 +73,12 @@ repos:
         language: system
         pass_filenames: false
         files: ^docendo/docendo-orchestrate-bricks/
+      - id: coding-guidelines-tests
+        name: Coding guidelines builder validator tests
+        entry: python3 -I -B -m unittest discover -s coding-guidelines/coding-guidelines-builder/tests
+        language: system
+        pass_filenames: false
+        files: ^coding-guidelines/coding-guidelines-builder/
       # node --check reads only its first file argument, so check one file per call.
       - id: node-check
         name: node --check

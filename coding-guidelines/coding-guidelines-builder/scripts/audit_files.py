@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Audit a run folder against the closed file set in SKILL.md.
 
-Usage: audit_files.py <run-dir> [--delete]
+Usage: audit_files.py <run-dir>
 
 Lists every file that is not part of the allowed layout and not declared under
-"## Additional files" in manifest.md. Exits 1 if any are found. With --delete,
-removes them instead (asks nothing; the run folder is disposable by design).
+"## Additional files" in manifest.md. Exits 1 if any are found. Never deletes files.
 """
 from __future__ import annotations
 
@@ -70,13 +69,15 @@ def matches(rel: str, pattern: str) -> bool:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) < 2:
+    if len(argv) != 2 or argv[1].startswith("--"):
         print(__doc__)
         return 2
     run = Path(argv[1]).resolve()
-    delete = "--delete" in argv
     if not run.is_dir():
         print(f"not a directory: {run}", file=sys.stderr)
+        return 2
+    if not (run / "manifest.md").is_file():
+        print("manifest.md missing", file=sys.stderr)
         return 2
 
     extra = declared_additional(run / "manifest.md")
@@ -103,12 +104,7 @@ def main(argv: list[str]) -> int:
     print(f"{len(offenders)} file(s) outside the closed set:")
     for p in offenders:
         print(f"  {p.relative_to(run).as_posix()}")
-        if delete:
-            p.unlink()
-    if delete:
-        print("deleted")
-        return 0
-    print("delete them, or declare each under '## Additional files' in manifest.md with a reason")
+    print("review these files, or declare each under '## Additional files' in manifest.md with a reason")
     return 1
 
 

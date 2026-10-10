@@ -8,12 +8,13 @@ file | section | evidence | reference, and checks:
 
 - every H2 and H3 heading in SKILL.md and references/*.md has a row whose
   file and section match (case-insensitive, whitespace-normalized);
-- every evidence value is one of baseline, probe, decision, compat;
+- every evidence value is one of baseline, probe, decision, compat, with a nonempty reference;
 - every row points at a heading that still exists (stale rows are reported);
 - every data row of the table in references/anti-patterns.md has a non-empty
   fourth (grep) column.
 
-Exits 1 on any failure. Frontmatter and headings inside code fences are ignored.
+Exits 1 on any structural failure. Evidence support must be audited separately.
+Frontmatter and headings inside code fences are ignored.
 """
 from __future__ import annotations
 
@@ -30,7 +31,8 @@ def norm(s: str) -> str:
 
 def headings(md: Path) -> list[str]:
     found: list[str] = []
-    in_fence = False
+    fence_marker = ""
+    fence_length = 0
     in_front = False
     for i, line in enumerate(md.read_text(encoding="utf-8").splitlines()):
         if i == 0 and line.strip() == "---":
@@ -40,10 +42,15 @@ def headings(md: Path) -> list[str]:
             if line.strip() == "---":
                 in_front = False
             continue
-        if re.match(r"^\s*(`{3,}|~{3,})", line):
-            in_fence = not in_fence
+        fence = re.match(r"^\s*(`{3,}|~{3,})(.*)$", line)
+        if fence:
+            marker, rest = fence.groups()
+            if not fence_marker:
+                fence_marker, fence_length = marker[0], len(marker)
+            elif marker[0] == fence_marker and len(marker) >= fence_length and not rest.strip():
+                fence_marker = ""
             continue
-        if in_fence:
+        if fence_marker:
             continue
         m = re.match(r"^(##|###)\s+(.+?)\s*#*\s*$", line)
         if m:
@@ -74,20 +81,40 @@ def table_rows(text: str, heading: str | None) -> list[list[str]]:
     return rows
 
 
+def has_table(text: str, columns: list[str]) -> bool:
+    lines = text.splitlines()
+    for index, line in enumerate(lines[:-1]):
+        cells = [norm(c) for c in line.strip().strip("|").split("|")]
+        separator = [c.strip() for c in lines[index + 1].strip().strip("|").split("|")]
+        if cells == columns and len(separator) == len(columns) and all(
+            re.fullmatch(r":?-{2,}:?", cell) for cell in separator
+        ):
+            return True
+    return False
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print(__doc__)
         return 2
     skill = Path(argv[1])
+    if not (skill / "SKILL.md").is_file():
+        print("SKILL.md missing")
+        return 1
     prov = skill / "PROVENANCE.md"
     if not prov.is_file():
         print("PROVENANCE.md missing")
         return 1
-    rows = table_rows(prov.read_text(encoding="utf-8"), "Evidence")
+    provenance = prov.read_text(encoding="utf-8")
+    evidence_section = re.search(r"^## Evidence\s*$(.*?)(?=^## |\Z)", provenance, re.M | re.S)
+    if not evidence_section or not has_table(evidence_section.group(1), ["file", "section", "evidence", "reference"]):
+        print("Evidence table missing or malformed")
+        return 1
+    rows = table_rows(provenance, "Evidence")
     covered: set[tuple[str, str]] = set()
     failures = 0
     for r in rows:
-        if len(r) < 3:
+        if len(r) != 4 or any(not norm(cell) for cell in r):
             print(f"malformed evidence row: {r}")
             failures += 1
             continue
@@ -115,8 +142,12 @@ def main(argv: list[str]) -> int:
 
     anti = skill / "references" / "anti-patterns.md"
     if anti.is_file():
-        for r in table_rows(anti.read_text(encoding="utf-8"), None):
-            if len(r) < 4 or not r[3].strip():
+        anti_text = anti.read_text(encoding="utf-8")
+        if not has_table(anti_text, ["wrong", "why", "right", "grep"]):
+            print("anti-patterns.md: wrong / why / right / grep table missing or malformed")
+            failures += 1
+        for r in table_rows(anti_text, None):
+            if len(r) != 4 or any(not norm(cell) for cell in r):
                 print(f"anti-patterns.md: row without grep: {r[0][:60] if r else r}")
                 failures += 1
     else:

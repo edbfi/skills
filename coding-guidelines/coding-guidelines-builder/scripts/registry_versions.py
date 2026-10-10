@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Snapshot the latest stable version of every component from its package registry.
+"""Snapshot stable candidates from package registries for subsequent compatibility research.
 
 Usage: registry_versions.py <components.json> [--previous <versions.json>] > versions.json
 
@@ -12,12 +12,14 @@ With --previous, the previous snapshot is compared and each changed component
 is marked "changed": true and listed on stderr. A re-run uses that list to
 decide which components need fresh research.
 
-Stable means no pre-release suffix as the registry defines it; where a registry
-exposes a "latest stable" field it is used directly.
+Latest tags can point at prereleases. Reject unresolved candidates instead of
+claiming they are stable. Unrecognized version conventions require manual research;
+this script does not resolve user constraints or cross-package compatibility.
 """
 from __future__ import annotations
 
 import json
+import argparse
 import re
 import sys
 import urllib.parse
@@ -27,7 +29,7 @@ from http.client import HTTPResponse
 from typing import cast
 
 UA = "coding-guidelines-builder/1 (+registry version snapshot)"
-PRERELEASE = re.compile(r"[-+]|(?:a|b|rc|alpha|beta|dev|pre|preview|nightly)\d*$", re.I)
+STABLE = re.compile(r"v?\d+(?:\.\d+)*(?:\.post\d+|[.-](?:Final|RELEASE))?(?:\+[0-9A-Za-z.-]+)?", re.I)
 
 
 def fetch_json(url: str) -> object:
@@ -77,11 +79,11 @@ def version(value: object) -> str | None:
 
 
 def is_stable(v: str) -> bool:
-    return not PRERELEASE.search(v)
+    return STABLE.fullmatch(v) is not None
 
 
 def version_key(v: str) -> tuple[int, ...]:
-    return tuple(int(p) if p.isdigit() else -1 for p in re.split(r"[.\-+]", v))
+    return tuple(int(match.group()) for match in re.finditer(r"\d+", v.removeprefix("v").split("+", 1)[0]))
 
 
 def newest_stable(versions: list[str]) -> str | None:
@@ -96,7 +98,7 @@ def go_escape(module: str) -> str:
 def latest(registry: str, package: str) -> str | None:
     if registry == "crates":
         crate = require(fetch_json(f"https://crates.io/api/v1/crates/{urllib.parse.quote(package)}"), "crate")
-        return version(get(crate, "max_stable_version")) or version(get(crate, "max_version"))
+        return version(get(crate, "max_stable_version"))
     if registry == "npm":
         d = fetch_json(f"https://registry.npmjs.org/{urllib.parse.quote(package, safe='@')}")
         return version(get(get(d, "dist-tags"), "latest"))
@@ -104,8 +106,11 @@ def latest(registry: str, package: str) -> str | None:
         d = fetch_json(f"https://pypi.org/pypi/{urllib.parse.quote(package)}/json")
         v = text(require(require(d, "info"), "version"))
         releases = get(d, "releases")
-        keys = list(cast("dict[str, object]", releases)) if isinstance(releases, dict) else []  # JSON object keys are always strings
-        return v if is_stable(v) else newest_stable(keys)
+        release_map = cast("dict[str, object]", releases) if isinstance(releases, dict) else {}  # JSON object keys are strings
+        usable = [key for key, files in release_map.items() if any(
+            get(file, "yanked") is False for file in array(files) or []
+        )]
+        return v if is_stable(v) and v in usable else newest_stable(usable)
     if registry == "go":
         d = fetch_json(f"https://proxy.golang.org/{go_escape(package)}/@latest")
         return version(get(d, "Version"))
@@ -114,7 +119,7 @@ def latest(registry: str, package: str) -> str | None:
         return version(get(d, "version"))
     if registry == "hex":
         d = fetch_json(f"https://hex.pm/api/packages/{urllib.parse.quote(package)}")
-        return version(get(d, "latest_stable_version")) or version(get(d, "latest_version"))
+        return version(get(d, "latest_stable_version"))
     if registry == "maven":
         group, _, artifact = package.partition(":")
         q = urllib.parse.quote(f'g:"{group}" AND a:"{artifact}"')
@@ -127,41 +132,64 @@ def latest(registry: str, package: str) -> str | None:
     raise ValueError(f"unsupported registry: {registry}")
 
 
+class Arguments(argparse.Namespace):
+    components: str = ""
+    previous: str | None = None
+
+
+def component_entries(value: object) -> list[object]:
+    entries = array(value)
+    if entries is None:
+        raise ValueError("expected a JSON array of components")
+    names: set[str] = set()
+    for entry in entries:
+        name = text(require(entry, "name"))
+        if not name.strip() or name in names:
+            raise ValueError(f"empty or duplicate component name: {name!r}")
+        names.add(name)
+        registry = require(entry, "registry")
+        if registry is not None:
+            if text(registry) not in {"crates", "npm", "pypi", "go", "rubygems", "hex", "maven", "nuget"}:
+                raise ValueError(f"unsupported registry: {registry}")
+            package = text(require(entry, "package"))
+            if not package.strip() or (registry == "maven" and not re.fullmatch(r"[^:]+:[^:]+", package)):
+                raise ValueError(f"invalid package: {package!r}")
+    return entries
+
+
 def main(argv: list[str]) -> int:
-    args = [a for a in argv[1:] if not a.startswith("--")]
-    if not args:
-        print(__doc__, file=sys.stderr)
-        return 2
-    prev_path = argv[argv.index("--previous") + 1] if "--previous" in argv else None
+    parser = argparse.ArgumentParser(description=__doc__)
+    _ = parser.add_argument("components")
+    _ = parser.add_argument("--previous")
+    args = parser.parse_args(argv[1:], namespace=Arguments())
+    prev_path = args.previous
     try:
-        components = array(load_json(args[0]))
-        prev = load_json(prev_path) if prev_path else None
-    except (OSError, ValueError) as e:  # unreadable file or invalid JSON
+        components = component_entries(load_json(args.components))
+        previous_entries = component_entries(require(load_json(prev_path), "components")) if prev_path else []
+    except (OSError, ValueError, KeyError) as e:
         print(f"cannot read input: {e}", file=sys.stderr)
         return 2
-    if components is None:
-        print(f"{args[0]}: expected a JSON array of components", file=sys.stderr)
-        return 2
-    previous: dict[object, object] = {}
-    if prev_path:
-        previous = {require(c, "name"): get(c, "latest") for c in array(get(prev, "components")) or []}
+    previous = {text(require(c, "name")): get(c, "latest") for c in previous_entries}
 
     out: list[dict[str, object]] = []
     failures = 0
     for c in components:
-        name = require(c, "name")
+        name = text(require(c, "name"))
         registry = get(c, "registry")
         entry: dict[str, object] = {"name": name, "registry": registry, "package": get(c, "package"), "latest": None}
         if registry:
             try:
-                entry["latest"] = latest(text(registry), text(require(c, "package")))
+                candidate = latest(text(registry), text(require(c, "package")))
+                if candidate is None or not is_stable(candidate):
+                    raise ValueError(f"no verified stable candidate ({candidate!r}); research official release metadata")
+                entry["latest"] = candidate
             except (OSError, KeyError, ValueError) as e:  # OSError covers URLError and read timeouts
                 entry["error"] = str(e)
                 failures += 1
                 print(f"{name}: {e}", file=sys.stderr)
         else:
             entry["note"] = "no registry; fill from source tags or toolchain version command"
-        if previous:
+        if prev_path:
             before = previous.get(name)
             entry["previous"] = before
             changed = bool(entry["latest"]) and before != entry["latest"]

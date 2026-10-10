@@ -20,26 +20,30 @@ where the file contains lines with `region: create_order` and
 block must equal the file or region exactly, after stripping trailing
 whitespace on each line.
 
-Default mode reports every mismatch, every marker whose file or region is
-missing, and every code block with no marker (a warning: config fragments and
-shell commands may legitimately have none, but a block teaching a pattern
-should). Exits 1 on mismatches or missing sources. With --sync, rewrites
+Default mode fails on mismatches, missing sources, malformed fences, and unmarked
+blocks. Non-executable illustration can use an explicit exemption comment:
+    <!-- example-exempt: reason -->
+Exemptions are reported for manual review. With --sync, rewrites
 mismatched blocks from the examples, which is the only sanctioned way to edit
 a block: examples/ is the source of truth.
 """
 from __future__ import annotations
 
 import re
+import argparse
 import sys
 from pathlib import Path
 
 MARKER = re.compile(r"^\s*<!--\s*example:\s*(?P<ref>[^\s]+)\s*-->\s*$")
+EXEMPT = re.compile(r"^\s*<!--\s*example-exempt:\s*(\S.*?)\s*-->\s*$")
 FENCE = re.compile(r"^(?P<indent>\s*)(?P<fence>`{3,}|~{3,})(?P<info>.*)$")
 
 
 def load_source(examples: Path, ref: str) -> tuple[str | None, str]:
     path_part, _, region = ref.partition("#")
-    file = examples / path_part
+    file = (examples / path_part).resolve()
+    if not path_part or Path(path_part).is_absolute() or not file.is_relative_to(examples.resolve()):
+        return None, f"source escapes examples directory: {path_part}"
     if not file.is_file():
         return None, f"missing file {path_part}"
     lines = file.read_text(encoding="utf-8").splitlines()
@@ -49,9 +53,9 @@ def load_source(examples: Path, ref: str) -> tuple[str | None, str]:
         return "\n".join(l.rstrip() for l in kept), ""
     start = end = None
     for i, line in enumerate(lines):
-        if re.search(rf"\bregion:\s*{re.escape(region)}\b", line) and "endregion" not in line:
+        if re.search(rf"\bregion:\s*{re.escape(region)}(?=\s|$)", line) and "endregion" not in line:
             start = i
-        elif re.search(rf"\bendregion:\s*{re.escape(region)}\b", line):
+        elif re.search(rf"\bendregion:\s*{re.escape(region)}(?=\s|$)", line):
             end = i
             break
     if start is None or end is None or end <= start:
@@ -70,11 +74,20 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
     mismatches = missing = unmarked = 0
     i = 0
     pending_ref: str | None = None
+    exempt_reason: str | None = None
     while i < len(lines):
         line = lines[i]
         m = MARKER.match(line)
         if m:
             pending_ref = m.group("ref")
+            exempt_reason = None
+            out.append(line)
+            i += 1
+            continue
+        exemption = EXEMPT.match(line)
+        if exemption:
+            pending_ref = None
+            exempt_reason = exemption.group(1)
             out.append(line)
             i += 1
             continue
@@ -83,11 +96,20 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
             fence = f.group("fence")
             indent = f.group("indent")
             j = i + 1
-            while j < len(lines) and not re.match(rf"^\s*{re.escape(fence)}\s*$", lines[j]):
+            closing = re.compile(rf"^\s*{re.escape(fence[0])}{{{len(fence)},}}\s*$")
+            while j < len(lines) and not closing.match(lines[j]):
                 j += 1
+            if j == len(lines):
+                print(f"{md.name}:{i + 1}: unclosed code fence")
+                missing += 1
+                out.extend(lines[i:])
+                break
             block = [l[len(indent):] if l.startswith(indent) else l for l in lines[i + 1 : j]]
             block_text = "\n".join(l.rstrip() for l in block)
-            if pending_ref is None:
+            if exempt_reason:
+                print(f"{md.name}:{i + 1}: exempt: {exempt_reason}")
+                out.extend(lines[i : j + 1])
+            elif pending_ref is None:
                 unmarked += 1
                 out.extend(lines[i : j + 1])
             else:
@@ -109,24 +131,35 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
                 else:
                     out.extend(lines[i : j + 1])
             pending_ref = None
+            exempt_reason = None
             i = j + 1
             continue
         if line.strip():
             pending_ref = None  # a marker applies only to the next fence
+            exempt_reason = None
         out.append(line)
         i += 1
-    if sync and mismatches:
+    if sync and mismatches and not missing and not unmarked:
         _ = md.write_text("\n".join(out) + "\n", encoding="utf-8")
     return mismatches, missing, unmarked
 
 
+class Arguments(argparse.Namespace):
+    skill: Path = Path()
+    examples: Path = Path()
+    sync: bool = False
+
+
 def main(argv: list[str]) -> int:
-    args = [a for a in argv[1:] if not a.startswith("--")]
-    if len(args) != 2:
-        print(__doc__)
+    parser = argparse.ArgumentParser(description=__doc__)
+    _ = parser.add_argument("skill", type=Path)
+    _ = parser.add_argument("examples", type=Path)
+    _ = parser.add_argument("--sync", action="store_true")
+    args = parser.parse_args(argv[1:], namespace=Arguments())
+    skill, examples, sync = args.skill, args.examples, args.sync
+    if not (skill / "SKILL.md").is_file() or not examples.is_dir():
+        print("SKILL.md and examples directory must exist", file=sys.stderr)
         return 2
-    skill, examples = Path(args[0]), Path(args[1])
-    sync = "--sync" in argv
     files = [skill / "SKILL.md"] + sorted((skill / "references").glob("*.md"))
     totals = [0, 0, 0]
     for md in files:
@@ -136,8 +169,8 @@ def main(argv: list[str]) -> int:
     mismatches, missing, unmarked = totals
     print(f"mismatched: {mismatches}  missing sources: {missing}  unmarked blocks: {unmarked}")
     if sync:
-        return 1 if missing else 0
-    return 1 if (mismatches or missing) else 0
+        return 1 if (missing or unmarked) else 0
+    return 1 if (mismatches or missing or unmarked) else 0
 
 
 if __name__ == "__main__":
