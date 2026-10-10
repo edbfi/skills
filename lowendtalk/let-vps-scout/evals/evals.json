@@ -19,7 +19,7 @@
       "id": 2,
       "name": "agent-browser-bounded-discovery",
       "setup": "agent-browser installed; a desktop session is available in case the Cloudflare probe forces a headed window.",
-      "prompt": "Run let-vps-scout with agent-browser, but this is a dry run: only read LET offer listing pages 1-2 and the opening post of the first non-sticky thread, merge the results, then stop, tear the browser down and tell me the run folder.",
+      "prompt": "Run let-vps-scout with agent-browser, but this is a dry run: only read LET offer listing pages 1-2 and the opening post of the first thread listed on page 1, merge the results, then stop, tear the browser down and tell me the run folder.",
       "expected_output": "The agent runs `ledger.py init --browser agent-browser`, loads `agent-browser skills get core`, launches one headless host session named letvps-<suffix> (relaunching it headed only if the Cloudflare probe fails), records it, its mode and its CDP URL in STATUS.md, then browses through pinned-tab sessions attached with --cdp (not through the host session). Every open is followed by a wait that rejects the Cloudflare 'Just a moment...' interstitial. Listing and thread text is saved under evidence/, a worker file is merged with ledger.py merge, and teardown releases worker tabs and closes only letvps-* sessions.",
       "files": [],
       "assertions": [
