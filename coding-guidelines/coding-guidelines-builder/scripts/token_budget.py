@@ -62,7 +62,7 @@ def description_of(skill_md: str) -> str:
 
 def main(argv: list[str]) -> int:
     args = [a for a in argv[1:] if not a.startswith("--")]
-    if len(args) != 1:
+    if len(args) != 1 or any(a.startswith("--") and a != "--json" for a in argv[1:]):
         print(__doc__)
         return 2
     skill = Path(args[0])
@@ -72,7 +72,7 @@ def main(argv: list[str]) -> int:
 
     skill_md = skill / "SKILL.md"
     if skill_md.is_file():
-        text = skill_md.read_text(encoding="utf-8")
+        text = skill_md.read_text(encoding="utf-8-sig")
         aim, ceil = BUDGETS["SKILL.md"]
         t = estimate(text)
         files.append({"file": "SKILL.md", "tokens": t, "aim": aim, "ceiling": ceil, "lines": text.count("\n") + 1})
@@ -89,7 +89,7 @@ def main(argv: list[str]) -> int:
         return 1
 
     for ref in sorted((skill / "references").glob("*.md")):
-        text = ref.read_text(encoding="utf-8")
+        text = ref.read_text(encoding="utf-8-sig")
         aim, ceil = BUDGETS["reference"]
         t = estimate(text)
         files.append({"file": f"references/{ref.name}", "tokens": t, "aim": aim, "ceiling": ceil, "lines": text.count("\n") + 1})

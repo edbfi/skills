@@ -6,12 +6,17 @@ Usage: check_provenance.py <skill-dir>
 Reads <skill-dir>/PROVENANCE.md, whose "## Evidence" table has the columns
 file | section | evidence | reference, and checks:
 
-- every H2 and H3 heading in SKILL.md and references/*.md has a row whose
-  file and section match (case-insensitive, whitespace-normalized);
-- every evidence value is one of baseline, probe, decision, compat, with a nonempty reference;
+- every ATX H2 and H3 heading (`##`, `###`; setext underlines are not
+  recognized) in SKILL.md and references/*.md has a row whose file and section
+  match (case-insensitive, whitespace-normalized);
+- every evidence value is one of baseline, probe, decision, compat, or structure,
+  with a nonempty reference; `structure` is accepted only for the fixed layout
+  sections of SKILL.md (Decisions, Top mistakes, Check, Routing) and a Contents
+  table of contents;
 - every row points at a heading that still exists (stale rows are reported);
-- every data row of the table in references/anti-patterns.md has a non-empty
-  fourth (grep) column.
+- every data row of the wrong / why / right / grep table in
+  references/anti-patterns.md has a non-empty grep column. The table is found
+  by its header, wherever it sits in the file.
 
 Exits 1 on any structural failure. Evidence support must be audited separately.
 Frontmatter and headings inside code fences are ignored.
@@ -22,7 +27,8 @@ import re
 import sys
 from pathlib import Path
 
-EVIDENCE = {"baseline", "probe", "decision", "compat"}
+EVIDENCE = {"baseline", "probe", "decision", "compat", "structure"}
+STRUCTURE_SECTIONS = {"decisions", "top mistakes", "check", "routing"}  # SKILL.md only; "contents" anywhere
 
 
 def norm(s: str) -> str:
@@ -34,7 +40,7 @@ def headings(md: Path) -> list[str]:
     fence_marker = ""
     fence_length = 0
     in_front = False
-    for i, line in enumerate(md.read_text(encoding="utf-8").splitlines()):
+    for i, line in enumerate(md.read_text(encoding="utf-8-sig").splitlines()):
         if i == 0 and line.strip() == "---":
             in_front = True
             continue
@@ -52,45 +58,37 @@ def headings(md: Path) -> list[str]:
             continue
         if fence_marker:
             continue
-        m = re.match(r"^(##|###)\s+(.+?)\s*#*\s*$", line)
+        m = re.match(r"^(##|###)\s+(.+?)(?:\s+#+)?\s*$", line)
         if m:
             found.append(m.group(2))
     return found
 
 
-def table_rows(text: str, heading: str | None) -> list[list[str]]:
-    """Rows of the first Markdown table under `heading` (or the first table if None)."""
-    if heading:
-        m = re.search(rf"^##\s+{re.escape(heading)}\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
-        if not m:
-            return []
-        text = m.group(1)
-    rows: list[list[str]] = []
-    in_table = False
-    for line in text.splitlines():
-        if line.strip().startswith("|"):
-            # Split on unescaped pipes only, so grep alternation like `foo\|bar` stays one cell.
-            cells = [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
-            if all(re.fullmatch(r":?-{2,}:?", c) for c in cells):
-                in_table = True
-                continue
-            if in_table:
-                rows.append(cells)
-        elif in_table and line.strip() == "":
-            break
-    return rows
+def structural(file: str, section: str) -> bool:
+    return section == "contents" or (file == "skill.md" and section in STRUCTURE_SECTIONS)
 
 
-def has_table(text: str, columns: list[str]) -> bool:
+def cells_of(line: str) -> list[str]:
+    """Cells of a table line, split on unescaped pipes so grep alternation like `a\\|b` stays one cell."""
+    return [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
+
+
+def find_table(text: str, columns: list[str]) -> list[list[str]] | None:
+    """Data rows of the first table whose header is exactly `columns`; None when there is none."""
     lines = text.splitlines()
     for index, line in enumerate(lines[:-1]):
-        cells = [norm(c) for c in line.strip().strip("|").split("|")]
-        separator = [c.strip() for c in lines[index + 1].strip().strip("|").split("|")]
-        if cells == columns and len(separator) == len(columns) and all(
-            re.fullmatch(r":?-{2,}:?", cell) for cell in separator
-        ):
-            return True
-    return False
+        if not line.strip().startswith("|") or [norm(c) for c in cells_of(line)] != columns:
+            continue
+        separator = cells_of(lines[index + 1])
+        if len(separator) != len(columns) or not all(re.fullmatch(r":?-{2,}:?", c) for c in separator):
+            continue
+        rows: list[list[str]] = []
+        for row in lines[index + 2:]:
+            if not row.strip().startswith("|"):
+                break
+            rows.append(cells_of(row))
+        return rows
+    return None
 
 
 def main(argv: list[str]) -> int:
@@ -105,12 +103,12 @@ def main(argv: list[str]) -> int:
     if not prov.is_file():
         print("PROVENANCE.md missing")
         return 1
-    provenance = prov.read_text(encoding="utf-8")
+    provenance = prov.read_text(encoding="utf-8-sig")
     evidence_section = re.search(r"^## Evidence\s*$(.*?)(?=^## |\Z)", provenance, re.M | re.S)
-    if not evidence_section or not has_table(evidence_section.group(1), ["file", "section", "evidence", "reference"]):
+    rows = find_table(evidence_section.group(1), ["file", "section", "evidence", "reference"]) if evidence_section else None
+    if rows is None:
         print("Evidence table missing or malformed")
         return 1
-    rows = table_rows(provenance, "Evidence")
     covered: set[tuple[str, str]] = set()
     failures = 0
     for r in rows:
@@ -121,6 +119,9 @@ def main(argv: list[str]) -> int:
         file, section, evidence = r[0].strip("`"), r[1], r[2].lower()
         if evidence not in EVIDENCE:
             print(f"{file} / {section}: evidence '{r[2]}' not in {sorted(EVIDENCE)}")
+            failures += 1
+        elif evidence == "structure" and not structural(norm(file), norm(section)):
+            print(f"{file} / {section}: 'structure' is only for SKILL.md {sorted(STRUCTURE_SECTIONS)} or a Contents list")
             failures += 1
         covered.add((norm(file), norm(section)))
 
@@ -142,11 +143,11 @@ def main(argv: list[str]) -> int:
 
     anti = skill / "references" / "anti-patterns.md"
     if anti.is_file():
-        anti_text = anti.read_text(encoding="utf-8")
-        if not has_table(anti_text, ["wrong", "why", "right", "grep"]):
+        anti_rows = find_table(anti.read_text(encoding="utf-8-sig"), ["wrong", "why", "right", "grep"])
+        if anti_rows is None:
             print("anti-patterns.md: wrong / why / right / grep table missing or malformed")
             failures += 1
-        for r in table_rows(anti_text, None):
+        for r in anti_rows or []:
             if len(r) != 4 or any(not norm(cell) for cell in r):
                 print(f"anti-patterns.md: row without grep: {r[0][:60] if r else r}")
                 failures += 1

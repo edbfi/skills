@@ -70,6 +70,49 @@ class ArtifactChecks(unittest.TestCase):
             _ = stream.write("\n````md\n```python\n## Not a section\n```\n````\n")
         self.assert_code(0, self.run_script("check_provenance.py", self.skill))
 
+    def test_provenance_headings_tables_and_structure_tag(self) -> None:
+        self.provenance("| SKILL.md | Rules | baseline | m-01 |\n| SKILL.md | Use F# | decision | d-01 |\n"
+                        + "| SKILL.md | Routing | structure | layout |\n| references/anti-patterns.md | Contents | structure | layout |")
+        with (self.skill / "SKILL.md").open("a") as stream:
+            _ = stream.write("\n## Use F#\n\n## Routing ##\n")
+        self.write(self.skill / "references/anti-patterns.md",
+                   "# Anti-patterns\n\n## Contents\n\n| section | line |\n|---|---|\n| rows | 9 |\n\n"
+                   + "| wrong | why | right | grep |\n|---|---|---|---|\n| `a` | b | `c` | `a\\|b` |\n")
+        self.assert_code(0, self.run_script("check_provenance.py", self.skill))
+        with (self.skill / "references/anti-patterns.md").open("a") as stream:
+            _ = stream.write("| `x` | y | `z` | |\n")
+        self.assert_code(1, self.run_script("check_provenance.py", self.skill))
+        self.provenance("| SKILL.md | Rules | structure | layout |")
+        result = self.run_script("check_provenance.py", self.skill)
+        self.assert_code(1, result)
+        self.assertIn("'structure' is only for", result.stdout)
+
+    def test_audit_layout_and_symlink_escape(self) -> None:
+        run = self.root / "run"
+        self.write(run / "manifest.md", "# Run\n\n## Additional files\n\n- `notes.txt` scratch\n")
+        for rel in ("tasks/check.sh", "tasks/orders/task.md", "baseline/benchmark.json", "baseline/eval-1/without_skill/run-1/grading.json",
+                    "research/clones/axum/README.md", "notes.txt"):
+            self.write(run / rel, "x\n")
+        result = self.run_script("audit_files.py", run)
+        self.assert_code(0, result)
+        self.assertIn("transient", result.stdout)
+        self.write(run / "tasks/stray.md", "x\n")
+        self.assert_code(1, self.run_script("audit_files.py", run))
+        (run / "tasks/stray.md").unlink()
+        (run / "skill").symlink_to(self.root)
+        result = self.run_script("audit_files.py", run)
+        self.assert_code(1, result)
+        self.assertIn("symlink escapes the run folder: skill", result.stdout)
+
+    def test_token_budget_flags_and_json(self) -> None:
+        self.write(self.skill / "SKILL.md", "---\nname: demo\ndescription: short\n---\n# Demo\n")
+        self.write(self.skill / "references/big.md", "x" * 24_100)
+        self.assert_code(2, self.run_script("token_budget.py", self.skill, "--bogus"))
+        result = self.run_script("token_budget.py", self.skill, "--json")
+        self.assert_code(1, result)
+        report = cast("dict[str, object]", json.loads(result.stdout))
+        self.assertEqual(1, report["over_ceiling"])
+
     def test_examples_fail_missing_unmarked_and_unclosed(self) -> None:
         self.assert_code(2, self.run_script("verify_examples.py", self.skill, self.examples))
         for content in ("```python\nprint(1)\n```\n", "<!-- example: a.py -->\n```python\nprint(1)\n"):
@@ -198,6 +241,31 @@ class RegistryChecks(unittest.TestCase):
             "releases": {"2.0": [{"yanked": True}], "1.0": [{"yanked": False}], "3.0": []},
         }):
             self.assertEqual("1.0", latest("pypi", "demo"))
+        with patch.object(module, "fetch_json", return_value={"dist-tags": {"latest": "3.0.0-rc.1"}, "versions": {"2.1.0": {}, "3.0.0-rc.1": {}}}):
+            self.assertEqual("2.1.0", latest("npm", "demo"))
+
+    def test_previous_snapshot_reports_changed_new_and_removed(self) -> None:
+        spec = importlib.util.spec_from_file_location("registry_versions", SCRIPTS / "registry_versions.py")
+        assert spec and spec.loader
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        main = cast("Callable[[list[str]], int]", module.main)
+        with tempfile.TemporaryDirectory() as temporary:
+            components = Path(temporary) / "components.json"
+            previous = Path(temporary) / "versions-old.json"
+            _ = components.write_text('[{"name":"a","registry":"npm","package":"a"},{"name":"b","registry":"npm","package":"b"}]')
+            _ = previous.write_text('{"components":[{"name":"a","registry":"npm","package":"a","latest":"1.0.0"},'
+                                    + '{"name":"gone","registry":"npm","package":"gone","latest":"0.1.0"}]}')
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with patch.object(module, "fetch_json", return_value={"dist-tags": {"latest": "2.0.0"}}):
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    self.assertEqual(0, main(["registry_versions.py", str(components), "--previous", str(previous)]))
+            snapshot = cast("dict[str, object]", json.loads(stdout.getvalue()))
+            entries = cast("list[dict[str, object]]", snapshot["components"])
+            self.assertEqual([True, True], [e["changed"] for e in entries])
+            self.assertEqual([("1.0.0", "2.0.0"), (None, "2.0.0")], [(e["previous"], e["latest"]) for e in entries])
+            self.assertEqual(["gone"], snapshot["removed"])
+            self.assertIn("removed: gone (was 0.1.0)", stderr.getvalue())
 
 
 if __name__ == "__main__":

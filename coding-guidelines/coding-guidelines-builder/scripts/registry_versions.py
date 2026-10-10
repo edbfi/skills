@@ -8,9 +8,10 @@ registries: crates, npm, pypi, go, rubygems, hex, maven (package "group:artifact
 nuget. Entries with registry null are copied through with "latest": null so the
 researcher fills them from source tags or the toolchain's version command.
 
-With --previous, the previous snapshot is compared and each changed component
-is marked "changed": true and listed on stderr. A re-run uses that list to
-decide which components need fresh research.
+With --previous, the previous snapshot is compared: each changed component is
+marked "changed": true and listed on stderr, and components present only in the
+previous snapshot are listed under "removed" and on stderr. A re-run uses both
+lists to decide which components need fresh research.
 
 Latest tags can point at prereleases. Reject unresolved candidates instead of
 claiming they are stable. Unrecognized version conventions require manual research;
@@ -101,7 +102,11 @@ def latest(registry: str, package: str) -> str | None:
         return version(get(crate, "max_stable_version"))
     if registry == "npm":
         d = fetch_json(f"https://registry.npmjs.org/{urllib.parse.quote(package, safe='@')}")
-        return version(get(get(d, "dist-tags"), "latest"))
+        tagged = version(get(get(d, "dist-tags"), "latest"))
+        if tagged is not None and is_stable(tagged):
+            return tagged
+        published = get(d, "versions")
+        return newest_stable(list(cast("dict[str, object]", published))) if isinstance(published, dict) else tagged
     if registry == "pypi":
         d = fetch_json(f"https://pypi.org/pypi/{urllib.parse.quote(package)}/json")
         v = text(require(require(d, "info"), "version"))
@@ -198,7 +203,13 @@ def main(argv: list[str]) -> int:
                 print(f"changed: {name} {before} -> {entry['latest']}", file=sys.stderr)
         out.append(entry)
 
-    json.dump({"generated": date.today().isoformat(), "components": out}, sys.stdout, indent=2)
+    snapshot: dict[str, object] = {"generated": date.today().isoformat(), "components": out}
+    if prev_path:
+        removed = sorted(set(previous) - {text(require(c, "name")) for c in components})
+        snapshot["removed"] = removed
+        for name in removed:
+            print(f"removed: {name} (was {previous[name]})", file=sys.stderr)
+    json.dump(snapshot, sys.stdout, indent=2)
     print()
     return 1 if failures else 0
 
