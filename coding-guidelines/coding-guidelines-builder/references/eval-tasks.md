@@ -12,7 +12,7 @@ Spawn one subagent whose only inputs are the stack block, `services`, and this s
 reads `research/`. If the task prompts contain the facts ("use the 2024 edition", "use `{id}` path
 syntax"), the baseline measures reading comprehension, not knowledge.
 
-Write 10 to 15 tasks. Each is what a developer on this stack would type into a coding agent: a
+Start with 10 to 15 tasks, expanding when needed for component/split coverage. Each is what a developer on this stack would type into a coding agent: a
 feature in an existing small project, a bug to fix, a review of a given file, a new service from
 scratch. Concrete names, a little context, realistic sloppiness. Not "write a web server"; rather
 "add a `POST /orders` endpoint that validates the body, writes to Postgres in a transaction, and
@@ -29,8 +29,10 @@ Stratify so that:
   choices are visible.
 
 Tag each task with its components and assign a split: roughly two thirds `dev`, one third
-`holdout`, with every component appearing in both. Held-out tasks are run in the baseline and in the
-final iteration only, and their outputs are never read while revising the skill.
+`holdout`, with every component appearing in both. Seal holdout prompts, assertions, and fixtures
+after the independent task author and grader prepare them. Run and adjudicate only development
+baselines during drafting. Holdouts run in both configurations only after the candidate is frozen;
+their outputs and failures must not enter `baseline/mistakes.md` or any revision.
 
 Save as `tasks/evals.json` in skill-creator's format with two extra fields, and write each prompt
 with any fixture files to `tasks/<task-id>/`:
@@ -58,43 +60,48 @@ Assertions are written in step 3, after research, by you, not by the task author
 ## 2. Running a task in isolation
 
 Each run happens in its own directory outside the run tree:
-`<root>/_runs/<run>/<task-id>/<config>/`, where `<config>` is `without_skill`, `with_skill`, or
+`<root>/_runs/<run>/<task-id>/<config>/repeat-<N>/`, where `<config>` is `without_skill`, `with_skill`, or
 `old_skill`. The directory contains only the task's fixture files, the compose file for services if
 the task needs them, and, for `with_skill`, the skill installed as a project skill at
 `.claude/skills/<skill-name>/`. The prompt is the task prompt and nothing more: no paths outside the
 directory, no mention of a skill.
 
-Why `claude -p` and not a Task subagent: a subagent inherits the orchestrator's working directory,
-every `CLAUDE.md` up the tree, and user-installed skills. A `claude -p` run from a clean directory
-inherits only what is in that directory and the user's global settings. Installing the skill as a
-project skill means the with-skill run tests real triggering through the description, which is what
-users will experience, rather than a skill path pasted into the prompt.
+A new directory alone is not isolation. Use a disposable container or OS account with a clean
+home/configuration, no ancestor instruction files, plugins, user skills, or mounts of research and
+prior outputs. Provision authentication separately without copying personal instruction/settings
+directories. Inspect effective settings and record the runner configuration before any calls.
+Allow only task files, the selected project skill, and explicitly listed toolchain/system/cache
+paths. If effective instruction sources cannot be verified, mark isolation unverified and do not
+claim a measured skill improvement. Installing a project skill tests real description triggering.
 
 ```bash
-cd "<root>/_runs/<run>/<task-id>/<config>"
+cd "<root>/_runs/<run>/<task-id>/<config>/repeat-<N>"
 claude -p "$(cat task.md)" \
+  --model "$MODEL_UNDER_TEST" \
   --output-format stream-json --verbose \
   --max-turns 60 \
   > transcript.jsonl
 ```
 
-- Check `claude --help` for the current flag names; the CLI changes. If a flag exists to restrict
-  which settings sources are loaded, use it to exclude user-level skills during baselines; otherwise
-  confirm no stack skill is installed user-wide while baselines run.
+- Check `claude --help` for supported flags. Record model IDs returned by each run and reject
+  comparisons if the actual models differ. Restrict settings sources in addition to the clean runner.
 - Unattended runs need permission handling. Prefer running the CLI inside the toolchain container
   with only the task directory mounted when skipping permission prompts; the directory is disposable
   either way.
-- The final `result` event in the stream carries duration and token usage. Write them to
-  `timing.json` in skill-creator's format immediately; this replaces the subagent notification that
-  skill-creator relies on.
+- Record elapsed time, token usage when reported, CLI exit status, and final result status in
+  `timing.json`. Missing completion events, exhausted turns, and CLI/tool failures are invalid runs,
+  not zero-scoring task outputs. Diagnose before retrying; stop after two failed retries per run.
 - Run the development tasks in parallel, as many as the machine and the toolchain cache tolerate.
 - After the run, copy the directory's working files to `outputs/` and move the whole thing under
-  `baseline/<task-id>/` (phase 2) or `skill-workspace/iteration-N/<task-id>/<config>/` (phase 4).
+  `baseline/<task-id>/repeat-<N>/` (phase 2) or
+  `skill-workspace/iteration-N/<task-id>/<config>/repeat-<N>/` (phase 4).
 
 ### Contamination check
 
 Before grading, scan `transcript.jsonl` for any file read, glob, grep, or shell command whose path
-resolves outside the task directory, and for any read of a `SKILL.md` in a `without_skill` run.
+resolves outside the task directory and declared toolchain/system/cache allowlist, and for any
+skill/research/other-run access in a `without_skill` run. This supplements the clean-runner setup;
+transcripts cannot prove the absence of automatically injected instructions.
 A hit voids the run: record `contaminated` in its grading summary and re-run it. Also scan
 `with_skill` transcripts for a read of the skill's `SKILL.md`; a with-skill run that never read the
 skill is a triggering failure, graded as such, and the strongest signal that the description needs
@@ -114,10 +121,10 @@ Generic, scripted:
   chosen default).
 - The formatter reports no changes.
 - Tests the task asked for exist and pass; tests the task did not ask for are not required.
-- Every dependency in the lockfile is within the current major (or the stack's pinned line) per
-  `versions.json`; no dependency outside the stack's named set is introduced without a reason in
-  the transcript.
-- Language mode or edition in the manifest is the current one from the facts.
+- Named direct dependencies satisfy selected compatible versions and explicit constraints in the
+  facts and `versions.json`; assess transitive dependencies through resolver/build results rather
+  than requiring current majors. Added direct dependencies need a task-related reason.
+- Language mode or edition in the manifest matches the selected mode and explicit constraints.
 - No unused imports, bindings, or dead code; no comment describing something the code beneath does
   not do.
 
@@ -126,8 +133,8 @@ Derived, mostly scripted:
 - For each `contradicted` or `cutoff-relevant` fact a task touches: the correct pattern is present
   and the stale one absent, as a grep.
 - For each anti-pattern row in the skill (phase 4 onward): the row's grep finds nothing.
-- Transcript: in `with_skill` runs, the reference file the skill's routing table names for this
-  task's components was read.
+- Diagnostic only: whether the relevant routed reference was read. Do not count file reads as
+  correctness assertions or as outcomes in ablation.
 
 Grader-judged, kept few:
 
@@ -141,17 +148,22 @@ task-specific script per task where needed, so that every iteration grades the s
 
 ## 4. Grading baselines
 
-Spawn the grader subagent with skill-creator's `agents/grader.md` as its instructions and three
-additions: the facts folder and `versions.json` as inputs, the scripted check results already run, and
-this rule:
+Spawn an independent grader with the task, frozen expectations, facts folder, `versions.json`,
+outputs/transcript, and scripted results. Use an installed compatible grader guide if available.
+Apply this rule:
 
 > Your own knowledge of this stack may be out of date in exactly the ways the output is. For every
 > failed assertion, cite the facts row or the tool output that establishes the failure. An assertion
 > you cannot tie to a facts row or a tool output is graded `unverifiable`, not failed.
 
-Write `grading.json` per run in skill-creator's schema (`text`, `passed`, `evidence`).
+Write `grading.json` per run with an `expectations` array of `{text, passed, evidence}` records.
+Use `passed: null` for unverifiable assertions, report their count, and exclude them from both
+numerator and denominator. Store task ID, configuration, repeat, model, and frozen expectations in
+`eval_metadata.json`; write pass counts, scored counts, invalid counts, and rates per split and
+configuration in `benchmark.json` and a readable `benchmark.md`. Report run spread for repeats.
+If optional skill-creator helpers require another schema, adapt explicitly after reading theirs.
 
-Then adjudicate. Read every failure yourself and write `baseline/mistakes.md`:
+Then adjudicate development results only. Read each development failure and write `baseline/mistakes.md`:
 
 ```md
 # Baseline mistakes (model: <model id>, <date>)
@@ -175,7 +187,7 @@ note in the grading file's `evidence`, not promoted to a mistake.
 
 ## 5. The iteration loop
 
-Follow skill-creator's loop with these settings:
+Use these settings, with installed compatible skill-creator reporting helpers if available:
 
 - **Configurations.** New skill: `with_skill` vs `without_skill`. Re-run: `with_skill` vs
   `old_skill` (snapshot the existing skill before editing, as skill-creator describes).
@@ -195,18 +207,21 @@ Follow skill-creator's loop with these settings:
 
 ### Ablation
 
-Before the final iteration, for each H2 section of `SKILL.md` and each reference file: remove it,
-run the development tasks once with the skill, grade with scripts only, restore it. A section whose
-removal fails no assertion on any task is deleted, or merged into one sentence if it carries a
-decision the model could not otherwise know. Record the ablation table in the iteration notes.
+Before the final iteration, compare each removable H2 section/reference against the full skill
+on the affected development tasks, using three repeats per condition. Repair routing when removing
+a reference. Grade task outcomes, not file reads or missing provenance rows in the temporary variant.
+Restore after each comparison. Delete content only when outcomes consistently show no loss; retain
+guidance when results are noisy or coverage is insufficient. Explicit constraints and verified
+compatibility requirements remain even if tasks do not exercise them. Record the comparisons.
 
 Ablation is where "it seemed important" meets measurement. Expect to delete more than feels
 comfortable.
 
 ### Final iteration
 
-Three repeats, all tasks including held-out, both configurations. Report the held-out numbers
-separately; they are the ones that predict use on tasks nobody wrote.
+Freeze the candidate (including description) and assertions. Run three repeats, all tasks including
+held-out, both configurations. Report holdout results separately without revising from them. If
+further tuning is needed, disclose the limitation and use newly authored sealed holdouts in a new run.
 
 ## 6. Cost control
 
@@ -216,5 +231,5 @@ iterations beyond two, parallelism rather than task count. Do not cut the held-o
 scripted assertions, or the ablation; they are what makes the output trustworthy. Description
 optimization is many calls but each is a trigger decision rather than a coding run; keep it.
 
-Human review is the real bottleneck. Generate the viewer as soon as a run completes and tell the
-user roughly how many outputs await them.
+Share the viewer or Markdown benchmark as soon as it is ready. Continue authorized development
+work while feedback is pending; a viewer is not a required approval gate.

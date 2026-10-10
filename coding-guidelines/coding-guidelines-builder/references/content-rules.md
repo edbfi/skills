@@ -18,7 +18,10 @@ tags, recorded in `skill/PROVENANCE.md` against the section that holds it:
 No tag, no content. In particular, anything listed under "Done correctly without help" in
 `mistakes.md` is excluded, however fundamental it feels. The model already does it; a sentence
 restating it costs tokens and buys nothing. `$BUILDER_DIR/scripts/check_provenance.py` fails on
-sections with no row and on anti-pattern rows with no grep.
+sections with no row and on anti-pattern rows with no grep. This is a structural check: separately
+resolve every reference against the cited mistakes/facts/decision and verify that it supports the
+claim before delivery. Preserve the cited evidence excerpts in `PROVENANCE.md` so the delivered
+artifact remains auditable without access to the run folder.
 
 Evidence tags live in `PROVENANCE.md`, not in the loaded files; the skill's reader does not need
 them.
@@ -64,7 +67,8 @@ them.
   errors, and passes its tests on the pinned toolchain. The line before the fence names the source:
   `<!-- example: src/handlers.rs -->` or `<!-- example: src/handlers.rs#create_order -->` for the
   lines between `region: create_order` and `endregion: create_order`. Never edit a block in the
-  skill; edit the example and run `verify_examples.py --sync`.
+  skill; edit the example and run `verify_examples.py --sync`. Non-executable illustrative text
+  may use `<!-- example-exempt: reason -->`; the verifier reports exemptions for manual review.
 - Blocks are complete: real imports, realistic names, the setup the behaviour depends on. No
   ellipses, no undefined helpers in the logic being taught. A block that depends on omitted
   application code is labelled an excerpt and names what it depends on.
@@ -121,6 +125,6 @@ anything else:
 
 ## Shrinking
 
-A skill is finished when nothing can be removed without an assertion failing. Ablation in phase 4
-enforces this once; re-runs enforce it again as models improve. Content a newer model gets right is
+Ablation in phase 4 supplies evidence for cuts, within the task coverage and observed variance;
+it does not prove every remaining sentence necessary. Content a newer model gets right is
 demoted from `SKILL.md` to a reference, and deleted when its reference section carried nothing else.

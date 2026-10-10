@@ -1,7 +1,6 @@
 ---
 name: coding-guidelines-builder
 description: Build a coding-guidelines skill for a specific tech stack (languages, frameworks, libraries, databases, tools, version constraints, minimum targets, exclusions) that tells AI coding agents what current, idiomatic, correct code looks like on that stack. Use this whenever the user hands over a tech-stack description and wants guidelines, a coding standard, rules, a reference, or a skill for agents writing, extending, or reviewing code on that stack, even if they never say "skill". Also use it to refresh, re-verify, or shrink an existing stack skill.
-compatibility: Requires Claude Code or Cowork (subagents, shell, web access, the claude CLI) and the skill-creator skill.
 license: AGPL-3.0
 metadata:
   author: engels74
@@ -42,16 +41,22 @@ existing-skill:
 If `services` is missing, ask once. Everything else in the block is a fact about the stack; never
 refer to it as "what the user specified".
 
-Record the model powering this session (from the system prompt) in `manifest.md` as the
-**model under test**. The baseline mistakes you observe belong to that model, and a later run with a
-different model is expected to find a different, usually smaller, set.
+Record the orchestrator, probe, and explicit CLI **model under test** separately in `manifest.md`.
+Baseline mistakes belong to the model actually running the tasks; a refresh with another model
+needs new baselines. Use the same model for the knowledge probe when available, otherwise record
+the difference and treat its claims as research hypotheses rather than measured baseline mistakes.
 
 ## Prerequisites
 
 - Claude Code or Cowork. In claude.ai there are no subagents and no `claude -p`; stop and say so.
-- The skill-creator skill. Find it (`find ~ /mnt -path '*skill-creator/SKILL.md' 2>/dev/null`),
-  read its SKILL.md once at the start, and note its path as `SKILL_CREATOR` in `manifest.md`. Phases
-  4 and 5 run its scripts from that directory.
+- A working `claude` CLI with an explicit model selector. Record the exact model ID used by
+  child runs, CLI version, and supported flags from `claude --help`; do not assume the child
+  inherits this session's model. If the session model cannot run through this CLI, select a
+  supported model with the user before spending evaluation calls and label the results accordingly.
+- The skill-creator skill. Read its installed SKILL.md and record its path as `SKILL_CREATOR`.
+  Inspect its available helpers: distributions differ. Use its validator when available; the
+  evaluation schemas and fallback reporting below do not require its optional benchmark/viewer,
+  description-optimization, or packaging helpers. Never invent a missing helper command.
 - This skill's own directory, noted as `BUILDER_DIR` in `manifest.md`. Its scripts are run from the
   run folder as `python "$BUILDER_DIR/scripts/<name>.py"`; a bare `scripts/` path does not resolve
   there.
@@ -88,14 +93,14 @@ toolchains and caches reach gigabytes).
 └── _runs/<date>_<stack-slug>/<task-id>/   # isolated task directories; see eval-tasks.md
 ```
 
-This file set is closed. Agents like writing Markdown; a run that sprouts `NOTES.md`,
-`research-log.md`, or `summary.md` is a run losing precision. Run
+Keep run artifacts in this layout. Run
 `python "$BUILDER_DIR/scripts/audit_files.py" <run-dir>` at the end of every phase; any file
-outside the set is deleted or added to `manifest.md` under "Additional files" with one line saying
-why.
+outside the set is reviewed and either moved into the layout or added to `manifest.md` under
+"Additional files" with a reason. The audit is read-only; never delete unfamiliar files automatically.
 
-`manifest.md` is the cleanup contract and the resume state. Append to it as you go: images pulled
-(with digest), named volumes, repositories cloned, caches created, services started, and a
+`manifest.md` is the cleanup contract and the resume state. Give the run a unique ID (date, stack,
+and a collision-resistant suffix). Record resources as created by this run or pre-existing:
+images (digest and whether already present), run-specific volumes/networks, clones, caches, and services. Add a
 `## Phases` section with one line per phase: `pending`, `done <timestamp>`, or `failed <reason>`.
 
 ## Phases
@@ -109,16 +114,17 @@ why.
 | 4 Evaluate | `skill-workspace/iteration-N/`, revised `skill/` | `references/eval-tasks.md` §Grading onward, skill-creator SKILL.md |
 | 5 Finish | optimized description, packaged skill copied out, cleanup | this file |
 
-Phases are sequential and checkpointed. Before starting any phase, read `## Phases` in
-`manifest.md` and skip phases marked done. A multi-hour run will be interrupted; design for resuming,
-not restarting.
+Phases are sequential and checkpointed. Resume a phase marked done only if its inputs and outputs
+still match the manifest. An explicit refresh creates a new run, copies the old skill and version
+snapshot, and starts phases pending; changed inputs invalidate dependent phases. Record task,
+configuration, and repeat completion so interrupted evaluations resume without overwriting results.
 
 ### Phase 0: Setup
 
 1. Create the run folder and `manifest.md` with the stack block, model under test, `SKILL_CREATOR`,
    `BUILDER_DIR`, and the phase table.
-2. Choose toolchain mode (below) and verify it: pull the image or install into `.toolchain/`, then
-   run the toolchain's version command and record the exact output in `manifest.md`.
+2. Check Docker or the required host SDK is available. Choose exact versions after phase 1
+   resolves compatibility, then install and verify the toolchain before phase 2 executes tasks.
 3. If `existing-skill` is set, copy it to `skill/` now; the rules under Re-runs below apply.
 
 ### Phase 1: Research
@@ -164,30 +170,31 @@ Hand off to skill-creator's loop with these adaptations, detailed in `references
 - Assertions are scripted wherever the check is mechanical: build, lint with warnings as errors,
   tests, lockfile versions against `versions.json`, anti-pattern greps, and a transcript check that
   the relevant reference file was read.
-- Use skill-creator's `eval_metadata.json`, `grading.json`, `aggregate_benchmark.py`, and
-  `eval-viewer/generate_review.py` unchanged, and get the viewer in front of the user before you
-  revise anything yourself.
+- Use the schemas in `references/eval-tasks.md`. If installed, use skill-creator's compatible
+  aggregator and viewer; otherwise report per-task results and aggregate rates in the iteration
+  directory. Share the report with the user and continue authorized revisions.
 - Before the final iteration, run the ablation: drop each section of the skill in turn, re-run the
   development tasks once with the skill only, and delete any section whose removal changes no
   assertion. This is the only test that measures bloat.
 
-Stop iterating when held-out pass rate stops improving, when the user is satisfied, or after three
-iterations, whichever comes first.
+Stop development when its pass rate stops improving, when the user is satisfied, or after three
+iterations. Freeze the candidate before the final holdout evaluation; do not tune on holdout results.
 
 ### Phase 5: Finish
 
-1. Run skill-creator's description optimization (`scripts.run_loop`) with the model under test. For
-   a stack skill the risk is under-triggering on ordinary coding tasks in that stack, so the
-   should-trigger set must include plain tasks that never name the stack, and the should-not-trigger
-   set must include tasks on adjacent stacks and questions about the stack that involve no code.
+1. Optimize the description on development tasks before freezing the final candidate. Use an
+   installed description optimizer only if its interface is available; otherwise inspect actual
+   triggering in development transcripts and revise the description. Include ordinary coding tasks
+   whose project context establishes the stack, adjacent-stack negatives, and non-coding questions.
 2. Run `python "$BUILDER_DIR/scripts/token_budget.py" skill/` and
    `python "$BUILDER_DIR/scripts/check_provenance.py" skill/` one last time.
-3. Package with skill-creator's `package_skill.py` and copy both the `.skill` file and the `skill/`
-   folder to the location the user named, or `<root>/dist/<stack-slug>/` if they named none. Confirm
-   the copy exists before any cleanup.
-4. Clean up from `manifest.md`: stop services, remove named volumes and images this run pulled,
-   delete clones, and delete `_runs/<run>/`. Keep the run folder itself unless the user asks for
-   its removal; it is what makes a re-run cheap.
+3. Run the installed skill validator and `verify_examples.py` against the final skill, then copy
+   the skill folder to the user's destination or `<root>/dist/<stack-slug>/`. Use an installed
+   packager for a `.skill` archive when available; otherwise deliver the folder and state that no
+   archive was produced. Verify the copied files match before cleanup; preserve existing deliveries.
+4. Clean up only resources recorded as created exclusively for this run: its services, volumes,
+   network, clones, and `_runs/<run>/`. Leave pre-existing/shared resources and Docker images in
+   place unless exclusive ownership is established. Keep the run folder for refreshes.
 
 ## Toolchain isolation
 
@@ -205,14 +212,15 @@ container sees only what is mounted.
 ```bash
 docker run --rm --user "$(id -u):$(id -g)" \
   -v "$PWD/examples":/work -w /work \
-  -v skillpg-cargo-registry:/usr/local/cargo/registry \
-  -v skillpg-cargo-target:/work/target \
+  -v "${RUN_ID}-cargo-registry":/usr/local/cargo/registry \
+  -v "${RUN_ID}-cargo-target":/work/target \
   -e CARGO_TARGET_DIR=/work/target \
   rust:1.91.0 cargo clippy --all-targets --all-features -- -D warnings
 ```
 
-Services from the stack block run as containers on a dedicated network, started from a compose
-file inside `examples/` so that eval runs can start the same services the same way.
+Set `RUN_ID` from the manifest to a Docker-safe unique name. Services run on a dedicated network
+from a compose file inside `examples/`. Give each concurrent task/configuration/repeat a unique
+compose project and reset its database/volumes so configurations never share mutable service state.
 
 **Fallback: the host, with tool homes in `.toolchain/`.** Required for stacks that need an Apple SDK
 or a Windows-only framework.
@@ -233,8 +241,9 @@ recommended patterns rather than presenting them as working.
 Skills go stale in two directions: the stack moves, and the model improves. A re-run with
 `existing-skill` set costs a fraction of a fresh run:
 
-1. Regenerate `versions.json` and diff it against the previous snapshot. Re-research only components
-   whose release line changed, restricting changelog reading to the interval since the last run.
+1. Preserve the previous version snapshot, regenerate it to a new file, and diff them. Re-research
+   changed components and their integration seams, including patch releases, changed constraints,
+   and previously unresolved facts. Never redirect new output over the `--previous` input.
 2. Re-probe and re-baseline with the current model. Any mistake in `mistakes.md` the model no longer
    makes is demoted out of `SKILL.md` into the relevant reference, or deleted if its reference
    section was only there for that mistake.

@@ -23,12 +23,11 @@ an agent on an ordinary task needs it, not by how important it feels.
 
 Budget: aim under 2,000 tokens, hard ceiling 3,000 (`$BUILDER_DIR/scripts/token_budget.py` reports
 both).
-skill-creator's 500-line guideline is far above what a stack skill should use; routing plus the
-delta fits in a page.
+Prefer short routing plus the verified delta; these budgets are ceilings, not targets.
 
 Contents, in order:
 
-1. **Frontmatter.** `name` and a pushy `description` (below).
+1. **Frontmatter.** `name` and a discriminating `description` (below).
 2. **Thesis.** One or two paragraphs: the stack's current posture, what to optimize for, and the two
    or three biggest ways an agent writes wrong-but-plausible code here, usually by importing habits
    from an adjacent ecosystem. This is the only place for framing prose.
@@ -36,7 +35,7 @@ Contents, in order:
    language mode, the minimum target. A short table if there are more than four.
 4. **Top mistakes.** The highest-frequency, highest-severity rows from `mistakes.md` and the
    contradicted probe rows, one line each: the wrong form, the right form, the reason. Six to ten
-   lines. These are the lines that pay for the whole skill.
+   lines at most; fewer when the evidence warrants fewer.
 5. **Check command.** `scripts/check.sh` and the instruction to run it before finishing a task. One
    sentence on why: it is the same check the stack's CI and these guidelines are graded by.
 6. **Routing table.** Which reference to read for which kind of work, keyed by what the agent is
@@ -103,9 +102,11 @@ Model under test: <id>. Research date: <date>. Toolchain: <image tag @ digest or
 <the contents of research/sources.md>
 ```
 
-`check_provenance.py` requires a row for every H2 and H3 in `SKILL.md` and `references/`, and a
-non-empty grep column for every anti-pattern row. The file is never linked from loaded files, so it
-costs nothing at use time and makes re-runs and audits possible from the artifact alone.
+`check_provenance.py` structurally requires a row with a nonempty reference for every H2 and H3 in
+`SKILL.md` and `references/`, and a non-empty grep column for each anti-pattern row. Manually audit
+evidence support as described in content-rules.md; include cited excerpts under an Evidence records
+section. An anti-pattern table may have no data rows if the baseline/probe found none, but its header
+and separator are still required. The file is never linked from loaded files.
 
 ## The description
 
