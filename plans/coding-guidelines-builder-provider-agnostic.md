@@ -14,6 +14,8 @@ Status: implemented on 2026-10-10 with implicit capability discovery, as subsequ
 No Codex/Claude detection branch is introduced. Integration results and the outstanding isolated-run
 acceptance gap are recorded in
 `coding-guidelines/coding-guidelines-builder/evals/portability.md`; the `1.1.0` bump remains pending.
+Pullfrog's implementation review prompted extraction of the benchmark contract into
+`references/benchmark-report.md` to leave headroom under the evaluation reference's token ceiling.
 
 ## Existing dependencies
 

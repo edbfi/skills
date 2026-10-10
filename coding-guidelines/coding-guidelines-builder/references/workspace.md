@@ -56,7 +56,8 @@ automatically.
 The manifest is the cleanup contract and the resume state. Sections:
 
 - **Stack**: the stack block verbatim.
-- **Contract**: `schema_version: 1`, the builder version, and artifact schemas from eval-tasks.md.
+- **Contract**: `schema_version: 1`, builder version, and artifact schemas from `eval-tasks.md` and
+  `benchmark-report.md`.
 - **Execution preferences and capabilities**: user choices/restrictions; tools actually selected,
   their discovered schemas/help, worker mechanisms and inherited-context controls; known host
   identity; available reporting helpers. Record changes as capabilities are discovered. No provider

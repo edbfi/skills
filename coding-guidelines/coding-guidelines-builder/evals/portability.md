@@ -6,7 +6,8 @@ runtime, research, or evaluation contracts.
 
 ## Scenario procedure
 
-Give a fresh context `SKILL.md`, `runtime.md`, `research.md`, `workspace.md`, and `eval-tasks.md`.
+Give a fresh context `SKILL.md`, `runtime.md`, `research.md`, `workspace.md`, `eval-tasks.md`, and
+its linked `benchmark-report.md`.
 Present the situations below without the expected outcomes. Ask for the next action and resulting
 artifact qualifications. Compare both the decision and its explanation; do not score keyword
 matches. These walkthroughs test interpretation, not enforcement of an actual sandbox.
