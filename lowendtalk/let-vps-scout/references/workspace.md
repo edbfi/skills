@@ -48,7 +48,7 @@ Stable IDs make deduplication mechanical:
 
 | Table | Key | Columns and allowed values |
 |---|---|---|
-| `assignments` | `id` | `type` (`listing-batch`, `threads`, `provider`, `finalist`, `recheck`), `scope`, `owner`, `pages` (ego-browser Page labels held), `status` (`pending`, `active`, `complete`, `blocked`), `created`, `updated`, `output`, `notes` |
+| `assignments` | `id` | `type` (`listing-batch`, `threads`, `provider`, `finalist`, `recheck`), `scope`, `owner`, `pages` (browser contexts held: ego-browser Page labels or the agent-browser session name), `status` (`pending`, `active`, `complete`, `blocked`), `created`, `updated`, `output`, `notes` |
 | `batches` | `batch_id` | `listing_pages`, `status`, `completed_at`, `cheapest`, `six_vcpu`, `upgrades` (candidate IDs), `changed` (`yes`/`no`), `reason` |
 | `listings` | `page` | `url`, `captured_at`, `thread_ids`, `overlap_note` |
 | `threads` | `discussion_id` | `title`, `url`, `listing_pages`, `sticky`, `total_pages`, `pages_read` (e.g. `1; 14`), `provider_ids`, `status` (`pending`, `read`, `blocked`), `notes` |
@@ -77,7 +77,7 @@ A worker returns one Markdown file, `workers/<assignment-id>_<type>_<scope>.md`:
 # A014 provider netcup
 
 - Owner: provider-worker-3
-- Pages used: p4
+- Browser context: p4 (or the agent-browser session, e.g. letvps-k3f9qa1x-A014)
 - Finished: 2026-09-27T15:42:10+02:00
 
 ```csv providers
@@ -103,7 +103,7 @@ Keep notes compact and factual. Do not paste page text into the worker file; sav
 ## Coordinator commands
 
 ```sh
-python3 scripts/ledger.py init                        # new run folder; prints its path
+python3 scripts/ledger.py init --browser agent-browser  # new run folder; prints its path
 python3 scripts/ledger.py merge <run> <run>/workers/A014_*.md [--dry-run]
 python3 scripts/ledger.py upsert <run> assignments A014 status=complete output=workers/A014_provider_netcup.md
 python3 scripts/ledger.py summary <run>               # counters and the verified ranking
@@ -117,9 +117,9 @@ python3 scripts/ledger.py publish <run> [--partial]   # see report.md
 Checkpoint after each listing batch, each set of merged provider checks, each finalist verification, and before any pause:
 
 1. Merge completed worker files and update their assignments.
-2. Run `summary` and rewrite `STATUS.md`: run state (`running`, `interrupted`, `complete`), counters, current batch and unchanged-batch count (for example 1/2), current recommendations and top shortlist, active assignments with their Page labels, blockers, the **resume point** as the exact next action (for example "merge A022, then open listing page 26"), and a session log line per start or resume.
+2. Run `summary` and rewrite `STATUS.md`: run state (`running`, `interrupted`, `complete`), counters, current batch and unchanged-batch count (for example 1/2), current recommendations and top shortlist, the browser backend and handle, active assignments with their browser contexts, blockers, the **resume point** as the exact next action (for example "merge A022, then open listing page 26"), and a session log line per start or resume.
 
-To resume, read `STATUS.md`, reconcile any assignments still `active` (check whether their worker file exists and is complete before reassigning), then continue from the resume point in the same run folder and the same ego-browser TaskSpace when it still exists.
+To resume, read `STATUS.md`, reconcile any assignments still `active` (check whether their worker file exists and is complete before reassigning), then continue from the resume point in the same run folder with the same backend. Reuse the recorded browser handle (ego-browser TaskSpace, agent-browser host session and CDP URL) while it still works; if the browser is gone, reopen it as [browser backends](browser-backends.md) describes and record the new handle.
 
 ## Archive
 

@@ -48,7 +48,7 @@ Recheck the cheapest annual plan, the recommended 6+ vCPU option and highlighted
 ## Pricing and currency
 
 - Rank by first-year total excluding VAT. If a VAT-inclusive total cannot reliably be split into net and tax, mark the net price unverified in `notes` instead of guessing.
-- Normalize to EUR with one dated exchange-rate source visited through ego-browser (for example ECB reference rates). Store rates once in `fx.csv` and reuse them for the whole run; keep original-currency totals alongside.
+- Normalize to EUR with one dated exchange-rate source visited through the run's browser (for example ECB reference rates). Store rates once in `fx.csv` and reuse them for the whole run; keep original-currency totals alongside.
 - For each plan show annual first-year cost, annual renewal and first-year monthly equivalent (first year / 12).
 - Put exceptional monthly or multi-year alternatives in their own list with the full upfront commitment.
 - When a payment method changes the total (for example a crypto processor fee), record both totals.
