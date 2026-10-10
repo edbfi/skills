@@ -91,6 +91,8 @@ the toolchain versions the examples were verified with.
 # Provenance
 
 Model under test: <id>. Research date: <date>. Toolchain: <image tag @ digest or host versions>.
+Runner: <name and version>. Effort: <setting>. Loading: <mode and strategy>.
+Validation limits: <missing probe, unverified activation, untested components, or none>.
 
 ## Evidence
 
@@ -116,14 +118,14 @@ Model under test: <id>. Research date: <date>. Toolchain: <image tag @ digest or
 in `SKILL.md` and `references/`, one row with section `*` or the H1 title for a file with no H2 or
 H3 (`versions.md` is always such a file), `structure` only for the four fixed `SKILL.md` sections
 and a `Contents` list, and a non-empty grep column for each anti-pattern row. The description
-contains no angle brackets; skill-creator's validator rejects them. Manually audit
+contains no angle brackets for compatibility with optional validators. Manually audit
 evidence support as described in content-rules.md; include cited excerpts under an Evidence records
 section. An anti-pattern table may have no data rows if the baseline/probe found none, but its header
 and separator are still required. The file is never linked from loaded files.
 
 ## The description
 
-The description is the trigger. Claude under-uses skills, so the description names the stack, the
+For hosts with automatic discovery, the description is the trigger. It names the stack, the
 kinds of tasks (writing, extending, reviewing, fixing, setting up), and says to use the skill for any
 coding task on this stack even when the user does not name a framework. Phase 4 optimizes it
 against near-miss negatives: tasks on an adjacent stack, questions about the stack that involve no
@@ -132,7 +134,7 @@ description under about 1,000 characters; it is in context for every conversatio
 
 ## What a stack skill is not
 
-Not a `CLAUDE.md`. A project's `CLAUDE.md` holds that project's conventions and commands; the skill
-holds what is true of the stack. If the user wants the guidelines applied unconditionally in one
-repository, tell them to reference the skill from the project's `CLAUDE.md` rather than copying
-content into it.
+The skill holds what is true of the stack; a project's instruction file holds its own conventions
+and commands. If the user wants unconditional application in one repository, use that host's project
+instruction mechanism to reference the skill rather than duplicating its content. Do not assume a
+particular instruction filename or skill-install directory.

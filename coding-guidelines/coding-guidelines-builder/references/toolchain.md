@@ -34,28 +34,22 @@ configurations never share mutable service state.
 
 ## The task runner
 
-`claude -p` must build with the same pinned toolchain as the examples, so in Docker mode it runs
-inside a runner image derived from the pinned one, built once per run as `${RUN_ID}-runner` and
-recorded in `manifest.md` with its digest and the CLI version (the same one as the host's
-`claude --version`):
+The selected runner must execute builds with the same pinned toolchain as the examples. In Docker
+mode install its recorded version into a runner image derived from the pinned image, built once
+per run as `${RUN_ID}-runner`; record its digest. A remote/API runner must offer equivalent controls
+over the actual execution environment, not merely report a model's preferred toolchain version.
 
-```Dockerfile
-FROM rust:1.91.0
-# Copying Node needs a glibc base (Debian/Ubuntu tags); alpine tags need the node:22-alpine source.
-COPY --from=node:22-bookworm /usr/local/bin/node /usr/local/bin/
-COPY --from=node:22-bookworm /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
- && npm install -g @anthropic-ai/claude-code@<cli-version>
-```
+Mount only task files and declared toolchain/cache paths. Provision authentication separately from
+personal agent configuration; do not import user instruction files, skills, plugins, or MCP access.
+Record credential mechanisms without their values. Inspect effective instructions and permissions;
+an empty home or a "safe" flag alone does not prove both isolation and skill discovery work.
+Use a disposable account or equivalent enforced restrictions for host execution.
 
-Run each task with only its directory mounted as `/work`, an empty per-run directory mounted as
-`HOME`, and credentials in the environment (`CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`, or
-`ANTHROPIC_API_KEY`); never mount `~/.claude`. In host mode, run `claude -p` with `HOME` set to an
-empty per-run directory, the same credential variable, and the `.toolchain/` variables exported
-with `.toolchain/bin` first on `PATH`, so every build the agent starts uses the pinned tools.
-`.toolchain/bin` holds a symlink to each pinned tool binary (from `$CARGO_HOME/bin`,
-`$GOPATH/bin`, `$UV_PYTHON_INSTALL_DIR/.../bin`, and so on). Grep every transcript for the tool
-version lines; a run that built with another toolchain is invalid.
+In host mode, use `.toolchain/bin` first on `PATH`, with the task-specific tool homes below.
+It holds symlinks to the pinned binaries. Verify actual version output from the execution environment
+and keep it with run evidence; a build on an unpinned toolchain is invalid. See `eval-tasks.md` §2 for
+runner controls. If Claude Code is the selected runner, `claude-runner-example.md` has an optional
+recipe; other runners use their own discovered capabilities.
 
 ## Fallback: the host, with tool homes in `.toolchain/`
 
