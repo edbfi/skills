@@ -26,6 +26,10 @@ blocks. Non-executable illustration can use an explicit exemption comment:
 Exemptions are reported for manual review. With --sync, rewrites
 mismatched blocks from the examples, which is the only sanctioned way to edit
 a block: examples/ is the source of truth.
+
+Generated Markdown must use standalone fenced blocks with at most three leading
+spaces. Blockquoted/list-prefixed fences and unfenced indented code are rejected;
+normalize them to standalone fences before verification or synchronization.
 """
 from __future__ import annotations
 
@@ -36,7 +40,8 @@ from pathlib import Path
 
 MARKER = re.compile(r"^\s*<!--\s*example:\s*(?P<ref>[^\s]+)\s*-->\s*$")
 EXEMPT = re.compile(r"^\s*<!--\s*example-exempt:\s*(\S.*?)\s*-->\s*$")
-FENCE = re.compile(r"^(?P<indent>\s*)(?P<fence>`{3,}|~{3,})(?P<info>.*)$")
+FENCE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<info>.*)$")
+CONTAINER_FENCE = re.compile(r"^(?:[ \t]*(?:>|[-+*]|\d+[.)])[ \t]*)+[`~]{3,}")
 
 
 def load_source(examples: Path, ref: str) -> tuple[str | None, str]:
@@ -75,8 +80,27 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
     i = 0
     pending_ref: str | None = None
     exempt_reason: str | None = None
+    in_frontmatter = False
     while i < len(lines):
         line = lines[i]
+        if i == 0 and line.strip() == "---":
+            in_frontmatter = True
+            out.append(line)
+            i += 1
+            continue
+        if in_frontmatter:
+            if line.strip() == "---":
+                in_frontmatter = False
+            out.append(line)
+            i += 1
+            continue
+        if CONTAINER_FENCE.match(line) or (line.strip() and re.match(r"^(?: {4}|\t)", line)):
+            print(f"{md.name}:{i + 1}: unsupported Markdown code/container indentation; use standalone fences")
+            missing += 1
+            pending_ref = exempt_reason = None
+            out.append(line)
+            i += 1
+            continue
         m = MARKER.match(line)
         if m:
             pending_ref = m.group("ref")
@@ -139,6 +163,9 @@ def process_file(md: Path, examples: Path, sync: bool) -> tuple[int, int, int]:
             exempt_reason = None
         out.append(line)
         i += 1
+    if in_frontmatter:
+        print(f"{md.name}: unclosed frontmatter")
+        missing += 1
     if sync and mismatches and not missing and not unmarked:
         _ = md.write_text("\n".join(out) + "\n", encoding="utf-8")
     return mismatches, missing, unmarked

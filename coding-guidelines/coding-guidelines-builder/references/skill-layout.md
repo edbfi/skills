@@ -112,7 +112,7 @@ and separator are still required. The file is never linked from loaded files.
 
 The description is the trigger. Claude under-uses skills, so the description names the stack, the
 kinds of tasks (writing, extending, reviewing, fixing, setting up), and says to use the skill for any
-coding task on this stack even when the user does not name a framework. Phase 5 optimizes it
+coding task on this stack even when the user does not name a framework. Phase 4 optimizes it
 against near-miss negatives: tasks on an adjacent stack, questions about the stack that involve no
 code, and projects that use only one of the stack's components outside this combination. Keep the
 description under about 1,000 characters; it is in context for every conversation.

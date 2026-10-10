@@ -69,6 +69,9 @@ them.
   lines between `region: create_order` and `endregion: create_order`. Never edit a block in the
   skill; edit the example and run `verify_examples.py --sync`. Non-executable illustrative text
   may use `<!-- example-exempt: reason -->`; the verifier reports exemptions for manual review.
+  Use standalone fences with at most three leading spaces; normalize blockquote/list-prefixed
+  fences and unfenced indented code before verification. The verifier conservatively rejects
+  indentation of four spaces outside fenced blocks, including prose with that indentation.
 - Blocks are complete: real imports, realistic names, the setup the behaviour depends on. No
   ellipses, no undefined helpers in the logic being taught. A block that depends on omitted
   application code is labelled an excerpt and names what it depends on.

@@ -86,6 +86,15 @@ class ArtifactChecks(unittest.TestCase):
         self.write(self.skill / "SKILL.md", "<!-- example-exempt: illustrative output -->\n```text\nhello\n```\n")
         self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples))
 
+    def test_examples_reject_unsupported_markdown_containers(self) -> None:
+        for content in ("> ```python\n> print(1)\n> ```\n", "    print(1)\n",
+                        "- ```python\n  print(1)\n  ```\n", "> 1. ```python\n> ```\n"):
+            with self.subTest(content=content):
+                self.write(self.skill / "SKILL.md", content)
+                self.assert_code(1, self.run_script("verify_examples.py", self.skill, self.examples))
+        self.write(self.skill / "SKILL.md", "---\nname: demo\nmetadata:\n  nested:\n    value: text\n---\n# Skill\n")
+        self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples))
+
     def test_examples_reject_traversal_absolute_and_symlink_sources(self) -> None:
         self.write(self.root / "private.py", "private = True\n")
         (self.examples / "link.py").symlink_to(self.root / "private.py")
@@ -105,7 +114,9 @@ class ArtifactChecks(unittest.TestCase):
         self.assert_code(2, self.run_script("audit_files.py", self.skill))
 
     def test_description_budget_cannot_be_bypassed_with_folded_yaml(self) -> None:
-        for description in (">-\n  " + "x" * 1100, "x" * 1100):
+        for description in (">-\n  " + "x" * 1100, "x" * 1100,
+                            "first\n\n  " + "x" * 1100, '"first\n\n  ' + "x" * 1100 + '"',
+                            "'first\n\n  " + "x" * 1100 + "'"):
             self.write(self.skill / "SKILL.md", f"---\nname: demo\ndescription: {description}\n---\n")
             self.assert_code(1, self.run_script("token_budget.py", self.skill))
 

@@ -168,24 +168,24 @@ Hand off to skill-creator's loop with these adaptations, detailed in `references
   skill installed as a project skill in that directory, so triggering is real rather than a path in
   the prompt.
 - Assertions are scripted wherever the check is mechanical: build, lint with warnings as errors,
-  tests, lockfile versions against `versions.json`, anti-pattern greps, and a transcript check that
-  the relevant reference file was read.
+  tests, selected dependency constraints, and anti-pattern checks. Reference reads are diagnostics.
 - Use the schemas in `references/eval-tasks.md`. If installed, use skill-creator's compatible
   aggregator and viewer; otherwise report per-task results and aggregate rates in the iteration
   directory. Share the report with the user and continue authorized revisions.
-- Before the final iteration, run the ablation: drop each section of the skill in turn, re-run the
-  development tasks once with the skill only, and delete any section whose removal changes no
-  assertion. This is the only test that measures bloat.
+- Optimize the description on development tasks before the final freeze. Use an installed
+  description optimizer only if its interface is available; otherwise inspect actual triggering in
+  development transcripts. Include coding tasks whose project context establishes the stack,
+  adjacent-stack negatives, and non-coding questions.
+- Before the final iteration, follow the repeated, outcome-based ablation procedure in
+  `references/eval-tasks.md` §Ablation, including its rules for retaining constraints and uncertain cases.
 
 Stop development when its pass rate stops improving, when the user is satisfied, or after three
 iterations. Freeze the candidate before the final holdout evaluation; do not tune on holdout results.
 
 ### Phase 5: Finish
 
-1. Optimize the description on development tasks before freezing the final candidate. Use an
-   installed description optimizer only if its interface is available; otherwise inspect actual
-   triggering in development transcripts and revise the description. Include ordinary coding tasks
-   whose project context establishes the stack, adjacent-stack negatives, and non-coding questions.
+1. Confirm that the delivered candidate matches the frozen candidate from phase 4, including its
+   description. Record any unresolved validation limits in `manifest.md` and the delivery report.
 2. Run `python "$BUILDER_DIR/scripts/token_budget.py" skill/` and
    `python "$BUILDER_DIR/scripts/check_provenance.py" skill/` one last time.
 3. Run the installed skill validator and `verify_examples.py` against the final skill, then copy

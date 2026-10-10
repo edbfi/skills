@@ -45,11 +45,17 @@ def description_of(skill_md: str) -> str:
     m = re.match(r"^---\s*\n(.*?)\n---", skill_md, re.S)
     if not m:
         raise ValueError("YAML frontmatter missing")
-    d = re.search(r"^description:\s*(.*)$", m.group(1), re.M)
+    d = re.search(r"^description:[ \t]*(.*)$", m.group(1), re.M)
     if not d or not d.group(1).strip():
         raise ValueError("description missing")
     value = d.group(1).strip()
-    if value.startswith((">", "|")) or re.match(r"\n[ \t]+\S", m.group(1)[d.end():]):
+    if value.startswith((">", "|")) or (value[0] in "\"'" and not value.endswith(value[0])):
+        raise ValueError("description must be a single-line YAML scalar")
+    for line in m.group(1)[d.end():].splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if re.match(r"^[A-Za-z_][A-Za-z0-9_-]*:", line):
+            break
         raise ValueError("description must be a single-line YAML scalar")
     return value.strip('"\'')
 
