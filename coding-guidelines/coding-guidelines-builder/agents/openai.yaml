@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coding Guidelines Builder"
+  short_description: "Build version-verified coding guidelines for a tech stack"
+  default_prompt: "Use $coding-guidelines-builder to build a coding-guidelines skill for this tech stack."
