@@ -76,8 +76,9 @@ Never browse through the host session: it acts on whichever tab is active, and t
 ```sh
 agent-browser --session letvps-<suffix> --idle-timeout 0 open about:blank   # 0: no idle shutdown mid-run
 agent-browser --session letvps-<suffix> get cdp-url    # ws://127.0.0.1:<port>/devtools/browser/...
-# attach the coordinator session (wrapper below), then probe:
-ab --pin-tab tab new https://lowendtalk.com/categories/offers
+# attach the coordinator session (wrapper below), then probe the LET front page,
+# not listing page 1, so no listing page is loaded twice:
+ab --pin-tab tab new https://lowendtalk.com/
 ab wait --fn '!document.title.startsWith("Just a moment") && document.querySelector("a[href*=\"/discussion/\"]")'
 ```
 
@@ -109,6 +110,8 @@ ab tab close                                                      # when the ass
 ab close                                                          # with --cdp this only disconnects; the shared browser keeps running
 ```
 
+Expect two harmless oddities in this flow. With `--cdp`, `close` still prints `✓ Browser closed` even though it only disconnected, so don't try to "repair" the shared browser. Attaching a session can also leave an extra `about:blank` tab behind. Leave those tabs alone: they don't count toward the tab limit, and they disappear when the host closes.
+
 - Wait after **every** `open`, because each navigation can show the interstitial again. A wait times out after 25 seconds; retry it once or twice before treating the page as blocked.
 - Use `snapshot -i` and `@eN` refs to work configurators and carts, and re-snapshot after each change.
 - `agent-browser read` **with a URL** fetches over plain HTTP outside the browser. That is direct scraping, which the ground rules forbid. `read` with no URL reads the rendered active tab and is fine.
@@ -118,4 +121,4 @@ ab close                                                          # with --cdp t
 
 **Resume.** If `agent-browser --session letvps-<suffix> get cdp-url` fails, the browser is gone, for example after a reboot. Relaunch the host, record the new CDP URL in `STATUS.md`, and give workers new briefs. Their old pinned tabs no longer exist.
 
-**Teardown.** After every worker has released its tab and the report is published, the coordinator closes its own session through its wrapper (`ab close`) and then the host, which owns the browser: `agent-browser --session letvps-<suffix> close`.
+**Teardown.** After every worker has released its tab and the report is published, the coordinator closes its own session through its wrapper (`ab close`) and then the host, which owns the browser: `agent-browser --session letvps-<suffix> close`. `agent-browser session list` can still show the host for a few seconds afterwards. Check again before deciding it didn't close.
