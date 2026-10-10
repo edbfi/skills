@@ -21,7 +21,8 @@ an agent on an ordinary task needs it, not by how important it feels.
 
 ## SKILL.md
 
-Budget: aim under 2,000 tokens, hard ceiling 3,000 (`scripts/token_budget.py` reports both).
+Budget: aim under 2,000 tokens, hard ceiling 3,000 (`$BUILDER_DIR/scripts/token_budget.py` reports
+both).
 skill-creator's 500-line guideline is far above what a stack skill should use; routing plus the
 delta fits in a page.
 

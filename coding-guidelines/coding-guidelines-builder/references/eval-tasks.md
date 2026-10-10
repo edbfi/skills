@@ -189,8 +189,8 @@ Follow skill-creator's loop with these settings:
   overrode. Read the transcript to find which before adding text. Repeated work across runs (every
   run writes the same lint config or helper) means the skill should ship that file in `assets/` or
   `scripts/`.
-- **Budget.** `scripts/token_budget.py` runs every iteration and its numbers go into the iteration
-  notes next to the pass rate. A pass-rate gain bought with a large token increase is examined for a
+- **Budget.** `$BUILDER_DIR/scripts/token_budget.py` runs every iteration and its numbers go into
+  the iteration notes next to the pass rate. A pass-rate gain bought with a large token increase is examined for a
   cheaper version.
 
 ### Ablation

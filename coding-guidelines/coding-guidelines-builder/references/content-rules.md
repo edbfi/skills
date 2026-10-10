@@ -17,8 +17,8 @@ tags, recorded in `skill/PROVENANCE.md` against the section that holds it:
 
 No tag, no content. In particular, anything listed under "Done correctly without help" in
 `mistakes.md` is excluded, however fundamental it feels. The model already does it; a sentence
-restating it costs tokens and buys nothing. `scripts/check_provenance.py` fails on sections with no
-row and on anti-pattern rows with no grep.
+restating it costs tokens and buys nothing. `$BUILDER_DIR/scripts/check_provenance.py` fails on
+sections with no row and on anti-pattern rows with no grep.
 
 Evidence tags live in `PROVENANCE.md`, not in the loaded files; the skill's reader does not need
 them.
@@ -60,8 +60,8 @@ them.
   easier to show than describe. A rule the model gets wrong in one predictable way gets one sentence
   and a two-line before/after, not a program.
 - Every code block is a file, or a marked region of a file, in `examples/`, copied by
-  `scripts/verify_examples.py`, and that project builds, lints with warnings as errors, and passes
-  its tests on the pinned toolchain. The line before the fence names the source:
+  `$BUILDER_DIR/scripts/verify_examples.py`, and that project builds, lints with warnings as
+  errors, and passes its tests on the pinned toolchain. The line before the fence names the source:
   `<!-- example: src/handlers.rs -->` or `<!-- example: src/handlers.rs#create_order -->` for the
   lines between `region: create_order` and `endregion: create_order`. Never edit a block in the
   skill; edit the example and run `verify_examples.py --sync`.

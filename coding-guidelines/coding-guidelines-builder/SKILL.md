@@ -52,6 +52,9 @@ different model is expected to find a different, usually smaller, set.
 - The skill-creator skill. Find it (`find ~ /mnt -path '*skill-creator/SKILL.md' 2>/dev/null`),
   read its SKILL.md once at the start, and note its path as `SKILL_CREATOR` in `manifest.md`. Phases
   4 and 5 run its scripts from that directory.
+- This skill's own directory, noted as `BUILDER_DIR` in `manifest.md`. Its scripts are run from the
+  run folder as `python "$BUILDER_DIR/scripts/<name>.py"`; a bare `scripts/` path does not resolve
+  there.
 - Docker, or a host toolchain for stacks tied to a platform (Apple SDKs, Windows-only frameworks).
 - Network access for research, registries, image pulls, and clones.
 
@@ -64,9 +67,9 @@ toolchains and caches reach gigabytes).
 ```
 <root>/
 ├── <date>_<stack-slug>/
-│   ├── manifest.md            # stack block, model under test, SKILL_CREATOR, every image/volume/clone/cache, phase status
+│   ├── manifest.md            # stack block, model under test, SKILL_CREATOR, BUILDER_DIR, every image/volume/clone/cache, phase status
 │   ├── research/
-│   │   ├── components.json    # component list for scripts/registry_versions.py
+│   │   ├── components.json    # component list for registry_versions.py
 │   │   ├── probe.md           # what the model believes before any research
 │   │   ├── facts/<component>.md
 │   │   ├── clones/            # narrow clones; deleted in phase 5
@@ -87,8 +90,9 @@ toolchains and caches reach gigabytes).
 
 This file set is closed. Agents like writing Markdown; a run that sprouts `NOTES.md`,
 `research-log.md`, or `summary.md` is a run losing precision. Run
-`python scripts/audit_files.py <run-dir>` at the end of every phase; any file outside the set is
-deleted or added to `manifest.md` under "Additional files" with one line saying why.
+`python "$BUILDER_DIR/scripts/audit_files.py" <run-dir>` at the end of every phase; any file
+outside the set is deleted or added to `manifest.md` under "Additional files" with one line saying
+why.
 
 `manifest.md` is the cleanup contract and the resume state. Append to it as you go: images pulled
 (with digest), named volumes, repositories cloned, caches created, services started, and a
@@ -112,10 +116,10 @@ not restarting.
 ### Phase 0: Setup
 
 1. Create the run folder and `manifest.md` with the stack block, model under test, `SKILL_CREATOR`,
-   and the phase table.
+   `BUILDER_DIR`, and the phase table.
 2. Choose toolchain mode (below) and verify it: pull the image or install into `.toolchain/`, then
    run the toolchain's version command and record the exact output in `manifest.md`.
-3. If `existing-skill` is set, copy it to `skill/` now; the re-run rules at the end of this file apply.
+3. If `existing-skill` is set, copy it to `skill/` now; the rules under Re-runs below apply.
 
 ### Phase 1: Research
 
@@ -144,9 +148,9 @@ Read `references/content-rules.md` and `references/skill-layout.md`. Build `exam
 project on the pinned toolchain in which every pattern the skill will show is a compiling, linted,
 tested file. Then write `skill/` from three inputs only: `baseline/mistakes.md`, the probe findings
 that research contradicted, and the stack's decisions (tools, configuration, versions). Every section
-gets a row in `skill/PROVENANCE.md` naming its evidence; `scripts/check_provenance.py` fails on
-sections without one. Code blocks in the skill are copies of files in `examples/`, checked by
-`scripts/verify_examples.py`.
+gets a row in `skill/PROVENANCE.md` naming its evidence; `$BUILDER_DIR/scripts/check_provenance.py`
+fails on sections without one. Code blocks in the skill are copies of files in `examples/`, checked by
+`$BUILDER_DIR/scripts/verify_examples.py`.
 
 ### Phase 4: Evaluate
 
@@ -176,7 +180,8 @@ iterations, whichever comes first.
    a stack skill the risk is under-triggering on ordinary coding tasks in that stack, so the
    should-trigger set must include plain tasks that never name the stack, and the should-not-trigger
    set must include tasks on adjacent stacks and questions about the stack that involve no code.
-2. Run `scripts/token_budget.py skill/` and `scripts/check_provenance.py skill/` one last time.
+2. Run `python "$BUILDER_DIR/scripts/token_budget.py" skill/` and
+   `python "$BUILDER_DIR/scripts/check_provenance.py" skill/` one last time.
 3. Package with skill-creator's `package_skill.py` and copy both the `.skill` file and the `skill/`
    folder to the location the user named, or `<root>/dist/<stack-slug>/` if they named none. Confirm
    the copy exists before any cleanup.

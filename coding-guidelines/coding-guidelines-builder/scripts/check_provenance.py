@@ -62,7 +62,8 @@ def table_rows(text: str, heading: str | None) -> list[list[str]]:
     in_table = False
     for line in text.splitlines():
         if line.strip().startswith("|"):
-            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            # Split on unescaped pipes only, so grep alternation like `foo\|bar` stays one cell.
+            cells = [c.strip().replace("\\|", "|") for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
             if all(re.fullmatch(r":?-{2,}:?", c) for c in cells):
                 in_table = True
                 continue

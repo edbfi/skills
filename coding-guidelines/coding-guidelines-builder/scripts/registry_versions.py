@@ -20,7 +20,6 @@ from __future__ import annotations
 import json
 import re
 import sys
-import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date
@@ -103,7 +102,7 @@ def main(argv: list[str]) -> int:
         if c.get("registry"):
             try:
                 entry["latest"] = latest(c["registry"], c["package"])
-            except (urllib.error.URLError, KeyError, ValueError, json.JSONDecodeError) as e:
+            except (OSError, KeyError, ValueError) as e:  # OSError covers URLError and read timeouts
                 entry["error"] = str(e)
                 failures += 1
                 print(f"{c['name']}: {e}", file=sys.stderr)

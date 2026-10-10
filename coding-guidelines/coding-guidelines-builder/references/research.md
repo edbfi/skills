@@ -34,7 +34,7 @@ Write `research/components.json`:
 For a language or runtime with no registry, the release line comes from source tags or the official
 download page, verified by running the toolchain's version command inside the pinned image.
 
-Then run `python scripts/registry_versions.py research/components.json > research/versions.json`.
+Then run `python "$BUILDER_DIR/scripts/registry_versions.py" research/components.json > research/versions.json`.
 This is the authoritative answer to "what is the latest stable release", and it is a script so that
 re-runs can diff it. Web pages are not a source for version numbers.
 
