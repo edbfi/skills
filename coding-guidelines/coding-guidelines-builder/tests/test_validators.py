@@ -11,24 +11,22 @@ import tempfile
 import unittest
 from collections.abc import Callable
 from pathlib import Path
-from typing import cast, override
+from typing import cast
 from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 
 
 class ArtifactChecks(unittest.TestCase):
-    root: Path = Path()
-    skill: Path = Path()
-    examples: Path = Path()
-
-    @override
-    def setUp(self) -> None:
+    # Fixtures are built in __init__ rather than setUp: the repo types under Python 3.11, which
+    # has no typing.override, and basedpyright recommended mode flags an unmarked setUp override.
+    def __init__(self, methodName: str = "runTest") -> None:
+        super().__init__(methodName)
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
-        self.root = Path(temp.name)
-        self.skill = self.root / "skill"
-        self.examples = self.root / "examples"
+        self.root: Path = Path(temp.name)
+        self.skill: Path = self.root / "skill"
+        self.examples: Path = self.root / "examples"
         self.skill.mkdir()
         self.examples.mkdir()
 
