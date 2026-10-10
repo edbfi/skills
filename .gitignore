@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+
+# JavaScript tooling
+node_modules/
+
+# Skill eval runs (skill-creator workspaces)
+*-workspace/
+
+# OS and editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
