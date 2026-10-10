@@ -1,0 +1,48 @@
+{
+  "skill_name": "codex-second-opinion",
+  "notes": "Live evals: each run calls the codex CLI and spends Codex quota. Build the fixture described in `setup` in a scratch folder first.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "uncommitted-pagination-bug",
+      "setup": "git repo with pager.py (page_count = total // per_page; page_slice) committed with a test file, then an uncommitted change making page_slice clamp out-of-range pages to page_count(len(items), per_page).",
+      "prompt": "Get a Codex second opinion on my uncommitted changes in <fixture> before I commit. Fix whatever is real. Don't commit.",
+      "expected_output": "One ask-codex.sh call with --cwd <fixture> and a quoted heredoc prompt holding the diff command, intent and output format, but no opinion of the agent's own. Codex reports that page_count floors (25 items / 10 per page gives 2 pages, so the clamp drops the last partial page) and the empty-list / per_page<=0 edge cases. The agent verifies each finding with a test, fixes page_count to ceiling division, adds tests, runs them, doesn't commit, and reports with the verdict table.",
+      "files": [],
+      "assertions": [
+        "Codex was invoked through scripts/ask-codex.sh with --cwd set to the fixture folder",
+        "the prompt to Codex contains no opinion or suspected bug from the agent",
+        "the ceiling-division bug in page_count was fixed and covered by a new test",
+        "tests were run and their result is reported",
+        "nothing was committed",
+        "the report starts with a one-line verdict and contains the verdict table"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "plan-review-non-git",
+      "setup": "none",
+      "prompt": "I want to migrate our cron jobs from crontab on one VM to systemd timers. Write a short plan, then have Codex sanity-check it before we do anything.",
+      "expected_output": "The agent writes the plan to a file, calls ask-codex.sh with --cwd set to that file's folder (no git repo needed), judges each finding, updates the plan for accepted items, and reports. No system changes are made: they are listed as proposed actions.",
+      "files": [],
+      "assertions": [
+        "the plan was written to a file before Codex was called",
+        "Codex was invoked through scripts/ask-codex.sh",
+        "no systemd or crontab changes were executed",
+        "the report lists the migration steps under proposed actions or 'Needs your call'"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "challenge-p1-with-resume",
+      "setup": "same fixture as eval 1, plus a caller module that always validates per_page > 0 before calling page_slice",
+      "prompt": "Ask codex to review pager.py and caller.py in <fixture>, and apply what's real.",
+      "expected_output": "If Codex rates the per_page=0 crash P0/P1 and the agent wants to reject it because the caller validates, the agent first sends one ask-codex.sh --resume <run dir> follow-up with evidence, then decides.",
+      "files": [],
+      "assertions": [
+        "any rejected P0/P1 finding was first challenged with ask-codex.sh --resume using the run directory from the first call",
+        "the decision for each finding cites concrete evidence"
+      ]
+    }
+  ]
+}

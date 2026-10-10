@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Second Opinion"
+  short_description: "Get an independent read-only Codex review, verify each finding, fix only what is real"
+  default_prompt: "Use $codex-second-opinion to get a Codex review of the uncommitted changes, judge each finding and fix what is real."
