@@ -92,7 +92,7 @@ class ArtifactChecks(unittest.TestCase):
         self.write(self.examples / "config.yaml", "region: us-east-1\nname: x\n")
         self.write(self.skill / "SKILL.md",
                    "<!-- example: src/lib.rs#b -->\n```rust\nold\n```\n\n<!-- example: src/lib.rs -->\n```rust\nold\n```\n\n"
-                   "<!-- example: config.yaml -->\n```yaml\nold\n```\n")
+                   + "<!-- example: config.yaml -->\n```yaml\nold\n```\n")
         self.assert_code(0, self.run_script("verify_examples.py", self.skill, self.examples, "--sync"))
         synced = (self.skill / "SKILL.md").read_text()
         self.assertIn("```rust\nfn b() {\n    let region: u8 = 1;\n}\n```", synced)

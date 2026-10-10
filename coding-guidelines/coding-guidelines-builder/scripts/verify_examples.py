@@ -45,8 +45,7 @@ from pathlib import Path
 MARKER = re.compile(r"^\s*<!--\s*example:\s*(?P<ref>[^\s]+)\s*-->\s*$")
 # A region marker is a whole comment line: an optional closer follows the name.
 REGION = re.compile(
-    r"^\s*(?://+|#+|--+|;+|/\*+|<!--|\*+|%+|'+|\(\*|\{-|REM\b)\s*(?P<end>end)?region:\s*(?P<name>\S+?)"
-    r"\s*(?:\*/|-->|\*\)|-\})?\s*$"
+    r"^\s*(?://+|#+|--+|;+|/\*+|<!--|\*+|%+|'+|\(\*|\{-|REM\b)\s*(?P<end>end)?region:\s*(?P<name>\S+?)\s*(?:\*/|-->|\*\)|-\})?\s*$"
 )
 EXEMPT = re.compile(r"^\s*<!--\s*example-exempt:\s*(\S.*?)\s*-->\s*$")
 FENCE = re.compile(r"^(?P<indent> {0,3})(?P<fence>`{3,}|~{3,})(?P<info>.*)$")
