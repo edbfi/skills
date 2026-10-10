@@ -1,6 +1,7 @@
 ---
 name: coding-guidelines-builder
 description: Build a coding-guidelines skill for a specific tech stack (languages, frameworks, libraries, databases, tools, version constraints, minimum targets, exclusions) that tells AI coding agents what current, idiomatic, correct code looks like on that stack. Use this whenever the user hands over a tech-stack description and wants guidelines, a coding standard, rules, a reference, or a skill for agents writing, extending, or reviewing code on that stack, even if they never say "skill". Also use it to refresh, re-verify, or shrink an existing stack skill.
+compatibility: Requires Claude Code or Cowork (subagents, shell, web access, the claude CLI), the skill-creator skill, and Docker or a host toolchain for the stack.
 license: AGPL-3.0
 metadata:
   author: engels74

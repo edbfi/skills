@@ -11,22 +11,26 @@ import tempfile
 import unittest
 from collections.abc import Callable
 from pathlib import Path
-from typing import cast
+from typing import cast, override
 from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / "scripts"
 
 
 class ArtifactChecks(unittest.TestCase):
-    def __init__(self, methodName: str = "runTest") -> None:
-        super().__init__(methodName)
-        self.temp: tempfile.TemporaryDirectory[str] = tempfile.TemporaryDirectory()
-        self.root: Path = Path(self.temp.name)
-        self.skill: Path = self.root / "skill"
-        self.examples: Path = self.root / "examples"
+    root: Path = Path()
+    skill: Path = Path()
+    examples: Path = Path()
+
+    @override
+    def setUp(self) -> None:
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.skill = self.root / "skill"
+        self.examples = self.root / "examples"
         self.skill.mkdir()
         self.examples.mkdir()
-        self.addCleanup(self.temp.cleanup)
 
     def write(self, path: Path, content: str) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -131,6 +135,9 @@ class ArtifactChecks(unittest.TestCase):
         result = self.run_script("audit_files.py", run)
         self.assert_code(1, result)
         self.assertIn("symlink escapes the run folder: skill", result.stdout)
+        self.assertIn("declare it under '## Additional files'", result.stdout)
+        self.write(run / "manifest.md", "# Run\n\n## Additional files\n\n- `notes.txt` scratch\n- `skill` linked delivery\n")
+        self.assert_code(0, self.run_script("audit_files.py", run))
 
     def test_token_budget_flags_and_json(self) -> None:
         self.write(self.skill / "SKILL.md", "---\nname: demo\ndescription: short\n---\n# Demo\n")

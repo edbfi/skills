@@ -163,7 +163,7 @@ def component_entries(value: object) -> list[object]:
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     _ = parser.add_argument("components")
     _ = parser.add_argument("--previous")
     args = parser.parse_args(argv[1:], namespace=Arguments())

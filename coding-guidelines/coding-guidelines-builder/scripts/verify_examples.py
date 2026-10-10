@@ -217,7 +217,7 @@ class Arguments(argparse.Namespace):
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     _ = parser.add_argument("skill", type=Path)
     _ = parser.add_argument("examples", type=Path)
     _ = parser.add_argument("--sync", action="store_true")
