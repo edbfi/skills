@@ -207,7 +207,7 @@ If an `isinstance` is flagged unnecessary but you believe runtime data could vio
 
 - First-party module not found: fix `include`/the package layout or the import path, don't ignore.
 - Third-party without stubs: check whether a `types-*` package or an inline-typed newer version exists; propose adding it (ask the user — it's a dependency change).
-- Nothing exists: write a minimal `.pyi` stub for just the surface you use, in a `typings/` directory, and point to it with… nothing — basedpyright finds `typings/` next to the pyproject by default. Prefer `object` over `Any` in stubs. This is the proper fix for vendored code too.
+- Nothing exists: write a minimal `.pyi` stub for just the surface you use, in a `typings/` directory. basedpyright finds `typings/` next to the `pyproject.toml` by default, so no config is needed. Prefer `object` over `Any` in stubs. This is the proper fix for vendored code too.
 - Only when a stub would be unreasonable (giant dynamic SDK, you use one function): a single ignore at the single typed adapter that wraps it.
 
 ---

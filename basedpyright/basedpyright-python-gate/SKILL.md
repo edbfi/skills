@@ -49,7 +49,7 @@ Never stop at "down to 3 warnings, the rest are edge cases". There is no number 
 Each of these makes the diagnostic disappear without making the code correct. The gate catches some mechanically; the rest are on you.
 
 - **Widening to `Any` or `object`** to silence an error. The error was telling you the type is unknown; `Any` just stops it from telling you. Find out what the type is.
-- **`cast()` as a lie.** `cast` is a claim that you know something the checker doesn't. If you can't say in one comment *why* the runtime value is guaranteed to be that type, you don't know it either, and the cast is a suppression with extra steps. Prefer narrowing (`TypeIs`, `isinstance` at the boundary, a validating parse function).
+- **`cast()` as a lie.** `cast` is a claim that you know something the checker doesn't. If you can't say in one comment *why* the runtime value is guaranteed to be that type, you don't know it either, and the cast is a suppression with extra steps. Prefer narrowing (`TypeIs`, `isinstance` at the boundary, a validating parse function). The one honest cast is `cast("object", ...)` on untyped input such as `json.loads`, right before you narrow it; see `references/fix_patterns.md` §1.
 - **`# type: ignore`.** Blanket, not rule-scoped, honoured by pyright by default. The gate rejects it. Use `pyright: ignore[rule]` or fix the code.
 - **`isinstance` carpet-bombing** — asserting the same type at every use site. Narrow once where the value enters, then let the type flow.
 - **Loosening a signature so callers type-check.** If a function returns `Foo | None` and callers break, the fix is in the callers (handle `None`) or in the function (stop returning `None`), not in changing the annotation to `Any`.

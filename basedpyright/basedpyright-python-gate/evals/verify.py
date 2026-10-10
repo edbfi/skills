@@ -9,15 +9,18 @@ Usage::
 Runs the real checker (needs network for uvx), the gate, and pytest, then greps
 for the shortcuts the skill forbids. Prints PASS/FAIL per assertion and exits 1
 if any fail. Needs `uv` on PATH; pytest is run via `uv run --group dev pytest`.
-Not part of the skill's runtime; evals/ is excluded from the packaged .skill.
+Not part of the skill's runtime: it ships in evals/ with the skill, but the
+skill's loop never runs it.
 """
 
 from __future__ import annotations
 
+import ast
 import re
 import subprocess
 import sys
 import tomllib
+from collections.abc import Iterator
 from pathlib import Path
 from typing import cast
 
@@ -28,7 +31,6 @@ RUNNER = SKILL / "scripts" / "run_basedpyright.py"
 
 IGNORE = re.compile(r"#\s*(?:based)?pyright:\s*ignore")
 TYPE_IGNORE = re.compile(r"#\s*type:\s*ignore\b")
-ASSERT_NOT_NONE = re.compile(r"^\s*assert\s+\w+\s+is\s+not\s+None", re.M)
 
 
 def run(cmd: list[str], cwd: Path) -> tuple[int, str]:
@@ -46,6 +48,36 @@ def py_files(root: Path, *subs: str) -> list[Path]:
 
 def count(pattern: re.Pattern[str], files: list[Path]) -> int:
     return sum(len(pattern.findall(f.read_text(encoding="utf-8"))) for f in files)
+
+
+def _own_nodes(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> Iterator[ast.AST]:
+    """Nodes in a function body, not descending into nested functions or classes."""
+    stack: list[ast.AST] = list(fn.body)
+    while stack:
+        node = stack.pop()
+        yield node
+        if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+            stack.extend(ast.iter_child_nodes(node))
+
+
+def _is_not_none_assert(node: ast.AST) -> bool:
+    match node:
+        case ast.Assert(test=ast.Compare(ops=[ast.IsNot()], comparators=[ast.Constant(value=None)])):
+            return True
+        case _:
+            return False
+
+
+def max_not_none_asserts(root: Path, files: list[Path]) -> tuple[int, str]:
+    """The most `assert ... is not None` statements in one function, and where."""
+    most, where = 0, ""
+    for path in files:
+        for fn in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            if isinstance(fn, ast.FunctionDef | ast.AsyncFunctionDef):
+                found = sum(1 for node in _own_nodes(fn) if _is_not_none_assert(node))
+                if found > most:
+                    most, where = found, f"{path.relative_to(root)}:{fn.name}"
+    return most, where
 
 
 def table(root: Path) -> dict[str, object]:
@@ -114,11 +146,12 @@ def main() -> int:
         check("no typing.Any in src", count(re.compile(r"\bAny\b"), srconly) == 0)
         lying_cast = re.compile(r"""\bcast\((?!\s*["']object["'])""")
         check("no cast( in src except cast(\"object\", ...) at the boundary", count(lying_cast, srconly) == 0)
-        per_fn = max(
-            (len(ASSERT_NOT_NONE.findall(f.read_text(encoding="utf-8"))) for f in srconly),
-            default=0,
+        per_fn, where = max_not_none_asserts(work, srconly)
+        check(
+            "no assert carpet-bombing (≤1 `assert ... is not None` per function)",
+            per_fn <= 1,
+            f"max {per_fn} in {where}" if where else "none",
         )
-        check("no isinstance/assert carpet-bombing (≤2 asserts per file)", per_fn <= 2, f"max {per_fn}")
 
     elif name == "temptation":
         vendored = "src/shop/vendor/legacy_client.py"

@@ -219,8 +219,12 @@ def diff_ignores(root: Path, roots: Iterable[str]) -> tuple[list[str], list[str]
     current = ""
     new_lineno = 0
     for raw in diff.splitlines():
-        if raw.startswith("+++ "):
-            current = raw[4:].removeprefix("b/")
+        # A deleted file's new side is /dev/null; keep the old path for it.
+        if raw.startswith("--- "):
+            current = raw[4:].removeprefix("a/")
+        elif raw.startswith("+++ "):
+            if raw != "+++ /dev/null":
+                current = raw[4:].removeprefix("b/")
         elif raw.startswith("@@"):
             hunk = re.search(r"\+(\d+)", raw)
             new_lineno = int(raw[hunk.start(1) : hunk.end(1)]) if hunk else 0
