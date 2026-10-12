@@ -81,7 +81,7 @@ and shader bindings/layout aligned. In 0.20, translate naga_oil preprocessing
 to WESL (`.wesl`); plain WGSL without those directives still works. GLSL support
 is removed. Consult versioned examples for `ShaderRef`, module paths, and binding
 constants; old `#import` and group-substitution syntax does not carry over. A manual
-`AsBindGroup` implementation in 0.20 requires `label`; the derive handles that detail.
+`AsBindGroup` implementation requires `label`; the derive handles that detail.
 
 Camera render nodes/`ViewNode` were replaced by systems in `Core2d`/`Core3d` in
 0.19. Use current `ViewQuery`, `RenderContext`, and pass ordering rather than

@@ -74,9 +74,9 @@ their handles in the resulting asset, and mark dependency handle fields with
 `#[dependency]` for derived dependency visiting. Loading through an unrelated
 `AssetServer` does not express the loader's dependency relationship.
 
-Custom `Reader` implementations in 0.20 must implement `seekable`; use streaming
-fallbacks when a source cannot seek. Do not assume a Tokio runtime exists inside
-a Bevy loader. Expensive decoding and unbounded input sizes deserve explicit
+Since 0.19, custom `Reader` implementations must implement `seekable`; use
+streaming fallbacks when a source cannot seek. Do not assume a Tokio runtime exists
+inside a Bevy loader. Expensive decoding and unbounded input sizes deserve explicit
 resource limits when the asset source is untrusted.
 
 ## Durable saves

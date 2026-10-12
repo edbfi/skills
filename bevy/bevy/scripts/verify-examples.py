@@ -51,8 +51,8 @@ def main() -> None:
     features = {
         "core": ["std", "async_executor", "multi_threaded", "bevy_state"],
         "presentation": ["std", "async_executor", "multi_threaded", "bevy_state",
-                         "2d_api", "3d_api", "ui_api", "bevy_ui_widgets", "bevy_picking", "bevy_pbr",
-                         "bevy_world_serialization"],
+                         "2d_api", "3d_api", "ui_api", "bevy_ui_widgets",
+                         "bevy_picking", "bevy_pbr", "bevy_world_serialization"],
     }
     groups = ["core"] if args.core_only else list(blocks)
     with tempfile.TemporaryDirectory(prefix="bevy-skill-check-") as temporary:

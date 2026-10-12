@@ -85,11 +85,6 @@ python3 scripts/check-content.py
 prek run --all-files --hook-stage manual
 ```
 
-On this host, Python 3.9 was too old for the verifier and an unrelated repository
-test. Successful runs used `uv run --python 3.13 python
-bevy/bevy/scripts/verify-examples.py` and `uv run --python 3.13 prek run --all-files
---hook-stage manual`.
-
 The first command extracts **every Rust fence** in the skill and its references.
 Each must carry a `verify: core` or `verify: presentation` marker. It generates
 temporary crates with an exact Bevy pin, so the documented examples themselves
