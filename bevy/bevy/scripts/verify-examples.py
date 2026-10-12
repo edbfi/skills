@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compile the actual documented Rust blocks; execute the core behavior tests.
 
-Requires Python 3 and Cargo. Downloads crates on the first run. Rust build
+Requires Python 3.10+ and Cargo. Downloads crates on the first run. Rust build
 artifacts are cached outside the skill; generated projects use a temporary folder.
 Presentation examples are type-checked without native window/audio dependencies.
 """
@@ -17,7 +17,7 @@ import tempfile
 class Arguments(argparse.Namespace):
     """Parsed command line; the class attributes are the option defaults."""
 
-    bevy: str = "0.19.1"
+    bevy: str = "0.20.0"
     core_only: bool = False
     target_dir: Path | None = None
 
@@ -29,7 +29,7 @@ def main() -> None:
     _ = parser.add_argument("--target-dir", type=Path, help="Reusable Cargo build cache")
     args = parser.parse_args(namespace=Arguments())
     if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", args.bevy):
-        parser.error("--bevy must be an exact stable version, such as 0.19.1")
+        parser.error("--bevy must be an exact stable version, such as 0.20.0")
 
     root = Path(__file__).resolve().parents[1]
     blocks: dict[str, list[tuple[str, str]]] = {"core": [], "presentation": []}
@@ -51,8 +51,8 @@ def main() -> None:
     features = {
         "core": ["std", "async_executor", "multi_threaded", "bevy_state"],
         "presentation": ["std", "async_executor", "multi_threaded", "bevy_state",
-                         "2d_api", "3d_api", "ui_api", "bevy_pbr",
-                         "bevy_world_serialization"],
+                         "2d_api", "3d_api", "ui_api", "bevy_ui_widgets",
+                         "bevy_picking", "bevy_pbr", "bevy_world_serialization"],
     }
     groups = ["core"] if args.core_only else list(blocks)
     with tempfile.TemporaryDirectory(prefix="bevy-skill-check-") as temporary:
