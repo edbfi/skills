@@ -10,7 +10,8 @@
 # the earlier run actually used. Each call writes a fresh run directory holding
 # prompt.md, answer.md, run.log and run.env, prints a summary block, then
 # prints Codex's answer. Exit status: Codex's own exit status, 3 if Codex
-# exited 0 with an empty answer, 2 for a usage error.
+# exited 0 with an empty answer, 4 if Codex's sandbox could not run commands
+# (so Codex never read the files), 2 for a usage error.
 set -uo pipefail
 
 model=
@@ -19,7 +20,7 @@ cwd=$PWD
 resume=
 session=
 
-usage() { sed -n '3,13p' "$0" | sed 's/^# \{0,1\}//' >&2; exit "${1:-2}"; }
+usage() { sed -n '3,14p' "$0" | sed 's/^# \{0,1\}//' >&2; exit "${1:-2}"; }
 die() { printf 'ask-codex: %s\n' "$1" >&2; exit 2; }
 
 while [ $# -gt 0 ]; do
@@ -78,6 +79,11 @@ effort=${used_effort:-$effort}
 
 if [ "$status" = 0 ] && ! grep -q '[^[:space:]]' "$run/answer.md"; then
   status=3
+fi
+# Codex exits 0 even when its Linux sandbox (bubblewrap) could not start, so
+# every shell command failed and the answer rests on the prompt alone.
+if [ "$status" = 0 ] && grep -qE "^warning: .*sandbox.*user namespaces|^bwrap: " "$run/run.log"; then
+  status=4
 fi
 
 {
