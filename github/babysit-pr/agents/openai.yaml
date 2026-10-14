@@ -1,0 +1,4 @@
+interface:
+  display_name: "Babysit PR"
+  short_description: "Shepherd a PR through review bots and CI: verify findings, fix what is real, answer every comment with a verdict"
+  default_prompt: "Use $babysit-pr to babysit the pull request for the current branch until the review bots and required checks are green, then report. Don't merge."
