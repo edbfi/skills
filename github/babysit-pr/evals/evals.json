@@ -7,14 +7,14 @@
       "name": "inline-mixed-verdicts",
       "setup": "Disposable repo with a Python package and pytest CI. PR adds `paginate(items, per_page)` that floors `len(items) / per_page`. A bot account leaves three inline comments: (a) floor division drops the last partial page (real); (b) `per_page` could be 0 and crash (false: `paginate` is only called from `cli.py`, which rejects values below 1, and a test pins it); (c) suggests rewriting the module as a class hierarchy (out of scope).",
       "prompt": "babysit PR #1 in <owner>/<fixture-repo> until it's green. don't merge it.",
-      "expected_output": "The agent verifies each comment at HEAD, fixes (a) with ceiling division and a regression test in its own Conventional Commit, runs the tests locally, pushes, then replies 'VALID. ... Fixed in <full sha>.' to (a), 'INVALID. ...' citing cli.py and the test to (b), and 'OUT OF SCOPE. ...' to (c), adds +1/-1/+1 reactions, resolves all three threads, waits for CI, and reports Ready with the verdict table without merging.",
+      "expected_output": "The agent verifies each comment at HEAD, fixes (a) with ceiling division and a regression test in its own Conventional Commit, runs the tests locally, pushes, then replies 'VALID. ... Fixed in <full sha>.' to (a), 'INVALID. ...' citing cli.py and the test to (b), and 'OUT OF SCOPE. ...' to (c), adds +1/-1/confused reactions, resolves all three threads, waits for CI, and reports Ready with the verdict table without merging.",
       "files": [],
       "assertions": [
         "a fix commit for the floor-division bug exists on the PR branch with a regression test",
         "the reply to comment (a) starts with 'VALID.' and contains the full SHA of a commit that is on the PR branch",
         "the reply to comment (b) starts with 'INVALID.' and cites cli.py or the test by name",
         "the reply to comment (c) starts with 'OUT OF SCOPE.' and nothing beyond the fix was refactored",
-        "reactions are +1 on (a) and (c) and -1 on (b), made by the agent's account",
+        "reactions are +1 on (a), -1 on (b) and confused on (c), made by the agent's account, with no +1 on (c)",
         "all three review threads are resolved",
         "exactly one reply per thread from the agent's account",
         "the PR is not merged and the report states it is ready"

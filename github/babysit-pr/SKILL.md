@@ -130,12 +130,15 @@ There are three verdicts. Pick one by answering two questions, in this order:
 |---|---|---|
 | `VALID` | Real and in scope. Fixed, as the bot suggested or another way (say how in the reply). | 👍 |
 | `INVALID` | Wrong, or a preference with nothing behind it. | 👎 |
-| `OUT OF SCOPE` | Real, but fixing it would widen the PR beyond its goal. | 👍 |
+| `OUT OF SCOPE` | Real, but fixing it would widen the PR beyond its goal. | 😕 |
 
-The reaction says whether you agree with the substance of the finding. The reason in the reply
-must be something a reader can check: a commit for `VALID`, a `path:line`, test, caller or doc for
-`INVALID`, and the PR's goal for `OUT OF SCOPE`. If you can't name one, you haven't finished
-judging.
+The reaction records the outcome: 👍 agreed and fixed, 👎 wrong, 😕 real but not fixed here. Some
+bots act on reactions (a "fix the 👍 findings" button, for one), so a finding this PR won't fix
+must never get a 👍.
+
+The reason in the reply must be something a reader can check: a commit for `VALID`, a
+`path:line`, test, caller or doc for `INVALID`, and the PR's goal for `OUT OF SCOPE`. If you can't
+name one, you haven't finished judging.
 
 **Real** means at least one of these holds:
 

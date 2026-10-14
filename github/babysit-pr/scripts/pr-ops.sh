@@ -27,7 +27,7 @@ usage: pr-ops.sh <command> [--repo owner/name] [--pr N] [options]
   reply     --comment CID [--force]        reply to an inline review comment;
                                            body on stdin
   react     --comment CID --verdict V      V: VALID (+1), INVALID (-1),
-                                           'OUT OF SCOPE' (+1)
+                                           'OUT OF SCOPE' (confused)
   resolve   CID [CID...]                   resolve the threads holding these
                                            comments
   comment   --ack ID [--ack ID...] [--force]
@@ -494,10 +494,12 @@ cmd_reply() {
 cmd_react() {
   need_cid "${CID}" "--comment"
   local REACTION REACTION_JSON REACTION_ID
-  # The reaction says whether we agree with the substance of the finding.
+  # +1 agrees and the finding is fixed, -1 disagrees, confused marks a real
+  # finding this PR won't fix (so bot "fix the +1s" actions skip it).
   case "${VERDICT}" in
-    VALID|'OUT OF SCOPE'|OUT_OF_SCOPE) REACTION='+1' ;;
-    INVALID)                           REACTION='-1' ;;
+    VALID)                     REACTION='+1' ;;
+    INVALID)                   REACTION='-1' ;;
+    'OUT OF SCOPE'|OUT_OF_SCOPE) REACTION='confused' ;;
     *) printf 'Unknown verdict: %s\n' "${VERDICT}" >&2; exit 2 ;;
   esac
 
