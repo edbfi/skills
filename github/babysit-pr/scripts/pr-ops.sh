@@ -90,7 +90,6 @@ for n in "${TIMEOUT}" "${INTERVAL}" "${SETTLE}"; do
 done
 
 if [ -z "${REPO}" ]; then
-  [ -z "${PR_ID}" ] || die "--pr needs --repo"
   REPO=$(gh repo view --json nameWithOwner --jq '.nameWithOwner') \
     || die "not in a GitHub checkout; pass --repo and --pr"
 fi
