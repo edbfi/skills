@@ -3,8 +3,9 @@
 # shellcheck disable=SC2016
 # pr-ops.sh: the GitHub side of the babysit-pr loop.
 #
-# reply, react, resolve and retrigger implement references/github-operations.md
-# exactly; status, wait and comment build on the same helpers. Every write
+# reply, react, resolve and retrigger keep the API calls and jq assertions of
+# references/github-operations.md; its header lists the few deliberate
+# differences. status, wait and comment build on the same helpers. Every write
 # asserts the returned actor, value and target with jq -e, so a zero exit
 # status means GitHub stored what was asked for.
 #
@@ -593,7 +594,7 @@ cmd_resolve() {
 cmd_comment() {
   need_pr
   [ -n "${ACKS// /}" ] || die "comment needs at least one --ack ID"
-  local id body marker ISSUE_COMMENTS_JSON POST_JSON ack_json
+  local id at body marker ISSUE_COMMENTS_JSON POST_JSON ack_json revised_json
   for id in ${ACKS}; do
     case "${id}" in
       pullrequestreview-[0-9]*|issuecomment-[0-9]*)
@@ -607,18 +608,36 @@ cmd_comment() {
   marker="<!-- babysit-pr:ack $(jq -r 'join(" ")' <<<"${ack_json}") -->"
   body="${body}"$'\n\n'"${marker}"
 
+  # Refuse only when every ID was answered after its latest revision, so the
+  # feedback that status shows again after an edit can still be answered.
   if [ "${FORCE}" != 1 ]; then
     ISSUE_COMMENTS_JSON=$(fetch_pages "repos/${REPO}/issues/${PR_ID}/comments?per_page=100")
-    if jq -e --arg user "${GH_USER}" --argjson want "${ack_json}" '
+    revised_json='{}'
+    for id in ${ACKS}; do
+      case "${id}" in
+        issuecomment-*)
+          at=$(gh_rest "repos/${REPO}/issues/comments/${id#*-}" --jq '.updated_at') ;;
+        *)
+          at=$(gh_rest "repos/${REPO}/pulls/${PR_ID}/reviews/${id#*-}" --jq '.submitted_at') ;;
+      esac
+      revised_json=$(jq -c --arg id "${id}" --arg at "${at}" '. + {($id): $at}' <<<"${revised_json}")
+    done
+    if jq -e --arg user "${GH_USER}" --argjson want "${ack_json}" --argjson revised "${revised_json}" '
         [
           .[][]
           | select(.user.login == $user)
+          | .created_at as $at
           | .body
           | scan("<!-- babysit-pr:ack ([^>]*?) -->")
           | .[0]
           | splits(" +")
-        ] as $done
-        | all($want[]; . as $id | $done | index($id) != null)
+          | select(length > 0)
+          | {key: ., value: $at}
+        ]
+        | group_by(.key)
+        | map({key: .[0].key, value: (map(.value) | max)})
+        | from_entries as $done
+        | all($want[]; ($done[.] // "") >= $revised[.])
       ' <<<"${ISSUE_COMMENTS_JSON}" >/dev/null; then
       printf 'pr-ops: every --ack ID is already answered by %s; not posting (use --force)\n' \
         "${GH_USER}" >&2
