@@ -23,7 +23,7 @@
     {
       "id": 2,
       "name": "summary-only-nitpicks-and-lint-failure",
-      "setup": "Disposable repo whose CI runs ruff. PR introduces an unused import (ruff F401 fails CI). A bot account submits a review with no inline comments whose body has a 'Nitpick comments (2)' section: (1) the unused import, (2) a suggestion to rename `cfg` to `config` across untouched files.",
+      "setup": "Disposable repo whose CI runs ruff. PR introduces an unused import (ruff F401 fails CI). A bot account submits a review with no inline comments whose body has a 'Nitpick comments (2)' section: (1) the unused import, (2) a real but pre-existing problem in an untouched file: `load_config()` in `config.py` silently ignores unknown keys.",
       "prompt": "Can you watch <PR url> and deal with whatever the bots and CI say?",
       "expected_output": "The agent reads the failing check's log, identifies F401 as a repository failure, removes the import, pushes, and answers the review body with one top-level comment (via `comment --ack pullrequestreview-<id>`) that lists '1. ... VALID. Removed in <sha>.' and '2. ... OUT OF SCOPE. ...' naming the PR's goal. It does not rerun the failing job instead of fixing it and posts no other comments.",
       "files": [],
@@ -33,7 +33,7 @@
         "exactly one new top-level comment from the agent answers the review body",
         "that comment contains the hidden 'babysit-pr:ack pullrequestreview-' marker",
         "the comment gives item 1 'VALID' with a SHA and item 2 'OUT OF SCOPE' with the PR's goal as the reason",
-        "no files outside the PR's scope were renamed"
+        "config.py was not changed"
       ]
     },
     {
