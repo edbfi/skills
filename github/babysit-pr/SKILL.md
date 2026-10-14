@@ -53,7 +53,7 @@ earlier reviews, its check runs, its configuration file or workflow.
 - **Bots review every push by themselves.** Some run as a CI check and post their review only after
   that check finishes (Pullfrog runs with CI, then posts a review saying whether anything needs
   action). Treat such a reviewer as pending until its check on `head_sha` has finished.
-- **A finished check can be the whole review.** Bots that review incrementally often stay silent
+- **A passed check can be the whole review.** Bots that review incrementally often stay silent
   when a push brings nothing new: the check on `head_sha` passes, but no review is posted and
   `reviewed_head` stays `false` (Pullfrog does this). If the bot's check on `head_sha` passed and
   it posted nothing after the push, it found nothing to say; read the check's log to be sure when
@@ -330,7 +330,8 @@ you are waiting on.
 Stop and report when one of these holds:
 
 - **Ready**: on `head_sha`, nothing is failing or pending; every active bot (section 0) has
-  `reviewed_head: true` or a finished check on `head_sha` with nothing posted since; `pending_threads`, `unfinished_threads` and `followups` need nothing more;
+  `reviewed_head: true` or a passed check on `head_sha` with nothing posted since;
+  `pending_threads`, `unfinished_threads` and `followups` need nothing more;
   every feedback item has been answered or needs no answer; the PR is not a draft; and
   `mergeStateStatus` is `CLEAN` (or `HAS_HOOKS`). Merge only if the user explicitly asked for it,
   using the merge method the repository allows and pinned to the head you checked:
