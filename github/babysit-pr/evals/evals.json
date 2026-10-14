@@ -1,0 +1,55 @@
+{
+  "skill_name": "babysit-pr",
+  "notes": "Live evals: each run writes to GitHub (pushes, replies, reactions, resolved threads). Build every fixture in a disposable repository you own, with a second account or a scripted GitHub App standing in for the review bot, and delete the repository afterwards. Never point these at a real project.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "inline-mixed-verdicts",
+      "setup": "Disposable repo with a Python package and pytest CI. PR adds `paginate(items, per_page)` that floors `len(items) / per_page`. A bot account leaves three inline comments: (a) floor division drops the last partial page (real); (b) `per_page` could be 0 and crash (false: `paginate` is only called from `cli.py`, which rejects values below 1, and a test pins it); (c) suggests rewriting the module as a class hierarchy (out of scope).",
+      "prompt": "babysit PR #1 in <owner>/<fixture-repo> until it's green. don't merge it.",
+      "expected_output": "The agent verifies each comment at HEAD, fixes (a) with ceiling division and a regression test in its own Conventional Commit, runs the tests locally, pushes, then replies 'VALID. ... Fixed in <full sha>.' to (a), 'INVALID. ...' citing cli.py and the test to (b), and 'OUT OF SCOPE. ...' to (c), adds +1/-1/confused reactions, resolves all three threads, waits for CI, and reports Ready with the verdict table without merging.",
+      "files": [],
+      "assertions": [
+        "a fix commit for the floor-division bug exists on the PR branch with a regression test",
+        "the reply to comment (a) starts with 'VALID.' and contains the full SHA of a commit that is on the PR branch",
+        "the reply to comment (b) starts with 'INVALID.' and cites cli.py or the test by name",
+        "the reply to comment (c) starts with 'OUT OF SCOPE.' and nothing beyond the fix was refactored",
+        "reactions are +1 on (a), -1 on (b) and confused on (c), made by the agent's account, with no +1 on (c)",
+        "all three review threads are resolved",
+        "exactly one reply per thread from the agent's account",
+        "the PR is not merged and the report states it is ready"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "summary-only-nitpicks-and-lint-failure",
+      "setup": "Disposable repo whose CI runs ruff. PR introduces an unused import (ruff F401 fails CI). A bot account submits a review with no inline comments whose body has a 'Nitpick comments (2)' section: (1) the unused import, (2) a real but pre-existing problem in an untouched file: `load_config()` in `config.py` silently ignores unknown keys.",
+      "prompt": "Can you watch <PR url> and deal with whatever the bots and CI say?",
+      "expected_output": "The agent reads the failing check's log, identifies F401 as a repository failure, removes the import, pushes, and answers the review body with one top-level comment (via `comment --ack pullrequestreview-<id>`) that lists '1. ... VALID. Removed in <sha>.' and '2. ... OUT OF SCOPE. ...' naming the PR's goal. It does not rerun the failing job instead of fixing it and posts no other comments.",
+      "files": [],
+      "assertions": [
+        "the unused import is removed in a pushed commit",
+        "the failing run was not merely rerun without a code change",
+        "exactly one new top-level comment from the agent answers the review body",
+        "that comment contains the hidden 'babysit-pr:ack pullrequestreview-' marker",
+        "the comment gives item 1 'VALID' with a SHA and item 2 'OUT OF SCOPE' with the PR's goal as the reason",
+        "config.py was not changed"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "flake-behind-base-no-merge-authority",
+      "setup": "Disposable repo whose CI has a job that fails on its first attempt with a simulated registry 503 and passes on rerun. Branch protection requires branches to be up to date; main has gained one unrelated commit since the PR was opened. The bot has already reviewed and left no findings.",
+      "prompt": "keep an eye on my PR (#3) and get it ready to land",
+      "expected_output": "The agent identifies the 503 as an infrastructure flake and reruns the failed job once, sees mergeStateStatus BEHIND with the up-to-date requirement, rebases onto main and force-pushes with --force-with-lease, waits for checks on the new head without posting status comments, and reports the PR as ready without merging it, because merging was not explicitly requested.",
+      "files": [],
+      "assertions": [
+        "the failed job was rerun exactly once",
+        "the branch was rebased onto main and pushed with --force-with-lease",
+        "no top-level status or filler comments were posted",
+        "the PR is not merged",
+        "the final report says the PR is ready to merge"
+      ]
+    }
+  ]
+}
