@@ -5,7 +5,7 @@ compatibility: Requires the codex CLI (`npm install -g @openai/codex`), logged i
 license: AGPL-3.0
 metadata:
   author: engels74
-  version: "1.0.0"
+  version: "1.0.1"
   vendor: codex
 ---
 
@@ -92,12 +92,13 @@ Keep your own opinion, suspected bugs and earlier review notes out of it. Codex'
 
 ### If it fails
 
-A non-zero `status` prints the last 40 lines of `run.log`. Read them before doing anything else. With `status: 0`, ignore sandbox noise in `run.log` such as `couldn't create cache file ... Operation not permitted` or `DARWIN_USER_CACHE_DIR`: Codex's read-only sandbox blocks tool caches, and the commands still ran.
+A non-zero `status` prints the last 40 lines of `run.log`. Read them before doing anything else. With `status: 0`, ignore sandbox noise in `run.log` such as `couldn't create cache file ... Operation not permitted` or `DARWIN_USER_CACHE_DIR`: Codex's read-only sandbox blocks tool caches, and the commands still ran. A sandbox that couldn't start is not noise; the script reports it as status `4`.
 
 | Status / log says | Meaning | Do this |
 |---|---|---|
 | `2` + `ask-codex: ...` | usage error (bad flag, empty prompt, wrong folder) | fix the call, retry once |
 | `3` | Codex exited cleanly but wrote no answer | retry once; if it repeats, stop |
+| `4`, `bwrap: ...`, `sandbox uses bubblewrap and needs access to create user namespaces` | Codex's Linux sandbox couldn't start, so it ran no commands and read no files; its answer rests on the prompt alone | stop; don't retry and don't use the answer. Tell the user to check that `command -v bwrap` is a bubblewrap the OS allows to create user namespaces (on Ubuntu, `/usr/bin/bwrap` from apt; a Homebrew copy earlier on PATH is denied) |
 | `codex CLI is not on PATH` | not installed | stop and tell the user (`npm install -g @openai/codex`) |
 | 401, `not logged in`, auth errors | login problem | stop; the user must run `! codex login` |
 | 400 `model ... not supported` | model unavailable on this account | stop; don't switch models silently |
