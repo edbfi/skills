@@ -11,16 +11,18 @@ operation by hand.
 | 3. Resolve the matching review threads | `resolve CID [CID...]` |
 | 4. Post or reuse the retrigger comment | `retrigger --trigger TEXT` |
 
-The script adds three things on top of this contract, each built from the same calls and
-assertions:
+The script keeps every API call and `jq` assertion below unchanged. It differs from the snippets
+only in these deliberate ways:
 
 - `reply` refuses (exit 3) when the thread already ends with a reply from `GH_USER`, because the
   reply endpoint is not idempotent and a retried call would otherwise post the answer twice.
-- `react` accepts the skill's three verdicts: `VALID` and `OUT OF SCOPE` map to `+1` (the
-  section 2 `APPROVED|REVISED` row); `INVALID` maps to `-1` (the `REJECTED` row).
+- `react` takes the skill's three verdicts instead of section 2's names: `VALID` and
+  `OUT OF SCOPE` map to `+1` (the `APPROVED|REVISED` row); `INVALID` maps to `-1` (the `REJECTED`
+  row). An unknown verdict is a usage error, so it exits 2 rather than section 2's `exit 1`.
 - `comment --ack ID` posts a top-level PR comment for feedback that has no inline thread, with a
   hidden `<!-- babysit-pr:ack ID ... -->` marker. `status` uses the markers to hide answered
-  feedback, and `comment` refuses (exit 3) to answer the same IDs twice.
+  feedback until its author edits it, and `comment` refuses (exit 3) to answer IDs whose latest
+  revision is already answered.
 
 ---
 
