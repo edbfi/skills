@@ -309,6 +309,16 @@ class PackChecks(unittest.TestCase):
         self.edit(self.component / "examples/src/good.ts", "2", "1")
         self.assertEqual(tree_hash(self.component / "examples"), cast("dict[str, dict[str, str]]", self.meta(self.component))["verification"]["examples_hash"])
 
+    def test_examples_hash_ignores_build_output_only_at_project_root(self) -> None:
+        examples = self.component / "examples"
+        before = tree_hash(examples)
+        for rel in ("build/out.js", "dist/app.js", "node_modules/x/index.js", "src/__pycache__/m.pyc", "src/node_modules/y.js"):
+            write(examples / rel, "generated\n")
+        self.assertEqual(before, tree_hash(examples))
+        write(examples / "src/build/plugin.ts", "export const plugin = 1;\n")
+        self.assertNotEqual(before, tree_hash(examples))
+        self.assert_problem("does not match examples/")
+
     def test_pack_json_rules(self) -> None:
         data = self.meta(self.component)
         data["schema"] = 2

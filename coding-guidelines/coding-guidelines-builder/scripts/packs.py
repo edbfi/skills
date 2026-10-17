@@ -35,12 +35,14 @@ BUILDER_DIR = Path(__file__).resolve().parents[1]
 CHECKLISTS = BUILDER_DIR / "references" / "checklists"
 PACK_SCHEMAS = frozenset({1})
 
-# Build and dependency output never belongs to an example's identity.
-IGNORED_DIRS = frozenset({
-    ".build", ".git", ".gradle", ".mypy_cache", ".next", ".pytest_cache", ".ruff_cache",
-    ".svelte-kit", ".turbo", ".venv", "DerivedData", "__pycache__", "build", "dist",
-    "node_modules", "target",
+# Build and dependency output never belongs to an example's identity. Tool caches and dependency
+# directories are skipped anywhere; names that are also ordinary source directory names (a
+# `src/build/` package, `internal/dist/`) are skipped only at the example project's root.
+ANYWHERE_IGNORED = frozenset({
+    ".git", ".gradle", ".mypy_cache", ".next", ".pytest_cache", ".ruff_cache", ".svelte-kit",
+    ".turbo", ".venv", "__pycache__", "node_modules",
 })
+PROJECT_ROOT_IGNORED = frozenset({".build", "DerivedData", "build", "dist", "target"})
 IGNORED_FILES = frozenset({".DS_Store", "Thumbs.db"})
 
 FENCE = re.compile(r"^ {0,3}(?P<fence>`{3,}|~{3,})(?P<info>.*)$")
@@ -172,12 +174,19 @@ def hygiene_problems(path: Path) -> list[str]:
     return problems
 
 
-def walk(root: Path) -> list[Path]:
-    """Files under `root`, skipping ignored build and dependency directories."""
+def walk(root: Path, project: tuple[str, ...] = ()) -> list[Path]:
+    """Files under `root`, skipping build and dependency output.
+
+    `project` is the example project's root relative to `root`: `()` when walking an examples
+    directory itself, `("examples",)` when walking a whole pack.
+    """
     files: list[Path] = []
+    depth = len(project)
     for path in sorted(root.rglob("*")):
-        rel = path.relative_to(root)
-        if any(part in IGNORED_DIRS for part in rel.parts[:-1]):
+        dirs = path.relative_to(root).parts[:-1]
+        if any(part in ANYWHERE_IGNORED for part in dirs):
+            continue
+        if dirs[:depth] == project and len(dirs) > depth and dirs[depth] in PROJECT_ROOT_IGNORED:
             continue
         if path.is_file() and path.name not in IGNORED_FILES:
             files.append(path)
@@ -633,7 +642,7 @@ class Checker:
             self.fail(where, "lists no sources")
 
     def check_files(self) -> None:
-        for path in walk(self.pack):
+        for path in walk(self.pack, ("examples",)):
             if path.name.lower() == "skill.md":
                 self.fail(self.rel(path), "a guidelines pack must not contain a SKILL.md")
             for problem in hygiene_problems(path):
@@ -672,7 +681,7 @@ class Checker:
         else:
             self.check_stack(data)
         examples = self.pack / "examples"
-        for path in walk(self.pack):
+        for path in walk(self.pack, ("examples",)):
             if path.suffix == ".md" and not path.is_relative_to(examples):
                 _ = self.doc(path.relative_to(self.pack).as_posix())
         for name in sorted(self.docs):
@@ -862,7 +871,7 @@ def check_sources(pack: Path) -> tuple[list[str], list[str]]:
     used: set[str] = set()
 
     examples = pack / "examples"
-    for path in walk(pack):
+    for path in walk(pack, ("examples",)):
         if path.suffix != ".md" or path.is_relative_to(examples) or path == sources_path:
             continue
         rel = path.relative_to(pack).as_posix()
