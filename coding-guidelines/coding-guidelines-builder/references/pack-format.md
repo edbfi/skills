@@ -330,7 +330,9 @@ stacks/<pack-id>/
   consumer's whitespace fixers never rewrite delivered bytes. This includes `examples/`.
 - One `# ` title, before any other heading. No empty sections: every heading has content before the
   next heading of the same or higher level.
-- Relative links resolve inside the library and never point into `examples/`.
+- Relative links resolve and never point into `examples/`. A component pack links only inside
+  itself; a stack pack links only inside itself and to the component packs its `components` edges
+  declare. Consumers receive exactly those packs, so any other link would break there.
 - Line caps: `README.md` 200, `changes.md` and `anti-patterns.md` 600, `sources.md` none, every
   other file 400. Split by topic instead of trimming.
 - No file named `SKILL.md` anywhere in a pack.
