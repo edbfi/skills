@@ -57,8 +57,8 @@ leaves only an orphaned entry. Every per-window number is dropped once its reset
 new month starts clean.
 
 Parallel agents may run the script at the same time. Each run takes an `flock` on `usage.lock`
-twice: once to choose a key and reserve one request, and once to merge the response headers. The lock is
-never held during the HTTP request. Counts stay exact and one run cannot overwrite another's
+twice: once to choose a key and reserve one request, and once to merge the response headers. The
+lock is never held during the HTTP request. Counts stay exact and one run cannot overwrite another's
 flags. If the state directory cannot be written (a sandboxed harness, a read-only home), the script
 warns and picks keys at random for that run.
 

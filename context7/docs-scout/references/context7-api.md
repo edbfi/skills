@@ -15,8 +15,8 @@ each response maps to an exit status, so an agent can read the output without gu
 | `version` | `--version` | Needs at least one `library`; without one the API answers a misleading 404, so the script refuses it locally (exit 2) |
 | `type` | `--type txt\|json` | Default `txt` |
 
-The script also sets `User-Agent: docs-scout/1.0.0`, times out after 30 s, refuses every redirect (the
-key is never sent anywhere but the API host) and makes no keyless calls: anonymous use is
+The script also sets `User-Agent: docs-scout/1.0.0`, times out after 30 s, refuses every redirect
+(the key is never sent anywhere but the API host) and makes no keyless calls: anonymous use is
 documented as a demo tier.
 
 ## Response shapes (observed 2026-10-17)
