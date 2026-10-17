@@ -110,8 +110,8 @@ Work out which case the input falls into before organizing.
 ### Plain text, no materials
 
 The user has no materials and the text shows no wish to reference any. Extract the subjects, events,
-scene, shots and sound straight into the five-section template. Don't invent material numbers and don't
-urge the user to add materials.
+scene, shots and sound straight into the five-section template. Don't invent material numbers and
+don't urge the user to add materials.
 
 ### Materials cited but not available
 
