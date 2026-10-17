@@ -1,0 +1,62 @@
+{
+  "skill_name": "wan3-prompt-enhance",
+  "notes": "Text-only evals: no materials are attached, so every run also exercises the 'materials cited but not available' path. Grade the reply text only.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "plain-text-minimal",
+      "prompt": "/wan3-prompt-enhance Refine the prompt using the skill. Prompt: a cat running on the grass",
+      "expected_output": "A reply that is only the request body: [Core Task] and [Plot Outline] (audio and camera sections short or absent), about one cat running on grass, with no invented characters, plot twists, material numbers, negative prompt or quality boilerplate.",
+      "files": [],
+      "assertions": [
+        "the reply starts with [Core Task]",
+        "the reply contains [Plot Outline]",
+        "no Image/Video/Audio material numbers are invented",
+        "no [Negative Prompt] section appears",
+        "no character, animal or event beyond a cat running on grass is introduced",
+        "no preamble or closing commentary surrounds the request"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "multi-reference-unavailable-materials",
+      "prompt": "/wan3-prompt-enhance Image 1 is Mia, Image 2 is her little brother Leo, Video 1 is the dance I want. Mia and Leo do the Video 1 dance together in the kitchen from Image 3, and at the end Mia laughs and says \"Again!\". 9:16, 10 seconds. No subtitles please.",
+      "expected_output": "A five-section-style request that keeps Image 1, Image 2, Image 3 and Video 1 as written, binds Mia to Image 1, Leo to Image 2, the kitchen to Image 3 and the dance motion to Video 1 one subject at a time in [Core Task], keeps \"Again!\" verbatim and bound to Mia, keeps 9:16 and 10 seconds out of the body, and lists only subtitles in [Negative Prompt]. It doesn't describe what the unattached materials look like.",
+      "files": [],
+      "assertions": [
+        "Image 1, Image 2, Image 3 and Video 1 all appear with their original numbers",
+        "Mia is bound to Image 1 and Leo to Image 2 in separate bindings",
+        "the line \"Again!\" appears verbatim attributed to Mia",
+        "neither 9:16 nor 10 seconds appears in the request body",
+        "[Negative Prompt] contains subtitles and no unrequested items",
+        "no invented visual details of the unattached materials (hair colour, clothing, kitchen decor)"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "chinese-storyboard",
+      "prompt": "/wan3-prompt-enhance 用图1的九宫格分镜，图2是主角小狐狸，生成一段小狐狸在雪地里找到一颗发光松果的动画。镜头1 0-4秒，镜头2 4-8秒，镜头3 8-12秒。不要对白，不要背景音乐。",
+      "expected_output": "A Chinese request with the Chinese headings 【核心任务】【情节概要】 etc., stating that 图1 is only shot guidance and not animated as a single image, binding the fox to 图2, keeping the three shot timestamps verbatim, stating no dialogue and no background music, and not inventing panel contents it cannot see.",
+      "files": [],
+      "assertions": [
+        "the reply is in Chinese and starts with 【核心任务】",
+        "图1 is scoped as storyboard or shot guidance only",
+        "图2 is bound to the fox",
+        "the timestamps 0-4秒, 4-8秒 and 8-12秒 are kept",
+        "no dialogue and no background music are stated",
+        "no English section headings are used"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "direct-edit-out-of-scope",
+      "prompt": "/wan3-prompt-enhance Edit Video 1: remove the woman's sunglasses and keep everything else the same.",
+      "expected_output": "The skill recognizes a direct edit of the input video, does not reorganize it into the five-section template, and passes the instruction on unchanged or explains that edit requests go downstream as-is.",
+      "files": [],
+      "assertions": [
+        "the reply does not contain a [Core Task] or [Plot Outline] section",
+        "the edit instruction is passed on unchanged or the reply explains it goes downstream as-is"
+      ]
+    }
+  ]
+}
