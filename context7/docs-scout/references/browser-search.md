@@ -29,6 +29,12 @@ Behaviour the script relies on (agent-browser 0.39.1, observed 2026-10-17):
 - A launch that fails can leave the session's daemon running. `ab-host.sh` closes it and, if it is
   still listed, stops the daemon by the PID that `session info` reports.
 
+A session shows up in `session list` only once its first command runs, so `ab` also touches an
+attach marker in `${XDG_RUNTIME_DIR:-/tmp}/docs-scout-<uid>/` before attaching. `down` counts
+markers younger than 2 minutes as attached agents. Recording a marker plus fetching the CDP URL,
+and checking plus closing the host, each run under one lock in that directory. An agent that
+starts while another releases therefore never gets a CDP URL for a browser about to close.
+
 `up` recognises a busy seat by the error text (`exit code: 76`, licence, seat, session limit). It
 retries twice, 30 s apart, then exits 76. `release` calls `down`, which closes the host only when
 no other `docsearch-*` session is listed. A crashed agent's session expires after its 10-minute idle
