@@ -52,9 +52,9 @@ choose the tiers:
 python3 scripts/c7search.py search "<question in plain words>" --library <name-or-/owner/repo> [--version <v>] [--language <lang>]
 ```
 
-Use at most 3 calls per question (rephrase, or adjust the hints once or twice). Stdout carries the
-snippets (`--type json` for structured output, `--max-chars` to trim). Stderr ends with the key used,
-its remaining quota and the `source:` URLs. Act on the exit status:
+Use at most 3 calls per question (rephrase, or adjust the hints once or twice). Stdout carries
+the snippets (`--type json` for structured output, `--max-chars` to trim). Stderr ends with the
+key used, its remaining quota and the `source:` URLs. Act on the exit status:
 
 | Exit | Meaning | Do |
 |---|---|---|

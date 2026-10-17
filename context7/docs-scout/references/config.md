@@ -41,7 +41,8 @@ The free tier gives each key 1,000 requests a month. For every request the scrip
 key with the most quota left: the last `RateLimit-Remaining` it saw in the current window, else
 the limit minus its own count. Ties go to the key used least recently, so fresh keys alternate.
 
-- **429:** the key is skipped until `Retry-After` (or `RateLimit-Reset`), and the other key is tried.
+- **429:** the key is skipped until `Retry-After` (or `RateLimit-Reset`), and the other key is
+  tried.
 - **401:** the key is marked invalid and skipped until you replace it. A 403 means the library or
   plan denies access and leaves the key alone.
 - A response reporting `RateLimit-Remaining: 0` marks the key exhausted until the reset.
@@ -55,8 +56,8 @@ fingerprint, replacing a key in the config gives the new key a clean record. Rem
 leaves only an orphaned entry. Every per-window number is dropped once its reset time passes, so a
 new month starts clean.
 
-Parallel agents may run the script at the same time. Each run takes an `flock` on `usage.lock` twice:
-once to choose a key and reserve one request, and once to merge the response headers. The lock is
+Parallel agents may run the script at the same time. Each run takes an `flock` on `usage.lock`
+twice: once to choose a key and reserve one request, and once to merge the response headers. The lock is
 never held during the HTTP request. Counts stay exact and one run cannot overwrite another's
 flags. If the state directory cannot be written (a sandboxed harness, a read-only home), the script
 warns and picks keys at random for that run.
