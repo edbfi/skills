@@ -10,8 +10,11 @@ registries, "package"; "constraint" is optional:
 
 Registries: crates, npm, pypi, go (module proxy), rubygems, hex, maven (package
 "group:artifact"), nuget. Release feeds for toolchains without a package registry:
-go-release, node-release, python-release, rust-release (no package needed). Entries with
-registry null are copied through with "resolved": null for manual research.
+go-release, node-release, python-release, rust-release (no package needed). rust-release reads
+the stable channel manifest, which names only the current stable release: a constraint on an older
+Rust line (such as "1.85") fails and is resolved from the Rust release notes instead, confirmed with
+`rustc --version` in the pinned image. Entries with registry null are copied through with
+"resolved": null for manual research.
 
 Constraints (references/pack-format.md, "Version resolution"):
   none          newest stable release
