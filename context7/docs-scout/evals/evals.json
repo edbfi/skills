@@ -1,6 +1,6 @@
 {
   "skill_name": "docs-scout",
-  "notes": "Evals 1-4 and 8 need Context7 keys in the config (or CONTEXT7_API_KEYS); simulate quota states by editing usage.json in a temporary XDG_STATE_HOME. Seat-busy evals need a seat-licensed CloakBrowser whose single seat another program holds, or an executablePath stub that prints 'Chrome exited early (exit code: 76)'. Clean up afterwards: any docsearch-* agent-browser sessions (scripts/ab-host.sh release <session>).",
+  "notes": "Every eval needs Context7 keys in the config (or CONTEXT7_API_KEYS): without them c7search.py exits 78 instead of the paths these evals exercise. Simulate quota states by editing usage.json in a temporary XDG_STATE_HOME. Seat-busy evals need a seat-licensed CloakBrowser whose single seat another program holds, or an executablePath stub that prints 'Chrome exited early (exit code: 76)'. Clean up afterwards: any docsearch-* agent-browser sessions (scripts/ab-host.sh release <session>).",
   "evals": [
     {
       "id": 1,

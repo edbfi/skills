@@ -23,8 +23,8 @@ key = "<paste key>"
 Entries whose key is empty or still starts with `<` are ignored, so the template alone means "no
 keys". An agent runs `init` only when the user asks it to set up keys. During a search it just
 passes the fix from stderr on to the user. It never writes, echoes or exports a key itself and
-never asks for one in the chat. `CONTEXT7_API_KEYS` (comma-separated) replaces the file when set, which suits
-CI; those keys are labelled `env1`, `env2`, ...
+never asks for one in the chat. `CONTEXT7_API_KEYS` (comma-separated) replaces the file when set,
+which suits CI; those keys are labelled `env1`, `env2`, ...
 
 ## Permission check
 

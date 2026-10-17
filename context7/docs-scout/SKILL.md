@@ -87,8 +87,9 @@ restart. If a command reports that your tab is gone (the browser restarted), run
 
 - **Engines**, in this order: DuckDuckGo HTML, Startpage, Bing, Ecosia, Google, Brave, Qwant. Switch
   to the next engine on a CAPTCHA, an "unusual traffic" page, a consent wall that one "Reject all"
-  click doesn't clear, or zero results after `AB wait --load networkidle` and a second extraction. Query URLs,
-  consent buttons and observed behaviour: [browser search](references/browser-search.md).
+  click doesn't clear, or zero results after `AB wait --load networkidle` and a second
+  extraction. Query URLs, consent buttons and observed behaviour:
+  [browser search](references/browser-search.md).
 - **Queries.** Prefer `<topic> site:<official docs domain>` when you know the domain. For guideline
   questions, merge the top results from two engines. Rank official docs, the project's repository,
   standards bodies and well-known guides above SEO blogs, and never open ads. Skip translated and
