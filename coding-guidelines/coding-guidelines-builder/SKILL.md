@@ -86,12 +86,14 @@ Run from the run folder against each draft pack (`$BUILDER_DIR` is this skill's 
 ```bash
 python3 "$BUILDER_DIR/scripts/verify_examples.py" draft/components/<id> --json
 python3 "$BUILDER_DIR/scripts/packs.py" hash draft/components/<id>
-python3 "$BUILDER_DIR/scripts/packs.py" check draft/components/<id> draft/stacks/<id>
+python3 "$BUILDER_DIR/scripts/packs.py" check --reuse-from <library-root> draft/components/<id> draft/stacks/<id>
 python3 "$BUILDER_DIR/scripts/packs.py" sources draft/components/<id> draft/stacks/<id>
 ```
 
 `packs.py check` resolves a stack's component packs relative to the stack's library, so assemble
-drafts in the same `components/` and `stacks/` layout and check stacks after their components. After
+drafts in the same `components/` and `stacks/` layout and check stacks after their components.
+`--reuse-from <library-root>` lets a draft stack find the component packs this run reused from the
+library instead of rebuilding them. After
 delivery, `packs.py check --library <root>` validates the whole library and `packs.py index <root>`
 regenerates `INDEX.md` (`--check` fails when it is stale, `--stale` lists packs past their
 `refresh_after`). All checks must pass; fix the pack, never the check.

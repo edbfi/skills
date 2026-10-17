@@ -2,14 +2,17 @@
 """Check, hash and index guideline packs (references/pack-format.md). Read-only except `index`.
 
 Usage:
-  packs.py check <pack-dir> [<pack-dir> ...]     structure, pack.json, coverage, links, bytes
+  packs.py check [--reuse-from <library-root>] <pack-dir> ...
+                                                 structure, pack.json, coverage, links, bytes
   packs.py check --library <library-root>        every pack under components/ and stacks/
   packs.py sources <pack-dir> [<pack-dir> ...]   citations resolve; claims cite sources
   packs.py hash <pack-dir>                       examples hash to record in pack.json
   packs.py index <library-root> [options]        write or --check INDEX.md; --stale; see --help
 
-`check` validates a pack by the rules of the schema its pack.json declares, so a later builder adds
-a schema instead of retroactively failing packs written under an earlier one. `sources` checks that
+`--reuse-from` lets a draft stack resolve component packs and links that live in the existing
+library because they were reused rather than rebuilt. `check` validates a pack by the rules of the
+schema its pack.json declares, so a later builder adds a schema instead of retroactively failing
+packs written under an earlier one. `sources` checks that
 every `[S<n>]` citation outside code resolves to a row of sources.md, that every recommendation (a
 '### ' section in practices/ or integration/), change item and anti-pattern cites at least one
 source, and that no recommendation rests on community sources alone; unused sources are warnings.
@@ -329,10 +332,22 @@ UNCAPPED = frozenset({"sources.md"})
 
 
 class Checker:
-    def __init__(self, pack: Path) -> None:
+    def __init__(self, pack: Path, reuse_from: tuple[Path, ...] = ()) -> None:
         self.pack: Path = pack
+        # Libraries that hold component packs reused instead of rebuilt in this run's draft.
+        self.reuse_from: tuple[Path, ...] = reuse_from
         self.errors: list[str] = []
         self.docs: dict[str, Document] = {}
+
+    def library_path(self, path: Path) -> Path | None:
+        """`path` inside this pack's library, or the same relative path in a reuse library."""
+        library = self.pack.parent.parent.resolve()
+        if not path.is_relative_to(library):
+            return None
+        if path.exists():
+            return path
+        rel = path.relative_to(library)
+        return next((root / rel for root in self.reuse_from if (root / rel).exists()), None)
 
     def fail(self, where: str, message: str) -> None:
         self.errors.append(f"{where}: {message}")
@@ -434,7 +449,6 @@ class Checker:
         cap = LINE_CAPS.get(name, DEFAULT_CAP)
         if name not in UNCAPPED and len(doc.lines) > cap:
             self.fail(where, f"{len(doc.lines)} lines exceeds the {cap}-line cap; split it by topic")
-        library = self.pack.parent.parent.resolve()
         examples = (self.pack / "examples").resolve()
         for index, target in links(doc):
             if is_external(target) or target.startswith("#"):
@@ -443,7 +457,7 @@ class Checker:
             resolved = (doc.path.parent / path_part).resolve()
             if resolved.is_relative_to(examples):
                 self.fail(where, f"line {index + 1}: link into examples/ ({target}); examples are not delivered")
-            elif not resolved.is_relative_to(library) or not resolved.exists():
+            elif self.library_path(resolved) is None:
                 self.fail(where, f"line {index + 1}: broken link {target}")
 
     def link_targets(self, doc: Document, start: int, end: int) -> set[Path]:
@@ -757,11 +771,12 @@ class Checker:
                     or not (edge.get("effective_constraint") is None or isinstance(edge.get("effective_constraint"), str)):
                 self.fail(where, "each component edge needs id, original_request, effective_constraint (string or null), reason and resolved")
                 continue
-            target = library / "components" / edge_id / "pack.json"
-            if not target.is_file():
+            in_library = (library / "components" / edge_id).resolve()
+            target = self.library_path(in_library / "pack.json")
+            if target is None:
                 self.fail(where, f"component pack {edge_id!r} does not exist in the library")
                 continue
-            component_readmes.append(target.parent / "README.md")
+            component_readmes.append(in_library / "README.md")
             try:
                 resolved = (as_dict(load_json(target)) or {}).get("resolved")
             except (ValueError, UnicodeDecodeError):
@@ -804,6 +819,13 @@ def library_packs(root: Path) -> list[Path]:
 
 
 def check_main(args: list[str]) -> int:
+    reuse_from: list[Path] = []
+    while len(args) >= 2 and args[0] == "--reuse-from":
+        if not Path(args[1]).is_dir():
+            print(f"not a directory: {args[1]}", file=sys.stderr)
+            return 2
+        reuse_from.append(Path(args[1]).resolve())
+        args = args[2:]
     if len(args) == 2 and args[0] == "--library":
         root = Path(args[1])
         if not root.is_dir():
@@ -820,7 +842,7 @@ def check_main(args: list[str]) -> int:
         if not pack.is_dir():
             print(f"not a directory: {pack}", file=sys.stderr)
             return 2
-        errors.extend(Checker(pack.resolve()).run())
+        errors.extend(Checker(pack.resolve(), tuple(reuse_from)).run())
     for error in errors:
         print(error)
     print(f"checked {len(packs)} pack(s): {len(errors)} problem(s)")

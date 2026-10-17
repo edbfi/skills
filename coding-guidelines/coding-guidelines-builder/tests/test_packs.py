@@ -341,6 +341,16 @@ class PackChecks(unittest.TestCase):
         self.edit(self.stack / "README.md", "[zod](../../components/zod-4/README.md)", "zod")
         self.assert_problem("'Components' does not route to components/zod-4/README.md", "check", self.stack)
 
+    def test_draft_stack_resolves_reused_components(self) -> None:
+        draft = self.library.parent / "draft"
+        stack = draft / "stacks" / "bun-zod"
+        stack.parent.mkdir(parents=True)
+        _ = (self.library / "stacks" / "bun-zod").rename(stack)
+        self.assert_problem("component pack 'zod-4' does not exist in the library", "check", stack)
+        result = self.run_packs("check", "--reuse-from", self.library, stack)
+        self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+        self.assertEqual(2, self.run_packs("check", "--reuse-from", draft / "missing", stack).returncode)
+
     def test_citation_rules(self) -> None:
         self.edit(self.component / "practices/setup.md", "recommendation. [S1]", "recommendation.")
         self.assert_problem("cites no source", "sources", self.component)
