@@ -1,5 +1,9 @@
 # Coding guidelines builder provider agnostic refactor plan
 
+Superseded by coding-guidelines-builder 2.0, which replaces the generated skill and its
+measured-evaluation workflow with a researched guidelines library. Kept as the record of the 1.x
+provider-neutral refactor.
+
 Make `coding-guidelines-builder` executable by any agent environment that provides the capabilities
 needed for each phase. Research may use native tools, user-selected MCP servers, a browser such as
 `agent-browser`, or direct source retrieval. The orchestrator and evaluation runner may use different

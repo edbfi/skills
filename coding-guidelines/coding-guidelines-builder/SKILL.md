@@ -1,145 +1,125 @@
 ---
 name: coding-guidelines-builder
-description: Build a coding-guidelines skill for a specific tech stack (languages, frameworks, libraries, databases, tools, version constraints, minimum targets, exclusions) that tells AI coding agents what current, idiomatic, correct code looks like on that stack. Use this whenever the user hands over a tech-stack description and wants guidelines, a coding standard, rules, a reference, or a skill for agents writing, extending, or reviewing code on that stack, even if they never say "skill". Also use it to refresh, re-verify, or shrink an existing stack skill.
-compatibility: Requires file and command access, primary-source research, and a suitable stack toolchain. Measured evaluation requires independent contexts and an isolated coding runner. Native tools, CLIs, APIs, and MCPs may supply these capabilities.
+description: Research a tech stack (one language or many components - languages, runtimes, frameworks, libraries, databases, tools, with optional version constraints, language modes and minimum targets) from primary sources at its latest stable release, or the version line named, and produce a guidelines library - organised, sourced, example-verified Markdown packs of current best practices, recent changes and anti-patterns that AI coding agents read from any project. Use whenever the user wants coding guidelines, a coding standard, best practices, rules or reference docs for agents on a stack or language, or wants existing guideline packs refreshed or re-verified, even if they never say "guidelines library".
+compatibility: Requires file and command access, primary-source research (web, MCP, browser or git), Python 3.11+ for the bundled scripts, and a toolchain for the stack (Docker or host). Parallel workers and an independent review context are used when available.
 license: AGPL-3.0
 metadata:
   author: engels74
-  version: "1.0.0"
+  version: "2.0.0"
   vendor: coding-guidelines
 ---
 
 # Coding Guidelines Builder
 
-A stack skill is loaded into an agent's context in the middle of a coding task, and every token it
-occupies is a token the task no longer has. The agent already knows how to program. The only content
-that earns its place is the difference between what it would do on its own and what is correct on
-this stack today: facts that changed after its training, mistakes it demonstrably makes, and
-decisions nobody could infer. The method: research the stack from primary sources; find out what the
-model believes and what it writes without help; write only the delta, with examples that compile;
-prove each section changes outcomes; cut what doesn't.
+Given a tech stack, research every component from primary sources at its latest stable release (or
+the version line named), and produce a guidelines library that AI coding agents consult while
+writing or reviewing code on that stack. For each component and each seam between components it
+covers idiomatic usage, what changed in recent releases, and anti-patterns with their modern
+replacements, all sourced, dated and backed by examples that compile. Entry files stay short and
+route; topic files are complete. Thoroughness and currency are the goal.
+
+Model training data lags stable releases, so nothing in a pack comes from memory: every claim is
+researched at the release being documented and cites its source.
+
+The output is plain documentation, **never a skill**: no `SKILL.md`, no skill frontmatter, and
+nothing written into a skill-discovery directory (`.agents/skills/`, `.claude/skills/`,
+`.codex/skills/`). Agents use a pack because someone points them at it.
 
 ## Inputs
 
-The user supplies a stack block. Do not interview beyond filling the gaps below.
+- **The stack**, in ordinary language or as a list: components, plus any version constraints,
+  language modes (Swift 6 mode, Rust 2024 edition), targets (minimum OS, runtime or browser) and
+  exclusions. Keep each exactly as written. A role the stack needs but does not name (formatter,
+  test runner) is chosen by research.
+- **Library root** (optional): where packs are written. Default `./guidelines/`. In a repository
+  that already has a library (agent-rules keeps it in `guidelines/`), use that one.
+- **Stack id** (optional): the name of the stack pack.
+- **Refresh** (optional): `refresh: <pack path>` or `refresh: all`, optionally with `force`.
+
+Do not interview beyond what blocks progress. Execution preferences (research tools, browser mode,
+worker mechanism) are honored when given.
+
+## Versions
+
+Default to the latest stable release. `TypeScript 6` means the newest stable 6.x, `TypeScript
+6.0.3` exactly that, plain `TypeScript` the newest stable overall. Prereleases only when named.
+Compatibility narrowing, pack ids, LTS lines and the full rules are in
+`references/pack-format.md` ("Version resolution"); `scripts/registry_versions.py` does the lookups.
+
+## Output
 
 ```text
-stack:
-  <platforms, languages, runtimes, frameworks, libraries, databases, servers, package managers,
-   type checkers, linters, formatters, tools. Keep version constraints, minimum OS/runtime targets,
-   presets, adapters, and "not X" exclusions exactly as written. A tool left unnamed means: pick
-   the current maintained default.>
-services:
-  <external services examples and tests need (database, cache, message broker), or "none">
-existing-skill:
-  <path to a previously generated skill to refresh, or omit>
+<library-root>/
+  INDEX.md
+  components/<id>/   README.md, changes.md, practices/<topic>.md, anti-patterns.md,
+                     sources.md, pack.json, examples/
+  stacks/<id>/       README.md, versions.md, decisions.md, integration/<seam>.md,
+                     anti-patterns.md, sources.md, pack.json, examples/
 ```
 
-If `services` is missing, ask once. Everything else in the block is a fact about the stack; never
-refer to it as "what the user specified".
-
-Accept optional execution preferences in ordinary language: research tools, browser mode, worker
-mechanism, evaluator, model, and effort. These are separate from the application stack. Honor explicit
-choices; distinguish a preferred tool from an exclusive restriction.
-
-Record the orchestrator, probe, task-author, grader, and **model under test**, plus the chosen runner
-and its configuration, in `manifest.md`. The orchestrating harness and evaluation runner may differ.
-Baseline mistakes belong to the tested configuration; a refresh on another model or runner needs
-new baselines. Prefer probing the model under test; record differences and treat probe claims as
-research hypotheses, not measured task mistakes.
-
-## Prerequisites
-
-- Read `references/runtime.md` during setup. Use the capabilities exposed by the current harness;
-  there is no required provider-detection branch. Verify selected tools and worker boundaries.
-- File and command access, Python 3 for this builder's scripts, and access to primary sources.
-- An isolated coding runner and independent author/grader contexts for measured evaluation.
-  Preflight availability at setup; record the specific limit if a later phase cannot run.
-- If `skill-creator` is available, its guidance and compatible helpers are optional. Read it before
-  using it, record `SKILL_CREATOR`, and inspect its actual helpers. Otherwise record it as absent;
-  this builder defines its own evaluation and delivery contracts.
-- This skill's directory, recorded as `BUILDER_DIR`. Run its scripts from the run folder as
-  `python3 "$BUILDER_DIR/scripts/<name>.py"`.
-- Docker, or a host toolchain for platform-bound stacks (Apple SDKs, Windows-only frameworks).
-- Network access for research, registries, image pulls, and clones.
-
-## Workspace
-
-`references/workspace.md` holds the run folder layout, the `manifest.md` contract, resume rules,
-the file audit, and the re-run procedure.
+`references/pack-format.md` is the normative format. Topics come from the coverage checklist for
+each component's kind in `references/checklists/`.
 
 ## Phases
 
-| Phase | Output | Read first |
+| Phase | Work | Read first |
 |---|---|---|
-| 0 Setup | run folder, capabilities, `manifest.md`, toolchain availability | `references/runtime.md`, `references/workspace.md` |
-| 1 Research | `probe.md`, `facts/`, `sources.md`, `versions.json` | `references/research.md` |
-| 2 Tasks and baseline | toolchain installed, `tasks/`, `baseline/`, `mistakes.md` | `references/toolchain.md`, `references/eval-tasks.md` §1-4, `references/benchmark-report.md` |
-| 3 Draft | `examples/`, `skill/` | `references/content-rules.md`, `references/skill-layout.md` |
-| 4 Evaluate | `skill-workspace/iteration-N/`, frozen `skill/` with its description | `references/eval-tasks.md` §2 and §4-6, `references/benchmark-report.md` |
-| 5 Finish | packaged skill copied out, cleanup | this file |
+| 0 Setup | Run folder and `manifest.md`; parse the request into components with kinds, constraints, modes and targets; pick the library root; preflight research tools, workers, an independent review context and toolchains | `references/workspace.md`, `references/runtime.md` |
+| 1 Resolve | `registry_versions.py`; compatibility narrowing; pack ids; reuse lookup in the library; mark dependent stacks | `references/research.md` §1-2, `references/pack-format.md` |
+| 2 Research | Per component, in parallel when possible: optional probe, primary-source facts, component outline | `references/research.md` §3-4 |
+| 3 Write components | Each component pack against its checklist and outline, in `draft/` | `references/pack-format.md`, `references/writing-rules.md`, `references/checklists/<kind>.md` |
+| 4 Seams | For stacks: list interacting pairs, research them, write `integration/` files and the stack example project | `references/research.md` §5 |
+| 5 Assemble stack | Stack README, `versions.md`, `decisions.md`, anti-patterns, `pack.json` | `references/pack-format.md` |
+| 6 Verify examples | Build, check and test every `examples/` on the pinned toolchain and targets; record `verification` | `references/toolchain.md` |
+| 7 Validate | Scripts below, on every new or refreshed pack | this file |
+| 8 Review | Rubric review per pack; fix; revalidate | `references/review.md` |
+| 9 Deliver | Copy packs from `draft/` into the library, regenerate `INDEX.md`, clean up, report | this file |
 
 Phases are sequential and checkpointed in `manifest.md`. Changed inputs invalidate dependent phases.
+Every stack that references a component created or refreshed in this run is refreshed in the same
+run, so stack and component versions always agree.
 
-### Phase 0: Setup
+## Validation
 
-Create the run folder and `manifest.md` with the stack block, execution preferences, capabilities,
-model/runner records, optional `SKILL_CREATOR`, `BUILDER_DIR`, and the phase table. Check that Docker
-or the required host SDK is present; exact toolchain versions are chosen after phase 1 resolves
-compatibility and installed before phase 2 runs tasks. If `existing-skill` is set, copy it to
-`skill/` and `skill-workspace/skill-snapshot/` now, then follow the re-run procedure in
-`references/workspace.md`.
+Run from the run folder against each draft pack (`$BUILDER_DIR` is this skill's directory):
 
-### Phase 1: Research
+```bash
+# for every draft pack, component and stack alike (both carry examples/ and verification):
+python3 "$BUILDER_DIR/scripts/verify_examples.py" draft/components/<id> --json
+python3 "$BUILDER_DIR/scripts/verify_examples.py" draft/stacks/<id> --json
+python3 "$BUILDER_DIR/scripts/packs.py" hash draft/components/<id>
+python3 "$BUILDER_DIR/scripts/packs.py" hash draft/stacks/<id>
+# then all draft packs together:
+python3 "$BUILDER_DIR/scripts/packs.py" check --reuse-from <library-root> draft/components/<id> draft/stacks/<id>
+python3 "$BUILDER_DIR/scripts/packs.py" sources draft/components/<id> draft/stacks/<id>
+```
 
-Split the stack into components, probe the model's beliefs without research tools in an independent
-context when available, then verify every belief and component against primary sources. Component
-research may use scoped workers or proceed sequentially. Outputs are facts files with a verifier
-on every claim, and `versions.json` from `registry_versions.py`.
-Research produces facts, not prose; nothing from it is copied into the skill.
+`packs.py check` resolves a stack's component packs relative to the stack's library, so assemble
+drafts in the same `components/` and `stacks/` layout and check stacks after their components.
+`--reuse-from <library-root>` lets a draft stack find the component packs this run reused from the
+library instead of rebuilding them. After
+delivery, `packs.py check --library <root>` validates the whole library and `packs.py index <root>`
+regenerates `INDEX.md` (`--check` fails when it is stale, `--stale` lists packs past their
+`refresh_after`). All checks must pass; fix the pack, never the check.
 
-### Phase 2: Tasks and baseline
+## Refresh
 
-An independent task author writes realistic tasks from the stack block and `services` only; it
-never sees `research/`. You write assertions from the facts and seal the holdout set before any run.
-Baselines execute each development task with no skill through the recorded isolated runner; a
-grader with `research/facts/` and the scripted results grades them, and you adjudicate the
-development results into `baseline/mistakes.md`.
+Re-research a pack when its resolved version changed, its `refresh_after` passed, `force` was
+given, or it has verification limitations or open review items. Otherwise report it current.
+Details in `references/workspace.md` ("Refresh").
 
-Two lists come out: the mistakes the model makes, and what it gets right. The second is binding:
-anything the baseline did correctly is banned from the skill.
+## Delivery
 
-### Phase 3: Draft
+1. Copy each validated pack from `draft/` to the library root, replacing the previous version of
+   the same pack only; never touch other packs.
+2. Run `packs.py index <root>` and `packs.py check --library <root>`.
+3. Remove resources `manifest.md` marks as created by this run (containers, volumes, networks,
+   clones). Keep the run folder for later refreshes.
+4. Report: packs created, reused and refreshed, resolved versions and narrowings, verification
+   limitations, review independence, and the path to each pack's `README.md`. To use a pack from
+   another project, point the agent at that `README.md`.
 
-Build `examples/` first: a real project on the pinned toolchain in which every pattern the skill
-shows is a compiling, linted, tested file. Then write `skill/` from four inputs only:
-`baseline/mistakes.md`, the probe findings research contradicted or postdated, the stack's
-decisions (tools, configuration, versions), and verified compatibility constraints. Every section
-gets a row in `skill/PROVENANCE.md`; `check_provenance.py` fails on sections without one. Code
-blocks are copies of files in `examples/`, checked by `verify_examples.py`.
+## Optional harm check
 
-### Phase 4: Evaluate
-
-Use the loop in `references/eval-tasks.md` §5: the same isolated runner and grading as phase 2,
-now in both configurations. Development tasks drive iteration; held-out tasks are never read while
-revising. Run `token_budget.py` every iteration. Before the final iteration come description
-optimization where observable and ablation, both on development tasks. Freeze the candidate,
-description included, before the holdout evaluation; never tune on holdout results.
-
-Stop development when the pass rate stops improving, when the user is satisfied, or after three
-iterations.
-
-### Phase 5: Finish
-
-1. Confirm the delivered candidate matches the frozen one, description included. Record unresolved
-   validation limits in `manifest.md` and the delivery report.
-2. Run `token_budget.py skill/`, `check_provenance.py skill/`, `verify_examples.py skill/ examples/`,
-   and, when a compatible helper exists, `PYTHONPATH="$SKILL_CREATOR" python -m scripts.quick_validate skill/`
-   (it needs PyYAML; if it cannot run, record that as a validation limit).
-3. Copy the skill to the user's destination or `<root>/dist/<stack-slug>/`. If a compatible helper
-   is available, run `PYTHONPATH="$SKILL_CREATOR" python -m scripts.package_skill <copy> <root>/dist/`
-   and deliver the `.skill` archive too. If it errors or is absent, deliver the folder and say no
-   archive was produced. Verify the copy matches before cleanup; preserve earlier deliveries.
-4. Clean up only resources `manifest.md` marks as created exclusively by this run: services,
-   volumes, networks, clones, `_runs/<run-id>/`. Leave shared resources and Docker images. Keep the
-   run folder for refreshes.
+When asked, `references/harm-check.md` compares a few tasks with and without a pack to catch
+guidance that makes results worse. It informs fixes; it never deletes content.
