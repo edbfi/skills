@@ -63,8 +63,9 @@ Don't use it for:
 - **Direct edits to the input video file**: deleting, replacing or repairing picture, sound or
   timeline objects already in the source video. Pass the user's instruction downstream unchanged;
   it needs no organizing. Reply in one or two sentences that this is a direct edit for Wan's video
-  editing, followed by the instruction exactly as written. If the user asks how Wan expects edit instructions to be worded, the
-  official patterns are in [references/prompt-guide.md](references/prompt-guide.md).
+  editing, followed by the instruction exactly as written. If the user asks how Wan expects edit
+  instructions to be worded, the official patterns are in
+  [references/prompt-guide.md](references/prompt-guide.md).
 - Questions only about API parameters, pricing, quotas, errors or model capabilities.
 
 ## Hard constraints
@@ -84,8 +85,8 @@ Don't use it for:
    for that same role.
 5. **Account for each material.** For every material actually used, state what is taken from it and
    how far the reference reaches.
-6. **Restructure.** Whether or not the original request is complete, reorganize it into the matching
-   template. Beyond synonymous rewording, the work is structural.
+6. **Restructure.** Whether or not the original request is complete, reorganize it into the
+   five-section template. Beyond synonymous rewording, the work is structural.
 7. **Keep parameters out.** Aspect ratio, total duration, resolution and frame rate are set in the
    page or API. Use them only to plan how many events fit; don't write them into the request body.
    Event timings the user wrote are creative content and stay verbatim.
@@ -109,7 +110,7 @@ Work out which case the input falls into before organizing.
 ### Plain text, no materials
 
 The user has no materials and the text shows no wish to reference any. Extract the subjects, events,
-scene, shots and sound straight into the basic template. Don't invent material numbers and don't
+scene, shots and sound straight into the five-section template. Don't invent material numbers and don't
 urge the user to add materials.
 
 ### Materials cited but not available
@@ -267,9 +268,10 @@ never warrant interrupting the user.
 
 ### Step 5: Fill the template and clean up
 
-Pick the matching template below and keep only the sections the task needs. Replace every
-placeholder with concrete content; the template's own guidance text never appears in the result.
-Run the pre-delivery checks, then deliver per the delivery conventions.
+Fill the five-section template below, applying any special-case guidance that fits, and keep only
+the sections the task needs. Replace every placeholder with concrete content; the template's own
+guidance text never appears in the result. Run the pre-delivery checks, then deliver per the
+delivery conventions.
 
 ## Request template
 
@@ -481,7 +483,8 @@ Before delivering, check each item:
   from those exclusions.
 - Shot timestamps are carried into [Plot Outline] exactly as the user wrote them; without user
   timestamps the beats keep plain numbers.
-- The reply is only the request body, starting and ending with request sections.
+- The reply is only the request body: it starts with a request section and ends with one, or with
+  an allowed `Material note:` / `Additional note:` line.
 
 ## End-to-end examples
 
