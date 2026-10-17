@@ -79,6 +79,12 @@ repos:
         language: system
         pass_filenames: false
         files: ^coding-guidelines/coding-guidelines-builder/
+      - id: docs-scout-tests
+        name: Docs scout Context7 client tests
+        entry: python3 -I -B -m unittest discover -s context7/docs-scout/tests
+        language: system
+        pass_filenames: false
+        files: ^context7/docs-scout/
       # node --check reads only its first file argument, so check one file per call.
       - id: node-check
         name: node --check
