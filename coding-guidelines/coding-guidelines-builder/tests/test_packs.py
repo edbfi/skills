@@ -341,6 +341,17 @@ class PackChecks(unittest.TestCase):
         self.edit(self.stack / "README.md", "[zod](../../components/zod-4/README.md)", "zod")
         self.assert_problem("'Components' does not route to components/zod-4/README.md", "check", self.stack)
 
+    def test_links_stay_inside_what_consumers_receive(self) -> None:
+        _ = build_component(self.library, pack_id="other")
+        self.edit(self.component / "README.md", "([core](practices/core-api.md))", "([core](../other/README.md))")
+        self.assert_problem("link ../other/README.md leaves the pack")
+        self.edit(self.component / "README.md", "([core](../other/README.md))", "([core](practices/core-api.md))")
+        self.edit(self.stack / "integration/zod-bun.md", "unknown JSON. [S1]", "unknown JSON ([other](../../../components/other/README.md)). [S1]")
+        self.assert_problem("leaves the pack", "check", self.stack)
+        self.edit(self.stack / "integration/zod-bun.md", "components/other/", "components/zod-4/")
+        result = self.run_packs("check", self.stack)
+        self.assertEqual(0, result.returncode, result.stdout)
+
     def test_draft_stack_resolves_reused_components(self) -> None:
         draft = self.library.parent / "draft"
         stack = draft / "stacks" / "bun-zod"

@@ -338,6 +338,8 @@ class Checker:
         self.reuse_from: tuple[Path, ...] = reuse_from
         self.errors: list[str] = []
         self.docs: dict[str, Document] = {}
+        # Directories a pack may link into: what a consumer receives together with it.
+        self.link_scope: list[Path] = [pack.resolve()]
 
     def library_path(self, path: Path) -> Path | None:
         """`path` inside this pack's library, or the same relative path in a reuse library."""
@@ -459,6 +461,9 @@ class Checker:
                 self.fail(where, f"line {index + 1}: link into examples/ ({target}); examples are not delivered")
             elif self.library_path(resolved) is None:
                 self.fail(where, f"line {index + 1}: broken link {target}")
+            elif not any(resolved.is_relative_to(root) for root in self.link_scope):
+                self.fail(where, f"line {index + 1}: link {target} leaves the pack; a pack may link only to itself"
+                          + " and, for a stack, to the component packs its 'components' edges declare")
 
     def link_targets(self, doc: Document, start: int, end: int) -> set[Path]:
         targets: set[Path] = set()
@@ -777,6 +782,7 @@ class Checker:
                 self.fail(where, f"component pack {edge_id!r} does not exist in the library")
                 continue
             component_readmes.append(in_library / "README.md")
+            self.link_scope.append(in_library)
             try:
                 resolved = (as_dict(load_json(target)) or {}).get("resolved")
             except (ValueError, UnicodeDecodeError):

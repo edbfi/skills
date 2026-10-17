@@ -5,7 +5,7 @@ compatibility: Requires file and command access, primary-source research (web, M
 license: AGPL-3.0
 metadata:
   author: engels74
-  version: "2.0.0"
+  version: "2.0.1"
   vendor: coding-guidelines
 ---
 
