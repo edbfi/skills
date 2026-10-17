@@ -24,21 +24,23 @@ Behaviour the script relies on (agent-browser 0.39.1, observed 2026-10-17):
   "launch or keep alive", and `ab` calls `up` before every command (about 0.1 s).
 - An attached session that times out or closes only disconnects. The shared browser and its other
   tabs keep running.
-- Attaching can leave an extra `about:blank` tab, and a detach occasionally leaves the session listed
-  for a moment. `release` closes the tab, detaches, checks `session list` and closes again if needed.
+- Attaching can leave an extra `about:blank` tab, and a detach occasionally leaves the session
+  listed for a moment. `release` closes the tab, detaches, checks `session list` and closes again if
+  needed.
 - A launch that fails can leave the session's daemon running. `ab-host.sh` closes it and, if it is
   still listed, stops the daemon by the PID that `session info` reports.
 
 A session shows up in `session list` only once its first command runs, so `ab` also touches an
-attach marker in `${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/docs-scout-<uid>/` before attaching. `down` counts
-markers younger than 2 minutes as attached agents. Recording a marker plus fetching the CDP URL,
-and checking plus closing the host, each run under one lock in that directory. An agent that
+attach marker in `${XDG_RUNTIME_DIR:-${TMPDIR:-/tmp}}/docs-scout-<uid>/` before attaching. `down`
+counts markers younger than 2 minutes as attached agents. Recording a marker plus fetching the CDP
+URL, and checking plus closing the host, each run under one lock in that directory. An agent that
 starts while another releases therefore never gets a CDP URL for a browser about to close.
 
 `up` recognises a busy seat by the error text (`exit code: 76`, licence, seat, session limit). It
-retries twice, 30 s apart, then exits 76. `release` calls `down`, which closes the host only when
-no other `docsearch-*` session is listed and no fresh attach marker exists. A crashed agent's session expires after its 10-minute idle
-timeout. The host itself expires 20 minutes after the last `ab` call.
+retries twice, 30 s apart, then exits 76. `release` calls `down`, which closes the host only when no
+other `docsearch-*` session is listed and no fresh attach marker exists. A crashed agent's session
+expires after its 10-minute idle timeout. The host itself expires 20 minutes after the last `ab`
+call.
 
 Tunables, for unusual setups only: `DOCS_SCOUT_HOST_IDLE`, `DOCS_SCOUT_AGENT_IDLE`,
 `DOCS_SCOUT_SEAT_WAIT` (seconds).
@@ -98,10 +100,11 @@ more before switching engines. Search snippets are for picking pages, never for 
 
 `AB read <url>` fetches the page as text through the attached session. It asks for markdown first,
 then tries the same URL with `.md`, then the nearest `llms.txt`, and falls back to readable text
-extracted from the HTML. `--outline`, `--filter <text>` and `--max-output <n>` keep it small. When it
-returns an empty shell or a challenge page, render the page instead: `AB open <url>`, then `AB read`
-with no URL, or `AB get text body`. Docs sites that serve markdown (Next.js, for one, returns
-front matter and an `llms.txt` pointer) read well this way.
+extracted from the HTML. `--outline`, `--filter <text>` and `--max-output <n>` keep it small. When
+it returns an empty shell or a challenge page, render the page instead: `AB open <url>`, then
+`AB read` with no URL, or `AB get text body`. Docs sites that serve markdown (Next.js, for one,
+returns front matter and an `llms.txt` pointer) read well this way.
 
 GitHub `blob/` links (common in Context7 sources) read better as raw files:
-`https://github.com/<o>/<r>/blob/<ref>/<path>` → `https://raw.githubusercontent.com/<o>/<r>/<ref>/<path>`.
+`https://github.com/<o>/<r>/blob/<ref>/<path>` →
+`https://raw.githubusercontent.com/<o>/<r>/<ref>/<path>`.
