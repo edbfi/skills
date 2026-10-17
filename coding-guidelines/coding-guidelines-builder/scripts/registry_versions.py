@@ -268,21 +268,27 @@ def listing(registry: str, package: str) -> Listing:
     raise ValueError(f"unsupported registry: {registry}")
 
 
+def published(ranges: dict[str, object]) -> dict[str, object] | None:
+    """The declared ranges with absent or empty entries dropped; None when nothing is declared."""
+    kept = {k: v for k, v in ranges.items() if v is not None and v != [] and v != {}}
+    return kept or None
+
+
 def compat(registry: str, package: str, resolved: str, found: Listing) -> dict[str, object] | None:
     quoted = urllib.parse.quote(package, safe="")
     version = urllib.parse.quote(resolved, safe="")
     if registry == "npm":
         doc = found.documents.get(resolved)
-        return {k: get(doc, k) for k in ("peerDependencies", "peerDependenciesMeta", "engines") if get(doc, k) is not None}
+        return published({k: get(doc, k) for k in ("peerDependencies", "peerDependenciesMeta", "engines")})
     if registry == "pypi":
         info = get(fetch_json(f"https://pypi.org/pypi/{quoted}/{version}/json"), "info")
-        return {"requires_python": get(info, "requires_python"), "requires_dist": get(info, "requires_dist")}
+        return published({"requires_python": get(info, "requires_python"), "requires_dist": get(info, "requires_dist")})
     if registry == "crates":
         deps = fetch_json(f"https://crates.io/api/v1/crates/{quoted}/{version}/dependencies")
-        return {"dependencies": [
+        return published({"dependencies": [
             {"crate": get(d, "crate_id"), "req": get(d, "req"), "kind": get(d, "kind"), "optional": get(d, "optional")}
             for d in array(get(deps, "dependencies"))
-        ]}
+        ]})
     return None
 
 

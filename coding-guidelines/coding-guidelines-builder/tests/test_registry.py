@@ -124,6 +124,18 @@ class Cli(unittest.TestCase):
         self.assertEqual("7.0.2", found["ts6"]["latest_stable"])
         self.assertEqual({"engines": {"node": ">=18"}, "peerDependencies": {"svelte": "^5"}}, found["ts6"]["compat"])
 
+    def test_compat_is_null_when_nothing_is_declared(self) -> None:
+        code, snapshot, _ = run_main([
+            {"name": "bare", "registry": "npm", "package": "bare"},
+            {"name": "py", "registry": "pypi", "package": "demo"},
+        ], {
+            "https://registry.npmjs.org/": {"dist-tags": {"latest": "1.0.0"}, "versions": {"1.0.0": {"name": "bare"}}},
+            "https://pypi.org/pypi/demo/1.0/json": {"info": {"requires_python": None, "requires_dist": None}},
+            "https://pypi.org/pypi/demo/json": {"releases": {"1.0": [{"yanked": False}]}},
+        })
+        self.assertEqual(0, code)
+        self.assertEqual([None, None], [e["compat"] for e in entries(snapshot)])
+
     def test_release_feeds(self) -> None:
         code, snapshot, _ = run_main([
             {"name": "node", "registry": "node-release"},
