@@ -79,9 +79,16 @@ repos:
         language: system
         pass_filenames: false
         files: ^coding-guidelines/coding-guidelines-builder/
-      # node --check reads only its first file argument, so check one file per call.
+      - id: docs-scout-tests
+        name: Docs scout Context7 client tests
+        entry: python3 -I -B -m unittest discover -s context7/docs-scout/tests
+        language: system
+        pass_filenames: false
+        files: ^context7/docs-scout/
+      # node --check reads only its first file argument, so check one file per call. Plain .js
+      # files (browser snippets such as serp-links.js) are syntax-checked too.
       - id: node-check
         name: node --check
         entry: sh -c 'rc=0; for f; do node --check "$f" || rc=1; done; exit "$rc"' --
         language: system
-        files: \.mjs$
+        files: \.m?js$

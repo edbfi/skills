@@ -20,6 +20,7 @@ installable via the [`skills`](https://github.com/vercel-labs/skills) CLI.
 | bevy | [`bevy`](bevy/bevy/SKILL.md) | Build, debug, test, and migrate Bevy games and apps with version-checked ECS, rendering, assets, UI, and platform guidance. |
 | codex | [`codex-second-opinion`](codex/codex-second-opinion/SKILL.md) | Get an independent read-only Codex review via the codex CLI, verify each finding, fix only what is real and report a verdict table. |
 | coding-guidelines | [`coding-guidelines-builder`](coding-guidelines/coding-guidelines-builder/SKILL.md) | Research a tech stack at its latest stable release and build a sourced, example-verified guidelines library that agents read from any project. |
+| context7 | [`docs-scout`](context7/docs-scout/SKILL.md) | Search library docs and coding guidelines with the Context7 Search API (two keys balanced across their quota) and agent-browser web search, then read and cite the sources. |
 | docendo | [`docendo-orchestrate-bricks`](docendo/docendo-orchestrate-bricks/SKILL.md) | Plan and operate Docendo calendar bricks with ego-browser, task-overview accounting, and configurable module profiles. |
 | github | [`babysit-pr`](github/babysit-pr/SKILL.md) | Shepherd a PR through review bots and CI: verify every finding, fix what is real, answer each comment with a verdict and its commit. |
 | lowendtalk | [`let-vps-scout`](lowendtalk/let-vps-scout/SKILL.md) | Find and purchase-verify the cheapest European VPS from LowEndTalk offers with ego-browser or agent-browser, subagents and one archived HTML report. |

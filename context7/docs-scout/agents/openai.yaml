@@ -1,0 +1,4 @@
+interface:
+  display_name: "Docs Scout"
+  short_description: "Search library docs and coding guidelines via Context7 and agent-browser"
+  default_prompt: "Use $docs-scout to find how to revalidate cached data in the Next.js App Router, citing the official docs."
