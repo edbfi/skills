@@ -591,8 +591,9 @@ def cmd_search(args: Args) -> int:
         while True:
             try:
                 resp: Response | str = request(url, key)
-            except (urllib.error.URLError, OSError) as exc:
-                resp = str(exc.reason if isinstance(exc, urllib.error.URLError) else exc)
+            except (urllib.error.URLError, OSError, http.client.HTTPException) as exc:
+                # HTTPException covers a truncated or malformed response (IncompleteRead, BadStatusLine)
+                resp = str(exc.reason if isinstance(exc, urllib.error.URLError) else exc) or type(exc).__name__
             if isinstance(resp, Response) and resp.status < 500:
                 break
             if retried:

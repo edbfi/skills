@@ -67,7 +67,8 @@ class FakeAPI:
                 self.send_response_only(status)  # send_response would also log every request
                 for name, value in headers.items():
                     self.send_header(name, value)
-                self.send_header('Content-Length', str(len(data)))
+                if 'Content-Length' not in headers:
+                    self.send_header('Content-Length', str(len(data)))
                 self.end_headers()
                 _ = self.wfile.write(data)
 
@@ -257,6 +258,14 @@ class Requests(Base):
         code, _, err = self.run_cli('search', 'q')
         self.assertEqual(code, 69)
         self.assertIn('unreachable', err)
+
+    def test_truncated_body_is_retried_then_exit_69(self) -> None:
+        # Content-Length promises more than the body holds, so reading it raises IncompleteRead.
+        fake = self.api(lambda _p, _a: (200, {'Content-Type': 'text/plain', 'Content-Length': '99999'}, BODY))
+        code, out, err = self.run_cli('search', 'q')
+        self.assertEqual((code, out), (69, ''))
+        self.assertIn('unreachable', err)
+        self.assertEqual(len(fake.requests), 2)
 
     def test_redirect_is_refused_and_key_not_forwarded(self) -> None:
         catcher = FakeAPI(lambda _p, _a: ok(900))
