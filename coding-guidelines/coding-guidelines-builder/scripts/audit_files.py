@@ -19,28 +19,20 @@ from pathlib import Path
 
 ALLOWED = [
     "manifest.md",
-    "research/components.json",
-    "research/probe.md",
-    "research/sources.md",
-    "research/versions.json",
-    "research/versions-*.json",
-    "research/facts/*.md",
-    "research/clones/**",
-    "tasks/evals.json",
-    "tasks/check.sh",
-    "tasks/anti-patterns.sh",
-    "tasks/*/**",
-    "baseline/mistakes.md",
-    "baseline/benchmark.json",
-    "baseline/benchmark.md",
-    "baseline/eval-*/**",
-    "examples/**",
-    "skill/**",
-    "skill-workspace/**",
+    "components.json",
+    "versions.json",
+    "versions-*.json",
+    "probe.md",
+    "facts/*.md",
+    "outline/*.md",
+    "review/*.md",
+    "clones/**",
+    "draft/**",
+    "logs/**",
     ".toolchain/**",
 ]
 
-TRANSIENT = ["research/clones/**"]  # allowed during the run, must be gone by cleanup
+TRANSIENT = ["clones/**"]  # allowed during the run, must be gone by cleanup
 
 
 def declared_additional(manifest: Path) -> set[str]:
@@ -109,7 +101,7 @@ def main(argv: list[str]) -> int:
         offenders.append(path)
 
     if transient:
-        print(f"{len(transient)} transient file(s) under research/clones/ (remove in phase 5)")
+        print(f"{len(transient)} transient file(s) under clones/ (remove before delivery)")
     for p in escaped:
         print(f"symlink escapes the run folder: {p.relative_to(run).as_posix()} -> {p.resolve()}"
               + " (replace it, or declare it under '## Additional files' in manifest.md with a reason)")
