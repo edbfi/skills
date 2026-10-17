@@ -84,8 +84,12 @@ run, so stack and component versions always agree.
 Run from the run folder against each draft pack (`$BUILDER_DIR` is this skill's directory):
 
 ```bash
+# for every draft pack, component and stack alike (both carry examples/ and verification):
 python3 "$BUILDER_DIR/scripts/verify_examples.py" draft/components/<id> --json
+python3 "$BUILDER_DIR/scripts/verify_examples.py" draft/stacks/<id> --json
 python3 "$BUILDER_DIR/scripts/packs.py" hash draft/components/<id>
+python3 "$BUILDER_DIR/scripts/packs.py" hash draft/stacks/<id>
+# then all draft packs together:
 python3 "$BUILDER_DIR/scripts/packs.py" check --reuse-from <library-root> draft/components/<id> draft/stacks/<id>
 python3 "$BUILDER_DIR/scripts/packs.py" sources draft/components/<id> draft/stacks/<id>
 ```
