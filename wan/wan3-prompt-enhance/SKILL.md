@@ -375,8 +375,8 @@ When the user wants a whole image to appear as a frame of the result:
 
 When the platform's dedicated first-frame or first-and-last-frame mode is used, the images already
 fix subject, scene and style, so the beats spend their words on motion, plot, dialogue and camera.
-That mode can't take other reference materials; if the user combined it with references, keep the
-request and add a `Material note:` line saying so.
+First-and-last-frame mode can't take other reference materials; if the user combined it with
+references, keep the request and add a `Material note:` line saying so.
 
 ### Video segment into the video (including extension)
 
