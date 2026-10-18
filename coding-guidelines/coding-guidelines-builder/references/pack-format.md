@@ -23,8 +23,8 @@ skill-discovery directory (`.agents/skills/`, `.claude/skills/`, `.codex/skills/
   stacks/<pack-id>/      # one pack per combination of components
 ```
 
-The same relative layout is used wherever a library lives (a builder output folder, the
-agent-rules repository, a consumer's `.agents/guidelines/`), so relative links keep working when
+The same relative layout is used wherever a library lives (a builder output folder, a shared
+guidelines repository, a consumer's `.agents/guidelines/`), so relative links keep working when
 packs are copied. A single-component request produces one component pack. A multi-part request
 produces a component pack per component plus one stack pack. Component packs are stack-agnostic;
 anything specific to a combination lives in the stack pack.

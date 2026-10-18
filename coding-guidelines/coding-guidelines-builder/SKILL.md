@@ -32,7 +32,7 @@ nothing written into a skill-discovery directory (`.agents/skills/`, `.claude/sk
   exclusions. Keep each exactly as written. A role the stack needs but does not name (formatter,
   test runner) is chosen by research.
 - **Library root** (optional): where packs are written. Default `./guidelines/`. In a repository
-  that already has a library (agent-rules keeps it in `guidelines/`), use that one.
+  that already has a library, use that one.
 - **Stack id** (optional): the name of the stack pack.
 - **Refresh** (optional): `refresh: <pack path>` or `refresh: all`, optionally with `force`.
 
