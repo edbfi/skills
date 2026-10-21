@@ -85,7 +85,7 @@ repos:
         language: system
         pass_filenames: false
         files: ^context7/docs-scout/
-      # Syntax check under Bun, never Node (edbfi-ci design/ci.md rule 8). `bun build --no-bundle`
+      # Syntax check under Bun, never Node. `bun build --no-bundle`
       # parses and transpiles one file to stdout (discarded), writing nothing to disk; several
       # files at once need --outdir, so check one file per call. Plain .js files (browser
       # snippets such as serp-links.js) are syntax-checked too.
