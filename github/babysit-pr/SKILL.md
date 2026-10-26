@@ -5,7 +5,7 @@ license: AGPL-3.0
 compatibility: Requires git, bash, jq and an authenticated GitHub CLI (gh 2.96+ validated) with write access to the pull request's repository.
 metadata:
   author: engels74
-  version: "1.1.0"
+  version: "1.2.0"
   vendor: github
 ---
 
@@ -60,6 +60,10 @@ earlier reviews, its check runs, its configuration file or workflow.
   `reviewed_head` stays `false` (Pullfrog does this). If the bot's check on `head_sha` passed and
   it posted nothing after the push, it found nothing to say; read the check's log to be sure when
   it is cheap. Don't wait for a review that won't come.
+- **One run can cover several pushes.** Pushes seconds apart often get one bot run, and its check
+  attaches to the earlier commit. If the run's log shows its reviewed range ending at `head_sha`
+  (Pullfrog logs `pr-<n>-<from>-<to>-incremental.diff`), it reviewed the head; don't wait for
+  another.
 - **Expected reviewers are the active ones.** `reviewers` lists everyone who ever reviewed or
   commented inline, including bots since removed and humans. Wait only for bots that are still
   active: one that reviewed the previous head, or one whose check runs on this head. A bot that
@@ -316,38 +320,50 @@ authorised closing).
 
 ## 6. Wait without noise
 
-Use one waiter per PR, chosen by your role first:
+Prefer T3 Code. Whenever `watch_pull_request` is available, T3's PR watch is the only waiter for
+the PR: never also run `pr-ops.sh wait`, a sleep loop or any other watcher. Every waiter on the
+account shares one GitHub rate limit.
 
-- **A delegated child in T3 Code** (a `delegate_task` child or any subagent): never watch, wait or
-  merge. Finish the round and return the PR URL, `head_sha` and the pending checks and reviews to
-  the parent, which owns the loop.
-- **T3 Code** (`watch_pull_request` is available): T3's PR watch is the only waiter. Read
-  [references/t3-code.md](references/t3-code.md) and don't run `pr-ops.sh wait` as well.
-- **Anywhere else**: block on `pr-ops.sh wait` as below.
+While waiting, post nothing: no status updates, no "still watching" comments, no re-pinging bots.
+A wake that needs no action gets no message either.
 
-Anywhere else, block on `wait` between rounds. It returns when something actually changed:
+**Delegated child** (a `delegate_task` child or any subagent of the thread that owns the PR): never
+watch, wait or merge. Finish the round and return the PR URL, `head_sha` and the pending checks and
+reviews to the parent, which owns the loop.
 
-```bash
-bash <skill-dir>/scripts/pr-ops.sh wait --since <cursor> --timeout 1800
-```
+### In T3 Code
 
-It prints `{"reason": ...}` for `new-activity`, `checks-finished`, `head-changed`, `merge-state`
-(the branch became `BEHIND` or `DIRTY`; see section 5), `pr-MERGED` or `pr-CLOSED`, and exits 124
-with `timeout` when nothing happened. Pick the mechanism your harness offers:
+1. **Link** the PR with `link_pull_request` when you start on it (linking twice is harmless).
+2. **Arm.** After a full round, call `watch_pull_request`. Only activity after the call wakes you,
+   so run `status --since <cursor>` once more and handle anything that slipped in. Then end the turn
+   without a message.
+3. **It persists** across wakes until the PR merges or closes, the thread settles or is archived,
+   8 reads fail in a row, the user stops the thread, or you call `unwatch_pull_request`. Don't call
+   it again every round; after a resume or compaction, if you aren't sure it's active, call it
+   again.
+4. **A wake is news, not a merge decision.** Start a round at section 1 step 1. Readiness is always
+   the section 7 check, never the wake's text.
+5. **Blind spots.** The watch reports conflicts but not `BEHIND`, so check `mergeStateStatus`
+   yourself (section 5). It doesn't wake when a non-required check passes: if a wake leaves nothing
+   to do except such a check still running on `head_sha`, wait for that one GitHub Actions run in
+   the background with `gh run watch <run-id> --exit-status -i 30`, then do a round. The PR watch
+   stays armed; this waits for one run already in flight, never the PR and never in a loop.
+6. **Hand-off.** Before stopping for any reason except merged or closed (ready, blocked, a question
+   for the user, not converging), call `unwatch_pull_request`, so the thread returns to the user's
+   inbox instead of staying in Working. Merge and close end the watch on their own.
+7. **Watch ended unexpectedly** ("stopped watching, could not read it"): check that reading still
+   works (`gh auth status`, `pr-ops.sh status`). If GraphQL is spent
+   (`gh api rate_limit --jq .resources.graphql` shows `remaining` near 0), wait for `reset` with one
+   background command. Watch again only once reading works, never in a tight loop; otherwise report.
+8. **Settled or archived thread:** if T3 refuses to watch for that reason, stop and tell the user.
+   Agents can't unsettle a thread.
 
-- A harness that notifies you when a background command exits (Claude Code's Bash tool with
-  `run_in_background: true`, for instance): run `wait` in the background, and go back to step 1
-  when it finishes.
-- A harness with scheduled wake-ups or a loop command: schedule the next round instead.
-- Otherwise: run `wait` in the foreground with `--timeout` under your tool's time limit, and loop.
+### Without T3 Code
 
-While waiting, post nothing. No status updates, no "still watching" comments, no re-pinging bots.
-A wake that needs no action gets no message either. With `pr-ops.sh wait`, re-arm it before you
-end the turn, since silence is not stopping; in a foreground harness, just keep looping. (T3's
-watch stays armed on its own.)
-When `wait` times out, run `status` before waiting again, because a check can finish between a
-snapshot and the start of `wait`. After about two hours without any change, stop and report what
-you are waiting on.
+In Codex CLI, plain Claude Code or any other harness, block on `pr-ops.sh wait` between rounds.
+Read [references/waiting-without-t3.md](references/waiting-without-t3.md) for its reasons and how to
+run it in your harness. After about two hours without any change, stop and report what you are
+waiting on.
 
 ## 7. Stop
 
