@@ -23,7 +23,8 @@ usage: pr-ops.sh <command> [--repo owner/name] [--pr N] [options]
                                            reviewers, unanswered threads, feedback
   wait      [--since CURSOR] [--timeout S] [--interval S] [--settle S]
                                            block until new activity, finished
-                                           checks, a new head or a closed PR
+                                           checks, a new head, a branch that
+                                           became BEHIND or DIRTY, or a closed PR
   reply     --comment CID [--force]        reply to an inline review comment;
                                            body on stdin
   react     --comment CID --verdict V      V: VALID (+1), INVALID (-1),
@@ -390,13 +391,15 @@ cmd_status() {
 
 snapshot_line() {
   local pr checks
-  pr=$(gh pr view "${PR_ID}" --repo "${REPO}" --json state,headRefOid)
+  pr=$(gh pr view "${PR_ID}" --repo "${REPO}" --json state,headRefOid,mergeStateStatus)
   checks=$(fetch_checks)
   jq -nr --argjson pr "${pr}" --argjson checks "${checks}" '
     [
       $pr.state,
       $pr.headRefOid,
       ([$checks[] | select(.bucket == "pending")] | length | tostring),
+      # Before the fingerprint: read collapses empty tab-separated fields.
+      ($pr.mergeStateStatus // "UNKNOWN"),
       ($checks | map("\(.name)=\(.bucket)") | sort | join(","))
     ]
     | join("\t")
@@ -406,17 +409,19 @@ snapshot_line() {
 cmd_wait() {
   need_pr
   local since start head pending fp now_state now_head now_pending now_fp
-  local activity reason deadline
+  local merge now_merge activity reason deadline
   since=${SINCE}
   [ -n "${since}" ] || since=$(server_now)
   start=$(snapshot_line)
-  IFS=$'\t' read -r _ head pending fp <<<"${start}"
+  IFS=$'\t' read -r _ head pending merge fp <<<"${start}"
+  # UNKNOWN means GitHub is still computing it (seconds after any push).
+  [ "${merge}" != UNKNOWN ] || merge=""
   deadline=$((SECONDS + TIMEOUT))
   reason=""
 
   while [ "${SECONDS}" -lt "${deadline}" ]; do
     sleep "${INTERVAL}"
-    IFS=$'\t' read -r now_state now_head now_pending now_fp <<<"$(snapshot_line)"
+    IFS=$'\t' read -r now_state now_head now_pending now_merge now_fp <<<"$(snapshot_line)"
     activity=$(latest_activity)
     if [ "${now_state}" != "OPEN" ]; then
       reason="pr-${now_state}"
@@ -428,7 +433,11 @@ cmd_wait() {
       sleep "${SETTLE}"
     elif [ "${now_pending}" = 0 ] && { [ "${pending}" != 0 ] || [ "${now_fp}" != "${fp}" ]; }; then
       reason="checks-finished"
+    elif [ -n "${merge}" ] && [ "${now_merge}" != "${merge}" ] \
+      && { [ "${now_merge}" = BEHIND ] || [ "${now_merge}" = DIRTY ]; }; then
+      reason="merge-state"
     fi
+    [ "${now_merge}" = UNKNOWN ] || merge=${now_merge}
     [ -z "${reason}" ] || break
   done
 
