@@ -333,6 +333,8 @@ reviews to the parent, which owns the loop.
 
 ### In T3 Code
 
+Based on the babysit-pr skill in [t3dotgg/tstack](https://github.com/t3dotgg/tstack).
+
 1. **Link** the PR with `link_pull_request` when you start on it (linking twice is harmless).
 2. **Arm.** After a full round, call `watch_pull_request`. Only activity after the call wakes you,
    so run `status --since <cursor>` once more and handle anything that slipped in. Then end the turn
