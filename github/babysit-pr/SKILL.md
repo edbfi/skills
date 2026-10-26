@@ -332,8 +332,8 @@ bash <skill-dir>/scripts/pr-ops.sh wait --since <cursor> --timeout 1800
 ```
 
 It prints `{"reason": ...}` for `new-activity`, `checks-finished`, `head-changed`, `merge-state`
-(the branch became `BEHIND` or `DIRTY`; see section 5), `pr-MERGED` or `pr-CLOSED`, and exits 124 with `timeout` when nothing happened. Pick the mechanism your harness
-offers:
+(the branch became `BEHIND` or `DIRTY`; see section 5), `pr-MERGED` or `pr-CLOSED`, and exits 124
+with `timeout` when nothing happened. Pick the mechanism your harness offers:
 
 - A harness that notifies you when a background command exits (Claude Code's Bash tool with
   `run_in_background: true`, for instance): run `wait` in the background, and go back to step 1
