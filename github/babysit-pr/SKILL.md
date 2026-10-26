@@ -362,8 +362,8 @@ reviews to the parent, which owns the loop.
 ### Without T3 Code
 
 In Codex CLI, plain Claude Code or any other harness, block on `pr-ops.sh wait` between rounds.
-Read [references/waiting-without-t3.md](references/waiting-without-t3.md) for its reasons and how to
-run it in your harness. After about two hours without any change, stop and report what you are
+Read [references/waiting-without-t3.md](references/waiting-without-t3.md) for its `reason` values and
+how to run it in your harness. After about two hours without any change, stop and report what you are
 waiting on.
 
 ## 7. Stop
