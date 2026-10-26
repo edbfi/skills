@@ -5,7 +5,7 @@ license: AGPL-3.0
 compatibility: Requires git, bash, jq and an authenticated GitHub CLI (gh 2.96+ validated) with write access to the pull request's repository.
 metadata:
   author: engels74
-  version: "1.0.0"
+  version: "1.1.0"
   vendor: github
 ---
 
@@ -32,7 +32,9 @@ that answer still lacks (`react` and `resolve` are safe to repeat).
 1. **Rules.** Read the target repository's agent and contribution rules (`AGENTS.md`, `CLAUDE.md`,
    `.agents/rules/*.md`, `CONTRIBUTING.md`, linter and formatter config). They decide what counts
    as a convention violation and how commits must look (Conventional Commits, DCO sign-off with
-   `git commit -s`, and so on).
+   `git commit -s`, and so on). Read the review bots' own rule files too (`.coderabbit.yaml`,
+   `.macroscope/check-run-agents/*.md`, `.github/copilot-instructions.md`, a bot workflow's
+   prompt), because their findings cite them.
 2. **The PR.** Use the number or URL the user gave, else the current branch's PR. Check out its head
    branch in a clean working tree. If the user has unrelated uncommitted work, use a separate
    worktree rather than mixing it in.
@@ -167,6 +169,13 @@ conventions, is `INVALID`. Pre-existing problems in code the PR doesn't change, 
 feature ideas are `OUT OF SCOPE`, however good, because the user decides scope. A real, in-scope
 problem that is expensive to fix is none of these: it is the user's call, so list it under "Needs
 your call".
+
+**Keep the PR its size.** Review loops grow a PR one cheap fix at a time. Requests for extra tests,
+guards, compatibility layers or micro-optimisations go through the same two questions: an
+unreachable scenario is `INVALID`; a defect in the intended case is `VALID`; anything beyond the
+intended case that no repository rule requires is `OUT OF SCOPE`, even on lines this PR touches.
+The report's `OUT OF SCOPE` rows are the follow-up list. When you fix, prefer the fix that deletes
+or narrows code.
 
 **Repeats and rebuttals.** If a bot repeats a finding you already answered, or argues back without
 new evidence, answer once more with the same verdict and a link to your earlier reply, then
@@ -307,15 +316,24 @@ authorised closing).
 
 ## 6. Wait without noise
 
-Between rounds, block on `wait`. It returns when something actually changed:
+Use one waiter per PR, chosen by your role first:
+
+- **A delegated child in T3 Code** (a `delegate_task` child or any subagent): never watch, wait or
+  merge. Finish the round and return the PR URL, `head_sha` and the pending checks and reviews to
+  the parent, which owns the loop.
+- **T3 Code** (`watch_pull_request` is available): T3's PR watch is the only waiter. Read
+  [references/t3-code.md](references/t3-code.md) and don't run `pr-ops.sh wait` as well.
+- **Anywhere else**: block on `pr-ops.sh wait` as below.
+
+Anywhere else, block on `wait` between rounds. It returns when something actually changed:
 
 ```bash
 bash <skill-dir>/scripts/pr-ops.sh wait --since <cursor> --timeout 1800
 ```
 
-It prints `{"reason": ...}` for `new-activity`, `checks-finished`, `head-changed`, `pr-MERGED` or
-`pr-CLOSED`, and exits 124 with `timeout` when nothing happened. Pick the mechanism your harness
-offers:
+It prints `{"reason": ...}` for `new-activity`, `checks-finished`, `head-changed`, `merge-state`
+(the branch became `BEHIND` or `DIRTY`; see section 5), `pr-MERGED` or `pr-CLOSED`, and exits 124
+with `timeout` when nothing happened. Pick the mechanism your harness offers:
 
 - A harness that notifies you when a background command exits (Claude Code's Bash tool with
   `run_in_background: true`, for instance): run `wait` in the background, and go back to step 1
@@ -324,6 +342,9 @@ offers:
 - Otherwise: run `wait` in the foreground with `--timeout` under your tool's time limit, and loop.
 
 While waiting, post nothing. No status updates, no "still watching" comments, no re-pinging bots.
+A wake that needs no action gets no message either. With `pr-ops.sh wait`, re-arm it before you
+end the turn, since silence is not stopping; in a foreground harness, just keep looping. (T3's
+watch stays armed on its own.)
 When `wait` times out, run `status` before waiting again, because a check can finish between a
 snapshot and the start of `wait`. After about two hours without any change, stop and report what
 you are waiting on.
@@ -339,7 +360,11 @@ Stop and report when one of these holds:
   `mergeStateStatus` is `CLEAN` (or `HAS_HOOKS`). Merge only if the user explicitly asked for it,
   using the merge method the repository allows and pinned to the head you checked:
   `gh pr merge <n> --squash|--merge|--rebase --match-head-commit <head_sha>`, never `--admin`.
-  Otherwise report that the PR is ready.
+  Right before merging, `git fetch <base-remote> <base>` (section 5) and run `status` again; if the
+  head moved, the state is no longer `CLEAN` or `HAS_HOOKS`, or section 5's overlap check finds new
+  base commits touching this PR's files, rebase, push and loop instead. Without a merge request,
+  report that the PR is ready. In T3 Code, unwatch before reporting any stop other than merged or
+  closed.
 - **Done but blocked**: the bots and checks are finished, but GitHub still won't allow the merge
   (`BLOCKED`: a required approval, a required check that never started, `awaiting_humans`; or a
   draft). Report it as "review and CI done, blocked by <reason>", never as ready.

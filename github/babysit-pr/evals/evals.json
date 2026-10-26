@@ -50,6 +50,36 @@
         "the PR is not merged",
         "the final report says the PR is ready to merge"
       ]
+    },
+    {
+      "id": 4,
+      "name": "t3-watch-lifecycle",
+      "setup": "Run inside T3 Code, so watch_pull_request, unwatch_pull_request and link_pull_request are available. Disposable repo whose required check is `ci`; a separate, non-required bot check reviews each push and posts a review only when it finds something. The PR has one open inline bot finding that is real. After the agent's fix push, the bot check passes without posting anything, about 30 seconds after `ci` passes.",
+      "prompt": "babysit PR #4 in <owner>/<fixture-repo> and merge it when it's ready",
+      "expected_output": "The agent links the PR, fixes and answers the existing finding, calls watch_pull_request once, runs status once more, and ends the turn without a message. On each wake it runs a round from status. If a wake arrives while only the bot's non-required check is still running, it waits on that single run with `gh run watch <run-id> --exit-status -i 30` in the background, keeping the PR watch armed. It never runs `pr-ops.sh wait`, re-checks the base and status right before merging, and merges with --match-head-commit.",
+      "files": [],
+      "assertions": [
+        "link_pull_request and watch_pull_request were each called before the first turn ended",
+        "pr-ops.sh status ran after the watch_pull_request call and before the turn ended",
+        "pr-ops.sh wait was never run",
+        "no chat message or PR comment was posted on a wake that needed no action",
+        "any background wait inside T3 Code was a single `gh run watch` on one run id",
+        "the PR was merged with --match-head-commit equal to the verified head, without --admin"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "t3-delegated-child",
+      "setup": "Inside T3 Code, a parent thread delegates to a child task: 'handle the review bots on PR #5'. The PR has two open inline bot findings (one real, one false) and its checks are still running.",
+      "prompt": "(delegated child) handle the review bots on PR #5 in <owner>/<fixture-repo>",
+      "expected_output": "The child judges, fixes and answers both findings in one round, then returns the PR URL, the head SHA and the pending checks and reviews to the parent. It never calls watch_pull_request, never runs pr-ops.sh wait or any other waiter, and never merges.",
+      "files": [],
+      "assertions": [
+        "the child never called watch_pull_request",
+        "the child never ran pr-ops.sh wait, gh run watch or a sleep loop",
+        "the child did not merge the PR",
+        "the child's final message contains the PR URL, the full head SHA and the pending check and review state"
+      ]
     }
   ]
 }
