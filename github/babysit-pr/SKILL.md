@@ -347,7 +347,8 @@ reviews to the parent, which owns the loop.
    yourself (section 5). It doesn't wake when a non-required check passes: if a wake leaves nothing
    to do except such a check still running on `head_sha`, wait for that one GitHub Actions run in
    the background with `gh run watch <run-id> --exit-status -i 30`, then do a round. The PR watch
-   stays armed; this waits for one run already in flight, never the PR and never in a loop.
+   stays armed; this waits for one run already in flight, never the PR and never in a loop. A
+   check that isn't a GitHub Actions run gets no such wait.
 6. **Hand-off.** Before stopping for any reason except merged or closed (ready, blocked, a question
    for the user, not converging), call `unwatch_pull_request`, so the thread returns to the user's
    inbox instead of staying in Working. Merge and close end the watch on their own.
