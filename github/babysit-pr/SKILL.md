@@ -325,7 +325,7 @@ Use one waiter per PR, chosen by your role first:
   [references/t3-code.md](references/t3-code.md) and don't run `pr-ops.sh wait` as well.
 - **Anywhere else**: block on `pr-ops.sh wait` as below.
 
-Between rounds, block on `wait`. It returns when something actually changed:
+Anywhere else, block on `wait` between rounds. It returns when something actually changed:
 
 ```bash
 bash <skill-dir>/scripts/pr-ops.sh wait --since <cursor> --timeout 1800
@@ -342,8 +342,9 @@ with `timeout` when nothing happened. Pick the mechanism your harness offers:
 - Otherwise: run `wait` in the foreground with `--timeout` under your tool's time limit, and loop.
 
 While waiting, post nothing. No status updates, no "still watching" comments, no re-pinging bots.
-A wake that needs no action gets no message either, but re-arm the waiter before you end the turn;
-silence is not stopping. In a foreground harness, just keep looping.
+A wake that needs no action gets no message either. With `pr-ops.sh wait`, re-arm it before you
+end the turn, since silence is not stopping; in a foreground harness, just keep looping. (T3's
+watch stays armed on its own.)
 When `wait` times out, run `status` before waiting again, because a check can finish between a
 snapshot and the start of `wait`. After about two hours without any change, stop and report what
 you are waiting on.
