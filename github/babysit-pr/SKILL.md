@@ -42,8 +42,8 @@ a resume or compaction, call it again if you aren't sure it is active.
 
 - **Only the thread that owns the PR watches it.** If you are a delegated child task (a reviewer,
   any `delegate_task` child), never call `watch_pull_request`, never wait and never merge. Finish
-  the round and end with `PR <url>, head <head_sha>, checks and reviews <state>`. The parent owns the
-  PR.
+  the round and end with `PR <url>, head <head_sha>, checks and reviews <state>`. The parent owns
+  the PR.
 - **A wake is news, not a merge decision.** Start a round and check the merge gate yourself.
 - **Blind spots.** The watch reports conflicts but not BEHIND, so check `mergeStateStatus`
   yourself. It doesn't wake when a non-required check passes. Bots usually finish long before CI,
