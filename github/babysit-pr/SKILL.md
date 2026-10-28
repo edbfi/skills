@@ -244,11 +244,10 @@ overlapping PR makes this one obsolete, stop monitoring, report it to the user, 
 closing the PR unless closure was explicitly authorized.
 
 The **merge gate** passes when, on `head_sha`: nothing is failing or pending (an advisory bot's
-check aside); every active bot has
-`reviewed_head: true` or a passed check covering the head with nothing posted since;
-`pending_threads`, `unfinished_threads` and `followups` need nothing more; every feedback item is
-answered or needs no answer; the PR is not a draft; and `mergeStateStatus` is `CLEAN` (or
-`HAS_HOOKS`).
+check aside); every active bot has `reviewed_head: true` or a passed check covering the head with
+nothing posted since; `pending_threads`, `unfinished_threads` and `followups` need nothing more;
+every feedback item is answered or needs no answer; the PR is not a draft; and `mergeStateStatus` is
+`CLEAN` (or `HAS_HOOKS`).
 
 Merge only when the user explicitly requested it; otherwise report that the PR is ready. Right
 before a merge, run `git fetch <base-remote> <base>` and `status --since <cursor>` again. Never
