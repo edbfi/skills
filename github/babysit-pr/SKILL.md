@@ -33,15 +33,16 @@ Every watcher on a GitHub account shares one rate limit.
 
 This applies whenever `watch_pull_request` is available, even as a deferred tool. Link the PR
 with `link_pull_request` and handle the existing checks and comments first (a round, see
-Reviews). If the merge gate passes, go to Base branch and merging. Otherwise call
-`watch_pull_request`, run `status --since <cursor>` once more and handle anything that slipped in,
-then end your turn. T3 Code wakes you with a message when a check fails, the required checks
+Reviews). If the merge gate passes or babysitting ends, finish there (Base branch and merging)
+without watching. Otherwise call `watch_pull_request`, run `status --since <cursor>` once more and
+handle anything that slipped in. If the gate now passes or babysitting ends, finish there;
+otherwise end your turn. T3 Code wakes you with a message when a check fails, the required checks
 pass, someone comments or reviews, or the branch conflicts. The watch persists across wakes; after
 a resume or compaction, call it again if you aren't sure it is active.
 
 - **Only the thread that owns the PR watches it.** If you are a delegated child task (a reviewer,
   any `delegate_task` child), never call `watch_pull_request`, never wait and never merge. Finish
-  the round and end with `PR <url>, head <sha>, checks and reviews <state>`. The parent owns the
+  the round and end with `PR <url>, head <head_sha>, checks and reviews <state>`. The parent owns the
   PR.
 - **A wake is news, not a merge decision.** Start a round and check the merge gate yourself.
 - **Blind spots.** The watch reports conflicts but not BEHIND, so check `mergeStateStatus`
@@ -49,7 +50,7 @@ a resume or compaction, call it again if you aren't sure it is active.
   When the required checks have passed and the only thing left on `head_sha` is an active bot's
   own GitHub Actions run, make the one exception to the no-watcher rule: attach once to that
   single run in the foreground, `timeout 300 gh run watch <run-id> --exit-status -i 30`, with the
-  run ID from `gh pr checks`. Never `gh pr checks --watch`, never in the background, never in a
+  run ID from `gh pr checks` and your tool's timeout set above 300 seconds. Never `gh pr checks --watch`, never in the background, never in a
   loop. Then do a round. If it timed out with the run still going, treat the bot as stuck
   (Reviewers).
 - **Unwatch when you hand off.** A watched thread stays in Working and out of the user's inbox.
@@ -114,8 +115,8 @@ user's request, else its title and description) is the fence for every fix.
    `fix(parser): reject empty --since values`), and push.
 6. **Answer.** If you pushed, wait until `git rev-parse HEAD` equals `head_sha` in a fresh
    `status`, so replies cite pushed commits.
-7. **Cursor.** Pass the snapshot's `cursor` as `--since` next round once everything it showed is
-   answered; feedback older than the cursor stays hidden.
+7. **Cursor.** Pass step 1's `cursor` (not a later one) as `--since` next round, once everything
+   it showed is answered; feedback older than the cursor stays hidden.
 
 Only checks on `head_sha` count. A thread on an older commit (`isOutdated: true`) still counts
 until you check whether it applies at HEAD.
@@ -142,7 +143,7 @@ fix.
 
 Keep the PR at the size the user's goal needs. Review loops tend to grow a PR one cheap-looking
 fix at a time. Fix real bugs in the intended case and correct nitpicks on lines the PR touches.
-Answer the rest as `OUT OF SCOPE` or `INVALID` and list them as follow-ups: unneeded tests, guards
+Answer the rest as `OUT OF SCOPE` (list those as follow-ups) or `INVALID`: unneeded tests, guards
 for edge cases that do not matter, extra integration or compatibility, small performance costs,
 pre-existing problems and refactors. Prefer the fix that deletes or narrows code. A real, in-scope
 problem that is expensive to fix is the user's call, and so is opening an issue.

@@ -85,11 +85,12 @@
     {
       "id": 6,
       "name": "merge-then-continue",
-      "setup": "Run inside T3 Code. Disposable repo with two independent tasks in TODO.md. PR #6 implements the first task; its required check passes, the bot has reviewed the head, and its one finding was answered OUT OF SCOPE and resolved.",
+      "setup": "Run inside T3 Code. Disposable repo with two independent tasks in TODO.md. PR #6 implements the first task; its required check passes and the bot has reviewed the head. One open inline bot finding suggests a refactor of an untouched module (out of scope).",
       "prompt": "babysit PR #6 in <owner>/<fixture-repo>, merge it when it's ready, then implement the second task in TODO.md on a new branch",
-      "expected_output": "The agent confirms the merge gate, merges with --match-head-commit, notes the outcome in one line that names the OUT OF SCOPE follow-up, and in the same turn starts the second task on a new branch from the updated base instead of ending its turn with a hand-back report.",
+      "expected_output": "The agent answers the finding 'OUT OF SCOPE. ...' with a confused reaction and resolves it without pushing, confirms the merge gate, merges with --match-head-commit, notes the outcome in one line that names the OUT OF SCOPE follow-up, and in the same turn starts the second task on a new branch from the updated base instead of ending its turn with a hand-back report.",
       "files": [],
       "assertions": [
+        "the finding got an 'OUT OF SCOPE.' reply, a confused reaction and a resolved thread, with no new commit on the PR branch",
         "the PR was merged with --match-head-commit equal to the verified head",
         "the turn did not end between the merge and the first action on the second task",
         "the one-line outcome note names the OUT OF SCOPE finding as a follow-up",

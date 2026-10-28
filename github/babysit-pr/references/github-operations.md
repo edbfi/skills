@@ -20,8 +20,8 @@ only in these deliberate ways:
   `exit 1`.
 - `comment --ack ID` posts a top-level PR comment for feedback that has no inline thread, with a
   hidden `<!-- babysit-pr:ack ID ... -->` marker. `status` uses the markers to hide answered
-  feedback until its author edits it (top-level comments; review bodies keep their submit time), and `comment` refuses (exit 3) to answer IDs whose latest
-  revision is already answered.
+  feedback until its author edits it (top-level comments only; review bodies keep their submit
+  time), and `comment` refuses (exit 3) to answer IDs whose latest revision is already answered.
 
 ---
 
