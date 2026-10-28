@@ -243,7 +243,8 @@ into branches instead or forbids force-pushes, follow that (`gh pr update-branch
 overlapping PR makes this one obsolete, stop monitoring, report it to the user, and ask before
 closing the PR unless closure was explicitly authorized.
 
-The **merge gate** passes when, on `head_sha`: nothing is failing or pending; every active bot has
+The **merge gate** passes when, on `head_sha`: nothing is failing or pending (an advisory bot's
+check aside); every active bot has
 `reviewed_head: true` or a passed check covering the head with nothing posted since;
 `pending_threads`, `unfinished_threads` and `followups` need nothing more; every feedback item is
 answered or needs no answer; the PR is not a draft; and `mergeStateStatus` is `CLEAN` (or
