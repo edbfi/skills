@@ -46,13 +46,10 @@ a resume or compaction, call it again if you aren't sure it is active.
   PR.
 - **A wake is news, not a merge decision.** Start a round and check the merge gate yourself.
 - **Blind spots.** The watch reports conflicts but not BEHIND, so check `mergeStateStatus`
-  yourself. It doesn't wake when a non-required check passes. Bots usually finish long before CI.
-  When the required checks have passed and the only thing left on `head_sha` is an active bot's
-  own GitHub Actions run, make the one exception to the no-watcher rule: attach once to that
-  single run in the foreground, `timeout 300 gh run watch <run-id> --exit-status -i 30`, with the
-  run ID from `gh pr checks` and your tool's timeout set above 300 seconds. Never `gh pr checks --watch`, never in the background, never in a
-  loop. Then do a round. If it timed out with the run still going, treat the bot as stuck
-  (Reviewers).
+  yourself. It doesn't wake when a non-required check passes. Bots usually finish long before CI,
+  but if the required checks have passed and the only thing left on `head_sha` is an active bot's
+  own run, don't wait for it any other way: run `status` once more, and if it is still running,
+  hand off as "Done, blocked by <bot>'s run still going" with its link.
 - **Unwatch when you hand off.** A watched thread stays in Working and out of the user's inbox.
   When babysitting ends without a merge or close (ready, blocked, or asking the user a question),
   call `unwatch_pull_request` first, even if you go on to other work. A merge or close ends the

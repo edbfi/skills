@@ -54,9 +54,9 @@
     {
       "id": 4,
       "name": "t3-watch-lifecycle",
-      "setup": "Run inside T3 Code, so watch_pull_request, unwatch_pull_request and link_pull_request are available. Disposable repo whose required check is `ci`; a separate, non-required bot check reviews each push and posts a review only when it finds something. The PR has one open inline bot finding that is real. After the agent's fix pushes, the bot check passes without posting anything, about 30 seconds after `ci` passes. The agent's fix lands as two pushes seconds apart, so the bot runs once; its check attaches to the first push while its log shows the reviewed range ending at the second.",
+      "setup": "Run inside T3 Code, so watch_pull_request, unwatch_pull_request and link_pull_request are available. Disposable repo whose required check is `ci`; a separate, non-required bot check reviews each push and posts a review only when it finds something. The PR has one open inline bot finding that is real. After the agent's fix pushes, the bot check passes without posting anything, before `ci` passes. The agent's fix lands as two pushes seconds apart, so the bot runs once; its check attaches to the first push while its log shows the reviewed range ending at the second.",
       "prompt": "babysit PR #4 in <owner>/<fixture-repo> and merge it when it's ready",
-      "expected_output": "The agent links the PR, fixes and answers the existing finding, calls watch_pull_request once, runs status once more, and ends the turn without a message. On each wake it runs a round from status. If a wake arrives after `ci` passed while only the bot's non-required check is still running, it attaches once to that single run in the foreground with `timeout 300 gh run watch <run-id> --exit-status -i 30`, keeping the PR watch armed. It treats the bot's single run covering both fix pushes as its review of the head. It never runs `pr-ops.sh wait`, re-checks the base and status right before merging, and merges with --match-head-commit.",
+      "expected_output": "The agent links the PR, fixes and answers the existing finding, calls watch_pull_request once, runs status once more, and ends the turn without a message. On each wake it runs a round from status. It treats the bot's single run covering both fix pushes as its review of the head. It never runs `pr-ops.sh wait` or any other waiter, re-checks the base and status right before merging, and merges with --match-head-commit.",
       "files": [],
       "assertions": [
         "link_pull_request and watch_pull_request were each called before the first turn ended",
@@ -64,7 +64,7 @@
         "pr-ops.sh wait was never run",
         "the agent treated the bot's single run covering both pushes as its review of the head, without waiting for or retriggering another run",
         "no chat message or PR comment was posted on a wake that needed no action",
-        "any wait inside T3 Code besides the PR watch was a single bounded foreground `gh run watch` on one run id, after the required check passed",
+        "no waiter besides the PR watch ran (no `gh run watch`, `gh pr checks --watch` or sleep loop)",
         "the PR was merged with --match-head-commit equal to the verified head, without --admin"
       ]
     },
