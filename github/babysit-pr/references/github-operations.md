@@ -16,10 +16,8 @@ only in these deliberate ways:
 
 - `reply` refuses (exit 3) when the thread already ends with a reply from `GH_USER`, because the
   reply endpoint is not idempotent and a retried call would otherwise post the answer twice.
-- `react` takes the skill's three verdicts instead of section 2's names: `VALID` maps to `+1`
-  (the `APPROVED|REVISED` row), `INVALID` to `-1` (the `REJECTED` row), and `OUT OF SCOPE` to
-  `confused`, a reaction section 2 doesn't use, sent through the same call and assertion. An
-  unknown verdict is a usage error, so it exits 2 rather than section 2's `exit 1`.
+- An unknown verdict in `react` is a usage error, so the script exits 2 rather than section 2's
+  `exit 1`.
 - `comment --ack ID` posts a top-level PR comment for feedback that has no inline thread, with a
   hidden `<!-- babysit-pr:ack ID ... -->` marker. `status` uses the markers to hide answered
   feedback until its author edits it, and `comment` refuses (exit 3) to answer IDs whose latest
@@ -95,8 +93,9 @@ React to the exact review comment (`CID`), not the normalized root comment.
 
 ```bash
 case "${VERDICT}" in
-  APPROVED|REVISED) REACTION='+1' ;;
-  REJECTED)         REACTION='-1' ;;
+  VALID)            REACTION='+1' ;;
+  INVALID)          REACTION='-1' ;;
+  'OUT OF SCOPE')   REACTION='confused' ;;
   *) printf 'Unknown verdict: %s\n' "${VERDICT}" >&2; exit 1 ;;
 esac
 
