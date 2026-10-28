@@ -49,7 +49,7 @@ a resume or compaction, call it again if you aren't sure it is active.
   yourself. It doesn't wake when a non-required check passes. Bots usually finish long before CI,
   but if the required checks have passed and the only thing left on `head_sha` is an active bot's
   own run, don't wait for it any other way: run `status` once more, and if it is still running,
-  hand off as "Done, blocked by <bot>'s run still going" with its link.
+  hand off as "Stopped: <bot>'s run still going" with its link.
 - **Unwatch when you hand off.** A watched thread stays in Working and out of the user's inbox.
   When babysitting ends without a merge or close (ready, blocked, or asking the user a question),
   call `unwatch_pull_request` first, even if you go on to other work. A merge or close ends the
