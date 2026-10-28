@@ -13,21 +13,15 @@ metadata:
 
 Many repos have AI review bots. They're helpful, even if they are not always right. You own the
 PR: verify each finding against the code, fix what is real, and answer every bot comment with a
-verdict and its evidence. A later reader should see what each finding was, whether it held up and
+verdict and its evidence, so a later reader sees what each finding was, whether it held up and
 which commit fixed it.
 
-All review reads and writes go through `scripts/pr-ops.sh` in this skill's directory (`bash
+Review reads and writes go through `scripts/pr-ops.sh` in this skill's directory (`bash
 <skill-dir>/scripts/pr-ops.sh <command>`). Every write asserts what GitHub stored, so exit 0 means
 it happened. Exit 3 means your answer is already there: finish what it still lacks (`react` and
 `resolve` are safe to repeat) and don't force it. `--repo owner/name --pr N` default to the
-current checkout and branch. Logs, reruns, branch updates and the merge use `gh` directly.
-
-Before the first round, read the repository's rules (`AGENTS.md`, `CLAUDE.md`, `.agents/rules/`,
-`CONTRIBUTING.md`, linter config) and the bots' rule files (`.coderabbit.yaml`,
-`.macroscope/check-run-agents/*.md`, `.github/copilot-instructions.md`, a bot workflow's prompt).
-They decide how commits must look, and the bots' findings cite them. Work in a clean checkout of
-the PR's head; use a separate worktree if the user has unrelated changes. The PR's goal (the
-user's request, else its title and description) is the fence for every fix.
+current checkout and branch. Check details and logs (`gh pr checks <n> --json
+name,bucket,link`, `gh run view`), reruns, branch updates and the merge use `gh` directly.
 
 ## Waiting
 
@@ -37,28 +31,31 @@ Every watcher on a GitHub account shares one rate limit.
 
 ### In T3 Code: `watch_pull_request`
 
-Link the PR with `link_pull_request`. Handle the existing checks and comments first (a round, see
-Reviews). Then call `watch_pull_request`, run `status` once more and handle anything that slipped
-in. If the merge gate now passes, go to Base branch and merging; otherwise end your turn. T3 Code
-wakes you with a message when a check fails, the required checks pass, someone comments or
-reviews, or the branch conflicts.
+This applies whenever `watch_pull_request` is available, even as a deferred tool. Link the PR
+with `link_pull_request` and handle the existing checks and comments first (a round, see
+Reviews). If the merge gate passes, go to Base branch and merging. Otherwise call
+`watch_pull_request`, run `status --since <cursor>` once more and handle anything that slipped in,
+then end your turn. T3 Code wakes you with a message when a check fails, the required checks
+pass, someone comments or reviews, or the branch conflicts. The watch persists across wakes; after
+a resume or compaction, call it again if you aren't sure it is active.
 
 - **Only the thread that owns the PR watches it.** If you are a delegated child task (a reviewer,
-  a Sol round, any `delegate_task` child), never call `watch_pull_request`, never wait and never
-  merge. Finish the round and return the PR URL, `head_sha` and the pending checks and reviews.
-  The parent owns the PR.
+  any `delegate_task` child), never call `watch_pull_request`, never wait and never merge. Finish
+  the round and end with `PR <url>, head <sha>, checks and reviews <state>`. The parent owns the
+  PR.
 - **A wake is news, not a merge decision.** Start a round and check the merge gate yourself.
-- **The watch persists** across wakes until the PR merges or closes, the thread settles, reads
-  keep failing or you unwatch. After a resume or compaction, call it again if you aren't sure it
-  is active.
 - **Blind spots.** The watch reports conflicts but not BEHIND, so check `mergeStateStatus`
-  yourself. It doesn't wake when a non-required check passes. Bots usually finish long before CI;
-  if a wake leaves nothing but an active bot's own GitHub Actions run on `head_sha`, wait for that
-  one run in the foreground (`gh run watch <run-id> --exit-status -i 30`, within your tool's time
-  limit), then do a round.
+  yourself. It doesn't wake when a non-required check passes. Bots usually finish long before CI.
+  When the required checks have passed and the only thing left on `head_sha` is an active bot's
+  own GitHub Actions run, make the one exception to the no-watcher rule: attach once to that
+  single run in the foreground, `timeout 300 gh run watch <run-id> --exit-status -i 30`, with the
+  run ID from `gh pr checks`. Never `gh pr checks --watch`, never in the background, never in a
+  loop. Then do a round. If it timed out with the run still going, treat the bot as stuck
+  (Reviewers).
 - **Unwatch when you hand off.** A watched thread stays in Working and out of the user's inbox.
-  When you stop (ready, blocked, or asking the user a question), call `unwatch_pull_request`
-  first. A merge or close ends the watch on its own.
+  When babysitting ends without a merge or close (ready, blocked, or asking the user a question),
+  call `unwatch_pull_request` first, even if you go on to other work. A merge or close ends the
+  watch on its own.
 - **"Stopped watching, could not read it"** usually means GitHub's rate limit is used up. Run
   `gh api rate_limit --jq .resources.graphql` before you watch again. If `remaining` is near 0,
   wait for `reset` with one background command, then watch again. Never watch again in a tight
@@ -76,40 +73,48 @@ It prints `{"reason": ...}` and returns on `new-activity`, `checks-finished`, `h
 
 In Claude Code, run it in the background (`run_in_background: true`) so its exit wakes you. With
 scheduled wake-ups, schedule the next round instead. Otherwise run it in the foreground with
-`--timeout` under your tool's time limit, and loop. Start it again after each round and after a
-resume. After a timeout, run `status` before waiting again. After about two hours without any
-change, stop and report what you are waiting on.
+`--timeout` under your tool's time limit, and loop. Start it again after every round, including
+rounds that needed nothing, and after a resume. After a timeout, run `status` before waiting
+again. After about two hours without any change, stop and report what you are waiting on.
 
-With either watcher: when an event needs no action, end your turn without a message. Never post
-or say "still waiting".
+With either watcher: when an event needs no action, end your turn without a message (in a
+foreground loop, just keep looping). Never post or say "still waiting".
 
 ## GitHub rate limits
 
-`gh pr create`, `gh pr view`, `gh pr checks` and `pr-ops.sh status` and `resolve` use GraphQL.
-When GraphQL is used up, the REST limit is separate and usually still has room. Use
+`gh pr create`, `gh pr view`, `gh pr checks` and `pr-ops.sh status`, `wait` and `resolve` use
+GraphQL. The other `pr-ops.sh` commands use it only to fill in a missing `--repo` or `--pr`, so
+pass both when GraphQL is spent. The REST limit is separate and usually still has room. Use
 `gh api repos/<owner>/<repo>/pulls/<n>` to read a PR, and
 `gh api repos/<owner>/<repo>/commits/<sha>/check-runs` for checks. Thread state lives only in
 GraphQL, so wait for `reset` before you resolve.
 
 ## Reviews
 
+Before the first round, read the repository's rules (`AGENTS.md`, `CLAUDE.md`, `.agents/rules/`,
+`CONTRIBUTING.md`, linter config) and the bots' rule files (`.coderabbit.yaml`,
+`.macroscope/check-run-agents/*.md`, `.github/copilot-instructions.md`, a bot workflow's prompt).
+They decide how commits must look, and the bots' findings cite them. Work in a clean checkout of
+the PR's head; use a separate worktree if the user has unrelated changes. The PR's goal (the
+user's request, else its title and description) is the fence for every fix.
+
 ### A round
 
-1. **Snapshot.** `pr-ops.sh status [--since <cursor>]` prints JSON: `pr` (state, `isDraft`,
-   `head_sha`, `mergeStateStatus`, head and base repos), `checks` for the head commit, `reviewers`
-   (with `bot`, `reviewed_head`), `pending_threads` (unresolved, last comment not yours),
-   `unfinished_threads` (your reply is there but the thread isn't resolved: `react` and `resolve`
-   only), `awaiting_humans`, `followups` (replies after you resolved), `feedback` (review bodies
-   and top-level comments you haven't acked) and `cursor`.
-2. **CI.** Handle failing checks on `head_sha` (below).
-3. **Judge** every pending thread, followup and feedback item. Investigate first; write nothing
+1. **Snapshot.** `pr-ops.sh status [--since <cursor>]` prints JSON with the PR (`head_sha`,
+   `mergeStateStatus`, ...), head checks, reviewers and what needs you: `pending_threads`,
+   `followups` (replies after you resolved), `feedback` (review bodies and top-level comments you
+   haven't acked) and `unfinished_threads` (your reply is there but the thread isn't resolved:
+   only `react` and `resolve`). `awaiting_humans` are for the human to resolve.
+2. **Base.** If the branch needs updating (Base branch and merging), do that before pushing fixes.
+3. **CI.** Handle failing checks on `head_sha` (below).
+4. **Judge** every pending thread, followup and feedback item. Investigate first; write nothing
    yet.
-4. **Fix** what is `VALID`. Run the repository's checks and hooks, commit following its rules
+5. **Fix** what is `VALID`. Run the repository's checks and hooks, commit following its rules
    (one focused commit per unrelated fix, with a real message such as
    `fix(parser): reject empty --since values`), and push.
-5. **Answer** once the push has landed: `git rev-parse HEAD` must equal `head_sha` in a fresh
-   `status`.
-6. Pass the snapshot's `cursor` as `--since` next round only once everything it showed is
+6. **Answer.** If you pushed, wait until `git rev-parse HEAD` equals `head_sha` in a fresh
+   `status`, so replies cite pushed commits.
+7. **Cursor.** Pass the snapshot's `cursor` as `--since` next round once everything it showed is
    answered; feedback older than the cursor stays hidden.
 
 Only checks on `head_sha` count. A thread on an older commit (`isOutdated: true`) still counts
@@ -122,7 +127,8 @@ callers, run the test, or write a quick reproduction. Ask two questions in order
 
 1. **Is the claim real at HEAD?** Real means a concrete failing scenario you confirmed, a broken
    rule the repository documents, or a reachable security, data-loss or concurrency issue (for
-   these, if you can't disprove it, treat it as real). Otherwise it is `INVALID`.
+   these, if you can't disprove it, treat it as real). Otherwise it is `INVALID`. If it was real
+   and a later commit in this PR fixed it, it is `VALID` with that commit.
 2. **Is fixing it within the PR's goal?** If yes, `VALID`: fix it. If no, `OUT OF SCOPE`.
 
 | Verdict | Means | Reaction |
@@ -132,16 +138,14 @@ callers, run the test, or write a quick reproduction. Ask two questions in order
 | `OUT OF SCOPE` | Real, but fixing it would widen the PR. | 😕 |
 
 Some bots act on reactions (a "fix the 👍 findings" button), so never 👍 a finding this PR won't
-fix. Bots are often wrong because the guard sits outside the diff, they assume another library
-version or an API that doesn't exist, they misread the diff, or the scenario is unreachable. Cite
-that evidence.
+fix.
 
 Keep the PR at the size the user's goal needs. Review loops tend to grow a PR one cheap-looking
 fix at a time. Fix real bugs in the intended case and correct nitpicks on lines the PR touches.
-Answer the rest as `OUT OF SCOPE` or `INVALID`: unneeded tests, guards for edge cases that do not
-matter, extra integration or compatibility, small performance costs, pre-existing problems and
-refactors. Prefer the fix that deletes or narrows code. A real, in-scope problem that is
-expensive to fix is the user's call.
+Answer the rest as `OUT OF SCOPE` or `INVALID` and list them as follow-ups: unneeded tests, guards
+for edge cases that do not matter, extra integration or compatibility, small performance costs,
+pre-existing problems and refactors. Prefer the fix that deletes or narrows code. A real, in-scope
+problem that is expensive to fix is the user's call, and so is opening an issue.
 
 If a bot repeats a finding you answered or argues back without new evidence, answer once more
 with the same verdict and a link to your earlier reply, then resolve. With new evidence, judge
@@ -170,16 +174,16 @@ PR's goal for `OUT OF SCOPE`. No thanks, no hedging, and no @-mentions of bots (
 mention as a command).
 
 ```text
-VALID. `since` is compared against the local clock, so a skewed machine skips new comments. Fixed in 4c1e9b0d27a35f8e6b2d1c0a9f8e7d6c5b4a3f21.
 INVALID. `limit` can't be 0 here: `parse_args()` rejects values below 1 (`cli.py:88`) and `test_limit_must_be_positive` covers it.
 OUT OF SCOPE. `retry()` never caps its backoff, but that predates this PR, whose goal is the token refresh.
 ```
 
 Findings in review bodies or top-level comments (nitpick sections, "outside diff range" notes)
-get **one** top-level comment per source, with a verdict per finding:
+get **one** top-level comment per source, with a verdict per finding. Pass the item's `ack_id`
+from `feedback` (`pullrequestreview-<id>` or `issuecomment-<id>`):
 
 ```bash
-bash <skill-dir>/scripts/pr-ops.sh comment --ack pullrequestreview-<id> <<'EOF'
+bash <skill-dir>/scripts/pr-ops.sh comment --ack <ack_id> <<'EOF'
 Re: <url of the review or comment>
 
 1. "Unused import in `sync.py`": VALID. Removed in <sha>.
@@ -242,31 +246,29 @@ overlapping PR makes this one obsolete, stop monitoring, report it to the user, 
 closing the PR unless closure was explicitly authorized.
 
 The **merge gate** passes when, on `head_sha`: nothing is failing or pending; every active bot has
-`reviewed_head: true` or a passed check with nothing posted since; `pending_threads`,
-`unfinished_threads` and `followups` need nothing more; every feedback item is answered or needs
-no answer; the PR is not a draft; and `mergeStateStatus` is `CLEAN` (or `HAS_HOOKS`).
+`reviewed_head: true` or a passed check covering the head with nothing posted since;
+`pending_threads`, `unfinished_threads` and `followups` need nothing more; every feedback item is
+answered or needs no answer; the PR is not a draft; and `mergeStateStatus` is `CLEAN` (or
+`HAS_HOOKS`).
 
-If nothing has changed, stay quiet rather than posting filler comments. Merge only when the user
-explicitly requested it; otherwise report that the PR is ready. Right before a merge, run
-`git fetch` and `status` again. Never merge when the head moved, when it is BEHIND or DIRTY, or
-when base commits that landed after the last green run touch this PR's files: rebase, push, and
-wait for green again. Merge with the method the repository allows, pinned to the head you checked
-and never with `--admin`: `gh pr merge <n> --squash|--merge|--rebase --match-head-commit
-<head_sha>`.
+Merge only when the user explicitly requested it; otherwise report that the PR is ready. Right
+before a merge, run `git fetch <base-remote> <base>` and `status --since <cursor>` again. Never
+merge when the head moved, when it is BEHIND or DIRTY, or when base commits that landed after the
+last green run touch this PR's files: rebase, push, and wait for green again. Merge with the
+method the repository allows, pinned to the head you checked and never with `--admin`:
+`gh pr merge <n> --squash|--merge|--rebase --match-head-commit <head_sha>`.
 
 ### When babysitting ends
 
-Babysitting this PR ends when it merges or closes, when it is ready and no merge was requested,
-when another PR supersedes it, when it waits on the user (a decision outside your authority, a
-human reviewer, a finding you couldn't judge, a required approval), or when it stops converging (a
-check fails the same way after your fix, or bots keep repeating answered findings).
-
-That ends this PR, not necessarily your turn. If the user's request includes more work, note the
-outcome in one line (`Merged #12 as 4c1e9b0`) and continue with it. When you hand back to the
-user, unwatch first (T3 Code) unless the PR merged or closed, and report:
+Babysitting this PR ends when it merges or closes, is ready without a merge request, is
+superseded, waits on the user, or stops converging (a check fails the same way after your fix, or
+bots keep repeating answered findings). That ends this PR, not necessarily your turn. If it
+reached what the user asked for and the request includes more work, note the outcome in one line
+with any follow-ups (`Merged #12 as 4c1e9b0; follow-ups: retry backoff (OUT OF SCOPE)`) and
+continue. Otherwise, or when you hand back at the end, report:
 
 ```markdown
-**Status:** Merged | Ready to merge | Blocked: <why> | Superseded by #N | Stopped: <why>
+**Status:** Merged | Ready to merge | Done, blocked by <reason> | Superseded by #N | Stopped: <why>
 
 PR: <url> · head `<short sha>` · rounds: <n> · checks: <pass/fail/pending>
 
@@ -277,5 +279,6 @@ PR: <url> · head `<short sha>` · rounds: <n> · checks: <pass/fail/pending>
 Needs your call: <deferred items, open questions, proposed outward actions; or "nothing">
 ```
 
-Report a PR whose reviews and checks are done but that GitHub still blocks as "review and CI
-done, blocked by <reason>", never as ready.
+"Done, blocked" means the reviews and checks are finished but GitHub still won't merge: a
+required approval, a required check that never started, a human thread, or a draft. Never report
+it as ready.
