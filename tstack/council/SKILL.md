@@ -19,9 +19,13 @@ Bring in three delegates to help with the user's request, usually for review
 or feedback. Use one strong model from each of three different providers, at
 high reasoning effort. If the user's instructions name council members, use
 those. Otherwise pick the latest flagship model from each provider, for
-example Claude Opus, GPT Sol, and Gemini Pro.
+example Claude Opus, GPT Sol, and Gemini 4 Argon. Gemini flagships now use
+codenames instead of "Pro": take the newest generation, and ask the user if
+several codenames share it. If effort is part of a model ID, pick the `-high`
+variant, such as `gemini-4-argon-high`.
 
-In T3 Code, use `orchestrator_capabilities` to resolve the models, then
+In T3 Code, use `orchestrator_capabilities`, with a `search` per member, to
+resolve the models, then
 `delegate_task` to start one delegate per model in parallel. Elsewhere, use
 the harness's subagent tools. If you cannot reach three providers, or a named
 member is unavailable, report it instead of substituting.
@@ -46,7 +50,7 @@ Rounds: 2
 | --- | --- | --- |
 | Claude Opus | 7/10 | 9/10 |
 | GPT Sol | 8/10 | 10/10 |
-| Gemini Pro | 7/10 | 9/10 |
+| Gemini 4 Argon | 7/10 | 9/10 |
 ```
 
 If a delegate gives no score, write `no score`. Do not invent one.
