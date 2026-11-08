@@ -1,4 +1,4 @@
-"""Validate the published skill paths and their documented frontmatter subset."""
+"""Validate the published skill paths, their unified frontmatter layout, index and references."""
 from pathlib import Path
 import re
 import subprocess
@@ -16,15 +16,28 @@ for path in skills:
     if len(parts) != 3 or parts[0].strip():
         errors.append(f"{path.relative_to(root)}: missing frontmatter")
         continue
-    fields = {m[1]: m[2] for m in re.finditer(r"^([a-z]+):[ \t]*(.*)$", parts[1], re.M)}
+    fields = {m[1]: m[2] for m in re.finditer(r"^([a-z][a-z0-9_-]*):[ \t]*(.*)$", parts[1], re.M)}
     if fields.get("name", "").strip("\"'") != path.parent.name:
         errors.append(f"{path.relative_to(root)}: name must match directory")
     if not fields.get("description") or fields["description"] in {"|", ">", "|-", ">-"}:
         errors.append(f"{path.relative_to(root)}: description must be a single line")
-    if "license" in fields and fields["license"].strip("\"'") != "AGPL-3.0":
+    keys = re.findall(r"^([a-z][a-z0-9_-]*):", parts[1], re.M)
+    layout = ["name", "description", "license"] + (["compatibility"] if "compatibility" in fields else []) + ["metadata"]
+    if keys != layout:
+        errors.append(f"{path.relative_to(root)}: frontmatter keys must be {', '.join(layout)} in that order")
+    # The repository is AGPL-3.0; a skill adapted from elsewhere keeps its own LICENSE and license.
+    license_ok = {"AGPL-3.0"} | ({"MIT"} if (path.parent / "LICENSE").is_file() else set())
+    if fields.get("license", "").strip("\"'") not in license_ok:
         errors.append(f"{path.relative_to(root)}: unexpected license")
-    vendor = re.search(r"^  vendor:[ \t]*(.+)$", parts[1], re.M)
-    if vendor and vendor[1].strip("\"'") != path.parent.parent.name:
+    meta = {m[1]: m[2].strip("\"'") for m in re.finditer(r"^  ([a-z][a-z0-9_-]*):[ \t]*(.+)$", parts[1], re.M)}
+    meta_keys = list(meta)
+    if meta_keys not in (["author", "version", "vendor"], ["author", "version", "vendor", "upstream"]):
+        errors.append(f"{path.relative_to(root)}: metadata keys must be author, version, vendor[, upstream] in that order")
+    if meta.get("author") != "edbfi":
+        errors.append(f"{path.relative_to(root)}: metadata author must be edbfi")
+    if not re.fullmatch(r"\d+\.\d+\.\d+", meta.get("version", "")):
+        errors.append(f"{path.relative_to(root)}: metadata version must be semver")
+    if meta.get("vendor") != path.parent.parent.name:
         errors.append(f"{path.relative_to(root)}: vendor must match namespace")
     if f"({path.relative_to(root)})" not in index:
         errors.append(f"{path.relative_to(root)}: missing README index entry")
