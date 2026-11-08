@@ -1,10 +1,10 @@
 ---
 name: coding-guidelines-builder
 description: Research a tech stack (one language or many components - languages, runtimes, frameworks, libraries, databases, tools, with optional version constraints, language modes and minimum targets) from primary sources at its latest stable release, or the version line named, and produce a guidelines library - organised, sourced, example-verified Markdown packs of current best practices, recent changes and anti-patterns that AI coding agents read from any project. Use whenever the user wants coding guidelines, a coding standard, best practices, rules or reference docs for agents on a stack or language, or wants existing guideline packs refreshed or re-verified, even if they never say "guidelines library".
-compatibility: Requires file and command access, primary-source research (web, MCP, browser or git), Python 3.11+ for the bundled scripts, and a toolchain for the stack (Docker or host). Parallel workers and an independent review context are used when available.
 license: AGPL-3.0
+compatibility: Requires file and command access, primary-source research (web, MCP, browser or git), Python 3.11+ for the bundled scripts, and a toolchain for the stack (Docker or host). Parallel workers and an independent review context are used when available.
 metadata:
-  author: engels74
+  author: edbfi
   version: "2.0.1"
   vendor: coding-guidelines
 ---

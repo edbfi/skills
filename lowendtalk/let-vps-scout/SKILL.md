@@ -4,7 +4,7 @@ description: Research LowEndTalk offers and provider websites with ego-browser o
 license: AGPL-3.0
 compatibility: Requires python3 and either the ego-browser or the agent-browser CLI.
 metadata:
-  author: engels74
+  author: edbfi
   version: "1.1.0"
   vendor: lowendtalk
 ---

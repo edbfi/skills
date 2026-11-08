@@ -4,7 +4,7 @@ description: Search library documentation, API references and coding guidelines 
 license: AGPL-3.0
 compatibility: Requires python3 >= 3.11 and the agent-browser CLI (any executablePath, CloakBrowser included); POSIX (Linux, macOS). Context7 API keys are optional.
 metadata:
-  author: engels74
+  author: edbfi
   version: "1.0.0"
   vendor: context7
 ---

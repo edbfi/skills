@@ -4,7 +4,7 @@ description: "Monitor a pull request through AI review bots and CI until it is r
 license: AGPL-3.0
 compatibility: Requires git, bash, jq and an authenticated GitHub CLI (gh 2.96+ validated) with write access to the pull request's repository.
 metadata:
-  author: engels74
+  author: edbfi
   version: "2.0.0"
   vendor: github
 ---
