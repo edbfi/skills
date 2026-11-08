@@ -161,9 +161,9 @@ Two forms:
 
 Coordinates are **normalized integers from 0 to 999** relative to one image: top-left `0 0`,
 bottom-right `999 999`. Conversion from pixels: `x = round(x_px / width * 1000)`,
-`y = round(y_px / height * 1000)`, using the displayed size of that image. Official prompts put the tag
-both after ("Image 1 `<point>520 460</point>`") and before ("at `<point>520 460</point>` in Image 1") the
-image name; either way, each tag belongs to one named image.
+`y = round(y_px / height * 1000)`, using the displayed size of that image. Official prompts put the
+tag both after ("Image 1 `<point>520 460</point>`") and before ("at `<point>520 460</point>` in
+Image 1") the image name; either way, each tag belongs to one named image.
 
 | Scenario | Official prompt |
 |---|---|
@@ -232,8 +232,8 @@ trigger it: "Generate four film storyboard images, corresponding to the followin
 
 ## Layer decomposition (pro / flash)
 
-Set `layer_decomposition: true`, pass exactly one image (png or jpeg, 262,144 to 36,000,000 total pixels, e.g. at least 512x512 in area). The
-prompt is optional:
+Set `layer_decomposition: true`, pass exactly one image (png or jpeg, 262,144 to 36,000,000 total
+pixels, e.g. at least 512x512 in area). The prompt is optional:
 
 | Goal | Prompt |
 |---|---|
@@ -248,13 +248,14 @@ can be edited on its own ("Change the parrot in the image into a peacock.") with
 
 ## Parameters that interact with the prompt
 
-- **Size, method 1 (recommended):** set `size` to a resolution tier and **describe the aspect
-  ratio, shape or purpose in the prompt**; the model picks the dimensions. Pro / flash tiers are
-  `1K`, `1.5K` or `2K` (default `2K`; 1.5K costs the same as 1K and looks better). Lite tiers are
-  `2K`, `3K` or `4K`, but the docs list lite's default as the pixel value `2048x2048`, so set a
-  tier on lite to let a non-square ratio in the prompt apply. The pro tutorial's sizing example reads "Generate a set of four
-  cohesive illustrations with a 3:2 aspect ratio, [...]" with `"size": "2K"`; on pro / flash, which
-  can't return sets, that wording yields at most one composite image.
+- **Size, method 1 (recommended):** set `size` to a resolution tier and **describe the aspect ratio,
+  shape or purpose in the prompt**; the model picks the dimensions. Pro / flash tiers are `1K`,
+  `1.5K` or `2K` (default `2K`; 1.5K costs the same as 1K and looks better). Lite tiers are `2K`,
+  `3K` or `4K`, but the docs list lite's default as the pixel value `2048x2048`, so set a tier on
+  lite to let a non-square ratio in the prompt apply. The pro tutorial's sizing example reads
+  "Generate a set of four cohesive illustrations with a 3:2 aspect ratio, [...]" with
+  `"size": "2K"`; on pro / flash, which can't return sets, that wording yields at most one composite
+  image.
 - **Size, method 2:** `size` as `WIDTHxHEIGHT`. Total pixels must be 921,600 to 4,624,220 on pro /
   flash and 3,686,400 to 16,777,216 on lite; aspect ratio 1/16 to 16 on all. Don't combine the two
   methods. Input images have their own, wider limits, so an input's dimensions aren't a valid

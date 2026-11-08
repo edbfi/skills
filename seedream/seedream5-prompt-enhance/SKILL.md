@@ -141,14 +141,14 @@ For a language other than the prompt's, name the language once. Keep strings sho
 print renders worst, and ByteDance says fine text is still a weak spot.
 
 **Aspect ratio and size.** ByteDance's recommended sizing is a resolution tier in `size` plus the
-ratio or shape described in the prompt, so write it in words ("a vertical 9:16 phone wallpaper",
-"a wide 21:9 banner"). On lite, also add a tier (`size: 2K`) to `Settings:`: the docs list a square
-`2048x2048` default, and a tier lets the ratio in the prompt apply. Emit `size: WIDTHxHEIGHT` only when the user asked for exact *output* pixels
-and they fit the model's range (pro / flash 921,600 to 4,624,220 total pixels; lite 3,686,400 to
-16,777,216; ratio 1/16 to 16). Otherwise use a tier plus the ratio in words, and say in a `Note:`
-that the final pixels need a resize. Never copy an input image's dimensions into `size`; for edits
-that must keep the frame, write "keep the framing and aspect ratio of Image 1". On hosts with an
-aspect-ratio control, the two must agree.
+ratio or shape described in the prompt, so write it in words ("a vertical 9:16 phone wallpaper", "a
+wide 21:9 banner"). On lite, also add a tier (`size: 2K`) to `Settings:`: the docs list a square
+`2048x2048` default, and a tier lets the ratio in the prompt apply. Emit `size: WIDTHxHEIGHT` only
+when the user asked for exact *output* pixels and they fit the model's range (pro / flash 921,600 to
+4,624,220 total pixels; lite 3,686,400 to 16,777,216; ratio 1/16 to 16). Otherwise use a tier plus
+the ratio in words, and say in a `Note:` that the final pixels need a resize. Never copy an input
+image's dimensions into `size`; for edits that must keep the frame, write "keep the framing and
+aspect ratio of Image 1". On hosts with an aspect-ratio control, the two must agree.
 
 **Exclusions.** Only what the user asked to exclude, as short sentences: "No people in the frame.",
 "No text other than the title." Don't repeat the positive description in negative form.
@@ -168,7 +168,8 @@ aspect-ratio control, the two must agree.
 Coordinates (pro / flash):
 
 - `<point>x y</point>` or `<bbox>x1 y1 x2 y2</bbox>`, integers 0 to 999 on that image, top-left
-  origin, `x1 < x2`, `y1 < y2`. This skill writes the image first: `Image 1 <bbox>120 180 640 760</bbox>`.
+  origin, `x1 < x2`, `y1 < y2`. This skill writes the image first:
+  `Image 1 <bbox>120 180 640 760</bbox>`.
 - Keep the user's normalized numbers exactly. If they gave pixels and the image size, convert with
   `round(px / size * 1000)` and clamp to 999. Never invent coordinates; if the user described the
   place in words, write it in words.
@@ -265,7 +266,7 @@ Decompose the title text, the woman and the logo in Image 1 into separate layers
 ```
 
 Settings: `layer_decomposition: true`
-Note: Pass the poster as the only input image, png or jpeg, at least 262,144 pixels in total (512x512).
+Note: Pass the poster as the only input image (png or jpeg, at least 262,144 pixels, e.g. 512x512).
 
 More official prompts for every task type are in
 [references/official-guide.md](references/official-guide.md).
