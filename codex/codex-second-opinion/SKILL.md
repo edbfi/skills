@@ -1,10 +1,10 @@
 ---
 name: codex-second-opinion
 description: "Get an independent, read-only review from OpenAI Codex (via the codex CLI, on whatever model and reasoning effort the user names, else Codex's configured default) of uncommitted changes, a branch, specific files or a plan, then verify every finding against the real code yourself, accept/reject/defer each one, implement only the accepted fixes, and report a verdict table. Use whenever the user asks for a Codex review, a second opinion, a cross-check or sanity check by another model or GPT, says 'ask Codex', 'have Codex look at this', 'get a second pair of eyes', or wants an independent reviewer before merging, shipping or executing a change or plan, even if they don't mention this skill by name."
-compatibility: Requires the codex CLI (`npm install -g @openai/codex`), logged in, and bash. No git repository is needed.
 license: AGPL-3.0
+compatibility: Requires the codex CLI (`npm install -g @openai/codex`), logged in, and bash. No git repository is needed.
 metadata:
-  author: engels74
+  author: edbfi
   version: "1.0.1"
   vendor: codex
 ---

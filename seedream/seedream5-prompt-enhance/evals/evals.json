@@ -1,0 +1,93 @@
+{
+  "skill_name": "seedream5-prompt-enhance",
+  "notes": "Text-only evals: no images are attached, so every reference-image eval also checks that the skill doesn't describe images it can't see. Grade the reply text only.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "poster-plain-text",
+      "prompt": "/seedream5-prompt-enhance poster for our jazz night \"Blue Hour Sessions\" at Café Lumen, Friday 9pm, moody, it's for an Instagram story",
+      "expected_output": "One prompt in a text code block that opens with the purpose (a poster), states a vertical 9:16 story format in words, quotes \"Blue Hour Sessions\", \"Café Lumen\" and the Friday 9pm line verbatim with positions, chooses concrete light and palette for a moody jazz poster, and adds no copy, quality boilerplate or negative-prompt block of its own.",
+      "files": [],
+      "assertions": [
+        "the reply opens with a code block (no preamble)",
+        "the prompt's first sentence names a poster",
+        "a vertical or 9:16 format is stated in the prompt",
+        "\"Blue Hour Sessions\" and \"Café Lumen\" appear inside double quotes, accent kept",
+        "no invented rendered text (prices, addresses, URLs, slogans, ticket info)",
+        "no quality boilerplate (8K, masterpiece, best quality, ultra-detailed)",
+        "no separate negative-prompt section",
+        "no people or characters are added, and at most one central visual motif is invented"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "pixel-box-edit-pro",
+      "prompt": "Seedream 5.0 pro. Image 1 is a product photo of our white sneaker on a concrete floor, the image is 1800x1600 px. I selected the shoe from x 300 to 1500 and y 500 to 1300 px. Change the sole to gum rubber and the laces to navy. Nothing else should move.",
+      "expected_output": "A short edit prompt that converts the pixel box to normalized coordinates (<bbox>167 312-313 833 812-813</bbox>) tied to Image 1, names the gum-rubber sole and navy laces, and says what stays unchanged.",
+      "files": [],
+      "assertions": [
+        "a <bbox> tag with values 167, 312 or 313, 833, 812 or 813 appears",
+        "the bbox is tied to Image 1",
+        "the sole change to gum rubber and laces to navy are both stated",
+        "the prompt says the rest (shoe shape, floor, lighting or angle) stays unchanged",
+        "no other edits are introduced",
+        "the input size 1800x1600 is not copied into a size setting"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "flash-set-of-four",
+      "prompt": "Using Seedream 5.0 flash: I need 4 phone wallpapers of the same red panda mascot, one per season, for our calendar app",
+      "expected_output": "Recognizes flash returns one image per request: delivers four separate vertical prompts sharing a base description (or one grid image if justified) with a short note on separate requests and reusing the first result as a reference for consistency; never sets sequential_image_generation for flash.",
+      "files": [],
+      "assertions": [
+        "the reply does not claim flash can generate the four images in one request",
+        "sequential_image_generation is not set for flash",
+        "four seasonal images are covered (spring, summer, autumn/fall, winter)",
+        "each wallpaper is vertical or phone-shaped",
+        "the reply addresses keeping the red panda consistent across images"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "multi-reference-spanish",
+      "prompt": "Seedream 5 pro. Image 1: our perfume bottle (packshot). Image 2: a marble slab texture. Image 3: a colour palette swatch. Make a square ad for the Spanish market with the headline 'Brilla sin límites'. Bottle standing on the marble, colours from Image 3.",
+      "expected_output": "A prompt that binds Image 1 to the bottle, Image 2 to the marble surface and Image 3 to the palette, one binding each, quotes \"Brilla sin límites\" verbatim with its accent and a position, states a square format, and doesn't describe what the unseen images look like or add extra copy.",
+      "files": [],
+      "assertions": [
+        "Image 1, Image 2 and Image 3 each appear with a single stated role",
+        "\"Brilla sin límites\" appears in double quotes with the accent",
+        "a square or 1:1 format is stated",
+        "no invented appearance of the referenced bottle (colour, shape, cap, liquid colour)",
+        "no extra rendered copy (brand name, price, tagline) beyond the headline"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "chinese-layer-split",
+      "prompt": "把图1这张海报拆成图层：标题文字、人物、右下角的logo分开",
+      "expected_output": "A Chinese decomposition prompt naming 标题文字, 人物 and 右下角的 logo in 图1, plus a Settings line with layer_decomposition: true; no scene generation.",
+      "files": [],
+      "assertions": [
+        "the prompt is in Chinese and refers to 图1",
+        "title text, person and the lower-right logo are all named",
+        "layer_decomposition: true is given as a setting",
+        "the prompt doesn't describe a new scene or restyle the poster"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "transparent-logo-t2i",
+      "prompt": "Seedream 5 pro: make a logo for my podcast \"Night Shift Radio\" as a transparent PNG",
+      "expected_output": "A purpose-first logo prompt quoting \"Night Shift Radio\", asking for the logo isolated on a plain flat background, with no background: transparent setting (the API rejects it for text-to-image) and a Note that transparency needs a second pass such as layer decomposition.",
+      "files": [],
+      "assertions": [
+        "\"Night Shift Radio\" appears in double quotes",
+        "no background: transparent setting is given",
+        "the prompt asks for a plain or flat background",
+        "a Note explains transparency needs a second pass",
+        "no invented tagline or extra copy"
+      ]
+    }
+  ]
+}

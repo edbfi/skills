@@ -25,6 +25,7 @@ installable via the [`skills`](https://github.com/vercel-labs/skills) CLI.
 | github | [`babysit-pr`](github/babysit-pr/SKILL.md) | Shepherd a PR through review bots and CI: verify every finding, fix what is real, answer each comment with a verdict and its commit. |
 | lowendtalk | [`let-vps-scout`](lowendtalk/let-vps-scout/SKILL.md) | Find and purchase-verify the cheapest European VPS from LowEndTalk offers with ego-browser or agent-browser, subagents and one archived HTML report. |
 | pelican-eggs | [`panel-egg-roundtrip`](pelican-eggs/panel-egg-roundtrip/SKILL.md) | Round-trip Pelican and Pterodactyl eggs through temporary panel installations. |
+| seedream | [`seedream5-prompt-enhance`](seedream/seedream5-prompt-enhance/SKILL.md) | Turn a rough image idea, edit or reference brief into one Seedream 5.x prompt (pro, flash, lite and later), following ByteDance's official ModelArk guides. |
 | tstack | [`council`](tstack/council/SKILL.md) | Ask three flagship models from different providers to review or advise, with scores and rounds in the PR description (adapted from t3dotgg/tstack). |
 | wan | [`wan3-prompt-enhance`](wan/wan3-prompt-enhance/SKILL.md) | Organize a Wan 3.0 video request and its Image/Video/Audio references into a faithful five-section prompt (English translation of Alibaba Cloud's official skill, merged with the Wan 3.0 prompt guide). |
 

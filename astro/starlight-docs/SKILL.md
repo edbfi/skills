@@ -3,7 +3,7 @@ name: starlight-docs
 description: Build, configure, customize, and author content for documentation sites using Starlight, the Astro-based documentation framework. Use this skill whenever the user mentions Starlight, Astro Starlight, `@astrojs/starlight`, building a documentation site or docs site with Astro, or wants help with `starlight.config`, the Aside/Card/Tabs/Steps/FileTree/LinkCard/LinkButton/Badge/Code/Icon components, the `docsLoader`/`docsSchema`, the Starlight sidebar, Pagefind search, Expressive Code in docs, content collections for docs, MDX/Markdoc-powered documentation, hero sections, splash templates, or anything else clearly related to a Starlight-themed site. Also use this skill even when Starlight isn't named explicitly but the user is clearly working in a `src/content/docs/` directory, editing an `astro.config.mjs` with a `starlight()` integration, or asking about `.mdoc` files. When the task is generic Astro work with no documentation theme involved, prefer general Astro knowledge instead.
 license: AGPL-3.0
 metadata:
-  author: engels74
+  author: edbfi
   version: "1.0.0"
   vendor: astro
 ---

@@ -1,8 +1,9 @@
 ---
 name: council
 description: Trigger this if the user says 'council'.
+license: MIT
 metadata:
-  author: engels74
+  author: edbfi
   version: "1.0.0"
   vendor: tstack
   upstream: "t3dotgg/tstack council skill at 1085050 (MIT, see LICENSE)"
