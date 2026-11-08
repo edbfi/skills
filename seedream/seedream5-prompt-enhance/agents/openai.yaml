@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seedream 5.x Prompt Enhancer"
+  short_description: "Turn a rough image idea, edit or reference brief into one Seedream 5.x prompt that follows ByteDance's official guidance"
+  default_prompt: "Use $seedream5-prompt-enhance to turn my image idea into a Seedream 5.x prompt."
