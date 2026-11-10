@@ -42,10 +42,10 @@ export LC_ALL=C
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
-# Patch names from the docs' Patches table, one per line. awk exits 3 when the section, the header row or its
-# separator is missing, 4 when the table has no rows and 5 when a row has no name.
-docs_status=0
-awk '
+# Shared by both awk programs: fence_step(line) returns 1 for a line that opens, closes or sits inside a
+# fenced code block.
+# shellcheck disable=SC2016 # awk source: its backticks are literal
+fence_fn='
   # A fence opens with three or more backticks or tildes, at any indentation (checklist steps
   # indent theirs), and closes with at least as many of the same character and nothing after.
   function fence_step(line,    run, rest) {
@@ -60,6 +60,12 @@ awk '
     if (run >= fence_len && rest ~ /^[ \t]*$/) fence = ""
     return 1
   }
+'
+
+# Patch names from the docs' Patches table, one per line. awk exits 3 when the section, the header row or its
+# separator is missing, 4 when the table has no rows and 5 when a row has no name.
+docs_status=0
+awk "$fence_fn"'
   { sub(/\r$/, "") }
   fence_step($0) { next }
   /^##?[ \t]/ {
@@ -111,21 +117,7 @@ if [[ ! -e $checklist ]]; then
 else
   [[ -f $checklist && -r $checklist ]] || die "cannot read the checklist: $checklist"
   list_status=0
-  awk -v marker="$UNVERIFIED" -v entries="$work/entries.raw" -v unverified="$work/unverified.raw" '
-    # A fence opens with three or more backticks or tildes, at any indentation (checklist steps
-    # indent theirs), and closes with at least as many of the same character and nothing after.
-    function fence_step(line,    run, rest) {
-      sub(/^[ \t]+/, "", line)
-      if (fence == "") {
-        if (match(line, /^```+/) || match(line, /^~~~+/)) { fence = substr(line, 1, 1); fence_len = RLENGTH; return 1 }
-        return 0
-      }
-      if (fence == "`") run = match(line, /^`+/) ? RLENGTH : 0
-      else run = match(line, /^~+/) ? RLENGTH : 0
-      rest = substr(line, run + 1)
-      if (run >= fence_len && rest ~ /^[ \t]*$/) fence = ""
-      return 1
-    }
+  awk -v marker="$UNVERIFIED" -v entries="$work/entries.raw" -v unverified="$work/unverified.raw" "$fence_fn"'
     { sub(/\r$/, "") }
     fence_step($0) { next }
     /^##?[ \t]/ {

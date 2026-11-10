@@ -79,7 +79,10 @@ Applies to every build, CLI or Manager, before any patch check.
    Pass: `Success`, `lastUpdateTime` moved, `firstInstallTime` unchanged. If `adb install -r` fails on the
    signature, stop: never uninstall (see [manager.md](../manager.md) on the keystore).
 2. Clear the log: `adb logcat -c`.
-3. Launch through the resolved activity:
+3. Launch through the resolved activity. The launch shows the feed, so it is only safe when autoplay is already
+   off. The setting is app data and `adb install -r` keeps it: if the last run's device-state report says it was
+   off, go on. After a new login, cleared app data, or on a device you know nothing about, don't launch: ask the
+   owner to set Autoplay to **Never** through scrcpy first, as part of their login.
 
    ```bash
    act=$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN \
@@ -91,11 +94,10 @@ Applies to every build, CLI or Manager, before any patch check.
    ```
 
    Pass: a pid, and focus on `<package>/…MainActivity`.
-4. Confirm autoplay is off before anything else in the app: don't scroll the feed and don't open a post first. More
-   actions → Settings → Search settings, type `autoplay`, open **Autoplay** (under Data options). Its summary must
-   read **Never**; set it if not (the app's default is **WiFi only**). **Enhanced autoplay** (Experimental) must stay
-   off. The setting is app data, so `adb install -r` keeps it and this is normally a confirmation; after a new login
-   or on a device you know nothing about, it is the first thing to do. Never open a video in the app's viewer.
+4. Confirm autoplay is off before you scroll the feed or open a post. More actions → Settings → Search settings,
+   type `autoplay`, open **Autoplay** (under Data options). Its summary must read **Never**; set it if not (the
+   app's default is **WiFi only**). **Enhanced autoplay** (Experimental) must stay off. Never open a video in the
+   app's viewer.
 5. The app opens logged in to its feed: `"$UI" dump | grep -E 'Frontpage|Inbox'`, plus `"$UI" shot baseline`. A
    login page instead means the login is gone: stop and ask the owner to log in through scrcpy. Never record the
    account name.
@@ -113,9 +115,8 @@ Status:
 
 - Steps 1–3, 5 and 6: verified 2026-11-09, edbfi/revanced-patches#21 (Manager's Save APK build installed with
   `adb install -r`, `firstInstallTime` unchanged, feed loaded, no `FATAL` or `NoClassDefFoundError`).
-- Step 4: verified 2026-11-08, in the device set-up session before edbfi/revanced-patches#7 (Autoplay set from WiFi
-  only to Never through the settings search; the labels are from that session's uiautomator dump, which no PR body
-  quotes).
+- Step 4: unverified: confirm on the next run. The labels come from a uiautomator dump of the device set-up
+  session of 2026-11-08 (Autoplay set from WiFi only to Never through the settings search), which no PR body quotes.
 
 ## Patches
 
@@ -157,7 +158,8 @@ Status:
      Pass: 0. If it isn't, read the lines before calling it a failure: the pattern has no unpatched baseline.
   2. The thread shows no ad banner (`"$UI" shot thread`). Before the patch it showed a banner rendering as
      "Webpage not available", and Google's consent form over threads.
-  3. Optional, needs passwordless `sudo` on the host: capture the device's TLS ClientHellos on the container's
+  3. Optional, only when the owner agrees, since it needs passwordless `sudo` on the host and records the host's
+     network traffic: capture the device's TLS ClientHellos on the container's
      network interface during the same scenario and list their SNI host names. The device resolves names over
      DNS-over-TLS, so a DNS capture shows nothing useful. Pass: no `*.amazon-adsystem.com`,
      `googleads.g.doubleclick.net`, `pagead2.googlesyndication.com` or `fundingchoicesmessages.google.com`.
@@ -537,8 +539,9 @@ is expected; report it as a known issue, not as a failure. A symptom it doesn't 
 
 ## Unverified
 
-Patches with at least one check marked `unverified: confirm on the next run`:
+Checks marked `unverified: confirm on the next run`:
 
+- Baseline (step 4)
 - Spoof client (step 3)
 - Disable ads (step 1)
 - Disable Sync for Lemmy bottom sheet (step 2)

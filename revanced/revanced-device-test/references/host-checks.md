@@ -32,22 +32,41 @@ Use the release Manager loads (its Patches tab shows the version, v6.2.1 on 2026
 `ReVanced/revanced-patches` with HTTP 451; ReVanced's API serves the bundle:
 
 ```bash
-R=$TMP/revanced-patches-bundle; mkdir -p "$R"
+R=$RUN/downloads/revanced-bundle; mkdir -p "$R"
 curl -fsS https://api.revanced.app/v5/patches -o "$R/release.json"
-jq -r '.version, .download_url' "$R/release.json"
+jq -r '.version, .download_url, .signature_download_url' "$R/release.json"
 curl -fsSL -o "$R/revanced.rvp" "$(jq -r .download_url "$R/release.json")"
+curl -fsSL -o "$R/revanced.rvp.asc" "$(jq -r .signature_download_url "$R/release.json")"
 sha256sum "$R/revanced.rvp"
 ```
 
 On 2026-11-09 this gave `v6.2.1`, `download_url` `https://api.revanced.app/v5/patches.rvp`, and SHA-256
 `50f41e4656b7374a1c8fe5579fd107f697f86d7f13fc6cd194cf3821761dc4b4`; the release notes linked ReVanced's repository
-on GitLab. `https://api.revanced.app/v5/patches/list` answered 403. Record the version and SHA-256 in the report. The
-bundle runs only in these host checks, with `-b` (no signature check): never install an APK patched with it.
+on GitLab. `https://api.revanced.app/v5/patches/list` answered 403. Record the version and SHA-256 in the report.
+
+A patches bundle is code that the CLI loads, so check its signature before the CLI sees it, in a keyring of its own
+that holds ReVanced's published key (the same steps as for Manager, [manager.md](manager.md) section 2):
+
+```bash
+export GNUPGHOME=$RUN/gnupg; mkdir -p -m 700 "$GNUPGHOME"
+curl -fsSL https://api.revanced.app/keys -o "$R/revanced-keys.asc"
+gpg -q --import "$R/revanced-keys.asc"
+gpg --verify "$R/revanced.rvp.asc" "$R/revanced.rvp"
+```
+
+Expect a good signature from a subkey of the same primary key that signs Manager,
+`A7835DFCACA14BDA3CD6EDD3633C6920FBE6A2FF`. On 2026-11-10, v6.2.1 verified with subkey
+`61C079D8CD06B2B14B4A462F1EDEE52215B296C4`. No good signature, or another primary key: stop, don't run it. The run of
+2026-11-09 skipped this check.
+
+The bundle then runs only in these host checks, with the CLI's `-b` (the CLI's own verification wants an attestation
+as well, which wasn't looked for). Never install an APK patched with it.
 
 ## 3. List a bundle's patches for an app
 
 ```bash
-java -jar "$CLI" list-patches -b -p "$R/revanced.rvp" --packages --filter-package-name <package> |
+env -u ANDROID_SERIAL java -jar "$CLI" list-patches -b -p "$R/revanced.rvp" --packages \
+  --filter-package-name <package> |
   grep -E 'Name:|Enabled:' | paste - -
 ```
 
@@ -60,13 +79,15 @@ same-named patches are the ones whose order decides a mixed run ([manager.md](ma
 ## 4. Two bundles, both orders
 
 ```bash
-H=$TMP/host-checks; mkdir -p "$H"
+H=$RUN/host-checks; mkdir -p "$H"
 OURS=<the repo's built bundle>.rvp
 THEIRS=$R/revanced.rvp
 APK=<the checked original APK>
 run() {
   local name=$1; shift
-  java -jar "$CLI" patch "$@" --keystore "$H/ks.keystore" -o "$H/$name.apk" "$APK" > "$H/$name.log" 2>&1
+  # No ANDROID_SERIAL for the CLI: nothing in a host check needs the device.
+  env -u ANDROID_SERIAL java -jar "$CLI" patch "$@" --keystore "$H/ks.keystore" -o "$H/$name.apk" "$APK" \
+    > "$H/$name.log" 2>&1
   echo "== $name exit=$?"
   grep -E 'SEVERE|succeeded|failed|Could not find|Saved' "$H/$name.log"
 }

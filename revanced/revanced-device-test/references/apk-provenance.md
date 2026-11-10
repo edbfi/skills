@@ -135,8 +135,8 @@ probably gone: stop and tell the owner.
 - **ReVanced Manager:** SHA-256 against GitHub's asset digest, GPG signature against ReVanced's published key, and the
   APK signing certificate; see [manager.md](manager.md) section 2.
 - **ReVanced's own patches bundle**, used only as the second bundle in host checks: where it comes from is in
-  [host-checks.md](host-checks.md) section 2. The run recorded its SHA-256 but didn't verify a signature; it ran with
-  `-b`, which skips verification. Never install an APK patched with it on the device.
+  [host-checks.md](host-checks.md) section 2, with the GPG check to pass before the CLI loads it. Never install an
+  APK patched with it on the device.
 - **The patches repo's own release bundle:** the repo's README gives the CLI command that checks its GPG signature
   and build attestation (`-k`, `-s`, `-a`, `-r`). Manager doesn't verify bundle signatures, so check a release bundle
   with the CLI before trusting what Manager loaded from its URL. The README's command is `patch`, which needs the

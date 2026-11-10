@@ -20,7 +20,7 @@
 #   ADD_FAB_X, ADD_FAB_Y  where to tap the Add patches button, which uiautomator doesn't see
 #
 # Exit codes: 0 the uid has the wanted sign, 1 tries ran out, 2 usage or environment error,
-# 3 a screen or tap target didn't show up, 4 logcat held no single new local bundle uid.
+# 3 a screen or tap target didn't show up or adb failed, 4 logcat held no single new local bundle uid.
 set -euo pipefail
 # readd runs in a command substitution; without this, a failed step inside it wouldn't stop it.
 shopt -s inherit_errexit
@@ -47,7 +47,7 @@ usage: readd-bundle.sh <display-name> <file> <positive|negative> [max-tries]
   max-tries     default 6
 
 Exit codes: 0 the uid has the wanted sign, 1 tries ran out, 2 usage or environment error,
-3 a screen or tap target didn't show up, 4 the new uid couldn't be read from logcat.
+3 a screen or tap target didn't show up or adb failed, 4 the new uid couldn't be read from logcat.
 EOF
 }
 
@@ -67,7 +67,8 @@ name=$1 file=$2 sign=$3 max=${4:-6}
 command -v adb >/dev/null || die 2 "adb isn't on PATH"
 
 # The fixed coordinates only fit the screen they were measured on.
-size=$(adb shell wm size | tr -d '\r' | sed -n 's/^Override size: //p; s/^Physical size: //p' | tail -n 1)
+size=$(adb shell wm size | tr -d '\r' | sed -n 's/^Override size: //p; s/^Physical size: //p' | tail -n 1) ||
+  die 3 "adb couldn't read the screen size from $ANDROID_SERIAL"
 fab_x=${ADD_FAB_X:-$DEFAULT_FAB_X}
 fab_y=${ADD_FAB_Y:-$DEFAULT_FAB_Y}
 [[ $fab_x =~ ^[0-9]+$ && $fab_y =~ ^[0-9]+$ ]] || die 2 "ADD_FAB_X and ADD_FAB_Y must be whole numbers"
@@ -118,7 +119,7 @@ readd() {
     [[ -n $trash ]] || die 3 "edit mode shows no trash icon in the row of '$name'"
   fi
   # shellcheck disable=SC2086 # "cx cy" splits into the two coordinates
-  adb shell input tap $trash
+  adb shell input tap $trash || die 3 "adb couldn't send the tap on the trash icon"
   await 'will be deleted$'
   # NAME is set on awk, the command that reads it: a prefix on the pipeline's first command stops there.
   "$UI" dump 'will be deleted$' |
@@ -132,7 +133,7 @@ readd() {
   done
 
   # Still in edit mode: the button at the bottom right is Add patches.
-  adb shell input tap "$fab_x" "$fab_y"
+  adb shell input tap "$fab_x" "$fab_y" || die 3 "adb couldn't send the tap on Add patches"
   "$UI" wait '^Select from storage$' 10 >/dev/null ||
     die 3 "tapping $fab_x,$fab_y didn't open Add patches; measure the button and set ADD_FAB_X and ADD_FAB_Y"
   tap '^Select from storage$'
@@ -150,7 +151,7 @@ readd() {
   # The file's name, not its "Preview the file ..." icon, which opens a preview.
   tap "$file_re"
   await '^Selected$'
-  adb logcat -c
+  adb logcat -c || die 3 "adb couldn't clear logcat"
   tap '^Add$'
 
   # Manager logs a "Source: PatchBundleEntity(...)" line for every bundle once the new one loads.

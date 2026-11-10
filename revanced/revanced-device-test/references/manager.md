@@ -53,7 +53,8 @@ Record in the final report which Manager version you tested and which statements
 
 ## 2. Download and verify Manager
 
-Download the APK and its signature into a directory of their own:
+Download the APK and its signature into a directory of their own. This one download is kept beside the run
+directories on purpose, so a later run can reuse it; verify it again every time, whoever downloaded it:
 
 ```bash
 V=2.6.0                      # the release from section 1
@@ -72,7 +73,7 @@ The APK's SHA-256 must equal GitHub's `digest` for the asset. v2.6.0:
 Check the GPG signature in a keyring of its own, never the user's:
 
 ```bash
-export GNUPGHOME=$TMP/manager-gnupg; mkdir -p -m 700 "$GNUPGHOME"
+export GNUPGHOME=$RUN/gnupg; mkdir -p -m 700 "$GNUPGHOME"       # a fresh keyring per run
 gpg --list-packets "$D/revanced-manager-$V.apk.asc" | grep -iE 'keyid|issuer|fpr'
 curl -fsSL https://api.revanced.app/keys -o "$D/revanced-keys.asc"
 gpg -q --import "$D/revanced-keys.asc"
@@ -183,10 +184,10 @@ screenshots and the last dump are kept. Quirks seen on 2026-11-09:
 Manager v2.6.0's first start has three screens:
 
 1. **Permissions** ("ReVanced Manager needs a few permissions to work properly"): Install unknown apps, Notifications,
-   Battery optimization. After section 4's commands only **Battery optimization** still offered **Grant**.
-   `adb shell dumpsys deviceidle whitelist +app.revanced.manager.flutter` adds Manager to the system whitelist, but
-   onboarding didn't notice, even after Manager was brought back to the front. Tap **Skip for now**, then **Skip
-   anyway** in "Skip permissions?". Patching ran fine without it.
+   Battery optimization. After section 4's commands only **Battery optimization** still offered **Grant**. Don't
+   try to grant it over adb: the run put Manager on the system's `deviceidle` whitelist and onboarding didn't
+   notice, even after Manager was brought back to the front. Tap **Skip for now**, then **Skip anyway** in "Skip
+   permissions?". Patching ran fine without it.
 2. **Updates** ("Configure automatic updates to keep ReVanced Manager and patches up to date"): untick all three rows,
    **ReVanced Manager** (match 2 of `^ReVanced Manager$`), **ReVanced Patches** and **APK Downloaders**, then **Next**.
    Self-update would move the device off the verified version; the other two add outside inputs to the test.
