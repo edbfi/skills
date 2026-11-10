@@ -1,0 +1,4 @@
+interface:
+  display_name: "ReVanced Device Test"
+  short_description: "Test a ReVanced patches bundle on a device, through the CLI and ReVanced Manager"
+  default_prompt: "Use $revanced-device-test to test this repo's ReVanced patches bundle on the test device: patch through the CLI and ReVanced Manager, install over the existing app, check each patch in the patched app, and report."
