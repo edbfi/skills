@@ -12,28 +12,36 @@
 
 ## Where results go
 
-The patches repo decides. Read its `AGENTS.md` (`CLAUDE.md` links to it), section "Docs": no reports, plans or notes
-in the repo; evidence goes in the PR body. So a run never adds a file to the patches repo, and never adds run
-results to this skill either (only checklist updates, below).
+The patches repo decides: read what its `CLAUDE.md`/`AGENTS.md` says about docs and evidence, and follow that. If it
+says nothing, ask the owner. Whatever it says, a run never commits its artifacts to the patches repo, and never adds
+run results to this skill (only checklist updates, below).
 
-- **CLI path** (builds from the repo's patch recipe, see its Commands): for every patch PR that changes app behaviour,
-  the results go in that PR's body, in its Evidence section.
-- **Manager path** (run by hand with an agent before a release when ReVanced Manager, Patcher or the patches Gradle
-  plugin changed, or when a new app is added): the repo names no place but the PR body. Put the results in the body
-  of the PR that prompted the run (the dependency bump, the new app, or the fix the run found, as
-  edbfi/revanced-patches#21 did). The repo publishes releases from `main` without a release PR (its "Commits and
-  releases" section); if no PR fits, give the results to the owner in the conversation and ask where they go.
+In `edbfi/revanced-patches` on 2026-11-10, the "Docs" section said: no reports, plans or notes in the repo; evidence
+goes in the PR body. Under that rule:
+
+- **CLI path:** the results go in the body of the patch PR they test, in its Evidence section.
+- **Manager path:** the repo names no place but the PR body. Put the results in the body of the PR that prompted the
+  run (the dependency bump, the new app, or the fix the run found, as edbfi/revanced-patches#21 did). That repo
+  publishes releases from `main` without a release PR; if no PR fits, give the results to the owner in the
+  conversation and ask where they go.
 
 ## The run directory
 
-Everything a run produces stays in the patches repo's ignored `tmp/`, one directory per run, never committed:
+Everything a run produces stays in the patches repo's ignored `tmp/`, one directory per run, never committed. Set
+it up once, at the start; the commands in every reference of this skill use these names:
 
 ```bash
+export ANDROID_SERIAL=<serial>               # from the patches repo's "Test device" section
+TMP=<patches-repo>/tmp                       # the repo's ignored directory for samples and output
+SKILL=<this skill's directory>               # the directory that holds SKILL.md
+UI=$SKILL/scripts/ui.sh
 RUN="$TMP/device-test/$(date -u +%Y%m%dT%H%M%SZ)"
 export UI_OUT="$RUN/shots"                   # ui.sh shot writes here
 mkdir -p "$UI_OUT" "$RUN/logs" "$RUN/downloads"
 git -C <patches-repo> check-ignore -q "$RUN" && echo ignored
 ```
+
+Stop if the last line doesn't print `ignored`: the directory would show up in the repo's `git status`.
 
 - `shots/`: screenshots, named after the check (`slink`, `thumbnails`, `cold-start`).
 - `logs/`: the logcat excerpts you may quote, one file per check:
@@ -126,7 +134,8 @@ The PR body is public. Before anything leaves `$RUN`:
 The device is shared. End every run with this, to the owner and, for a Manager run, in the PR body:
 
 - **Patched app:** `versionName` / `versionCode` and which build is installed (commit or release, CLI or Manager);
-  `firstInstallTime` before and after (unchanged); still logged in; Autoplay at Never, Enhanced autoplay off.
+  `firstInstallTime` before and after (unchanged); still logged in; video autoplay off (the app's checklist
+  names the settings).
 
   ```bash
   adb shell dumpsys package <package> | grep -E 'versionName|versionCode|firstInstallTime|lastUpdateTime'
@@ -147,7 +156,7 @@ The device is shared. End every run with this, to the owner and, for a Manager r
 The checklists in [apps/](apps/README.md) are keyed by patch name, which the patches repo owns, so they drift. At
 the end of every run:
 
-1. Run `scripts/checklist-gaps.sh <patches-repo>/docs/<app>.md references/apps/<app>.md`.
+1. Run `"$SKILL/scripts/checklist-gaps.sh" <patches-repo>/docs/<app>.md "$SKILL/references/apps/<app>.md"`.
 2. Collect what the run learned: patches with no entry, entries for patches that are gone, checks now confirmed,
    checks that didn't match the app (a label, a log line, a URL that no longer works).
 3. Suggest a PR to `edbfi/skills` updating `references/apps/<app>.md`:

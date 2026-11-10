@@ -55,13 +55,11 @@ they disagree, the docs and the file win and this list needs a fix.
 
 ## Set-up for every run
 
+The run directory block in [evidence.md](../evidence.md) sets `ANDROID_SERIAL`, `TMP`, `RUN`, `UI_OUT` and `UI`; run
+it once, then:
+
 ```bash
-export ANDROID_SERIAL=<serial>        # from the patches repo's "Test device" section
 pkg=<package>                         # from the docs' Tested version table
-RUN="$TMP/device-test/$(date -u +%Y%m%dT%H%M%SZ)"   # $TMP: the patches repo's ignored tmp/
-export UI_OUT="$RUN/shots"
-mkdir -p "$UI_OUT" "$RUN/downloads"
-UI=<skill-dir>/scripts/ui.sh
 ```
 
 Every file a check pulls from the device goes in a new directory under `$RUN/downloads/`; it is untrusted data.
@@ -93,10 +91,15 @@ Applies to every build, CLI or Manager, before any patch check.
    ```
 
    Pass: a pid, and focus on `<package>/…MainActivity`.
-4. The app opens logged in to its feed: `"$UI" dump | grep -E 'Frontpage|Inbox'`, plus `"$UI" shot baseline`. A
+4. Confirm autoplay is off before anything else in the app: don't scroll the feed and don't open a post first. More
+   actions → Settings → Search settings, type `autoplay`, open **Autoplay** (under Data options). Its summary must
+   read **Never**; set it if not (the app's default is **WiFi only**). **Enhanced autoplay** (Experimental) must stay
+   off. The setting is app data, so `adb install -r` keeps it and this is normally a confirmation; after a new login
+   or on a device you know nothing about, it is the first thing to do. Never open a video in the app's viewer.
+5. The app opens logged in to its feed: `"$UI" dump | grep -E 'Frontpage|Inbox'`, plus `"$UI" shot baseline`. A
    login page instead means the login is gone: stop and ask the owner to log in through scrcpy. Never record the
    account name.
-5. Check the log:
+6. Check the log:
 
    ```bash
    adb logcat -d | grep -E 'FATAL EXCEPTION|NoClassDefFound|VerifyError|ClassNotFound|edbfi'
@@ -105,15 +108,12 @@ Applies to every build, CLI or Manager, before any patch check.
    Pass: no `FATAL EXCEPTION`, `NoClassDefFoundError`, `VerifyError` or `ClassNotFoundException`. Lines tagged
    `edbfi` are the extension's own warnings: read them. A failed request it reports (for example a Reddit 504 on one
    comment page) is not a crash, but note it.
-6. Before any patch check, confirm autoplay is off: More actions → Settings → Search settings, type `autoplay`, open
-   **Autoplay** (under Data options). Its summary must read **Never**; set it if not (the app's default is
-   **WiFi only**). **Enhanced autoplay** (Experimental) must stay off. Never open a video in the app's viewer.
 
 Status:
 
-- Steps 1–5: verified 2026-11-09, edbfi/revanced-patches#21 (Manager's Save APK build installed with
+- Steps 1–3, 5 and 6: verified 2026-11-09, edbfi/revanced-patches#21 (Manager's Save APK build installed with
   `adb install -r`, `firstInstallTime` unchanged, feed loaded, no `FATAL` or `NoClassDefFoundError`).
-- Step 6: verified 2026-11-08, device set-up before edbfi/revanced-patches#7 (Autoplay set from WiFi only to Never
+- Step 4: verified 2026-11-08, device set-up before edbfi/revanced-patches#7 (Autoplay set from WiFi only to Never
   through the settings search).
 
 ## Patches
@@ -150,10 +150,10 @@ Status:
      then count ad SDK lines:
 
      ```bash
-     adb logcat -d | grep -ciE 'googleads|doubleclick|googlesyndication|amazon-adsystem|MobileAds|Ads\s*:'
+     adb logcat -d | grep -ciE 'googleads|doubleclick|googlesyndication|amazon-adsystem|MobileAds'
      ```
 
-     Pass: 0.
+     Pass: 0. If it isn't, read the lines before calling it a failure: the pattern has no unpatched baseline.
   2. The thread shows no ad banner (`"$UI" shot thread`). Before the patch it showed a banner rendering as
      "Webpage not available", and Google's consent form over threads.
   3. Optional, needs passwordless `sudo` on the host: capture the device's TLS ClientHellos on the container's
@@ -163,8 +163,8 @@ Status:
      `firebaseremoteconfig.googleapis.com` is the app's remote config, not an ad.
 - **Needs:** login, network.
 - **Status:**
-  - Step 1: verified 2026-11-08, device session behind edbfi/revanced-patches#9 (count 0 on the patched build; no
-    count was recorded for an unpatched build).
+  - Step 1: unverified: confirm on the next run. edbfi/revanced-patches#9 records no logcat count, and none was
+    taken on an unpatched build.
   - Steps 2–3: verified 2026-11-08, edbfi/revanced-patches#9.
 
 ### Disable Sync for Lemmy bottom sheet
@@ -500,9 +500,10 @@ Status:
 
 - **Changes:** rewrites the six `u/` and `https://oauth.reddit.com/u/` literals in the user-profile requests
   (`OAuthUser*`, `OAuthSubredditInfo`, `OAuthFriend`/`OAuthUnfriend`, the methods holding `/about.json`) to
-  `user/`, cache keys included. Off by default.
+  `user/`, cache keys included.
 - **Check:**
-  1. Only on a build with the patch enabled explicitly (CLI `-e "Use /user/ endpoint"`; the repo's patch command
+  1. The docs list this patch as off by default, so check it only on a build with the patch enabled explicitly
+     (CLI `-e "Use /user/ endpoint"`; the repo's patch command
      passes extra CLI arguments through, see its Commands). Run the Baseline on that build.
   2. Open a public profile:
      `adb shell am start -a android.intent.action.VIEW -d 'https://www.reddit.com/user/spez' -p "$pkg"`, then
@@ -536,6 +537,7 @@ is expected; report it as a known issue, not as a failure. A symptom it doesn't 
 Patches with at least one check marked `unverified: confirm on the next run`:
 
 - Spoof client (step 3)
+- Disable ads (step 1)
 - Disable Sync for Lemmy bottom sheet (step 2)
 - Enable Sync Ultra (steps 5–7)
 - Fix /s/ links (step 3)

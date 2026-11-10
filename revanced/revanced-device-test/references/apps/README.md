@@ -9,8 +9,8 @@ the device and the commands. Read those from the repo at run time; never copy th
 
 1. A short opening: what the file covers, that the docs win on which patches exist, and the date of the last full
    pass (or a note that there hasn't been one).
-2. **App facts** the patches repo doesn't state but a tester needs, each with its source and date: the package as
-   observed, the original signer's certificate SHA-256 (the value [apk-provenance.md](../apk-provenance.md) checks
+2. **App facts** the patches repo doesn't state but a tester needs, each with its source and date: the original
+   signer's certificate SHA-256 (the value [apk-provenance.md](../apk-provenance.md) checks
    against), a file SHA-256 labelled with the file and date it was seen on (never as "the tested version"), split
    or plain APK, launch activity, anything a check relies on (link handler, log tag).
 3. **Baseline after every install**: the checks every patch shares (install in place, launch, logged in, logcat).
@@ -64,7 +64,7 @@ Rules:
 5. Run [`scripts/checklist-gaps.sh`](../../scripts/checklist-gaps.sh):
 
    ```bash
-   scripts/checklist-gaps.sh <patches-repo>/docs/<app>.md references/apps/<app>.md
+   "$SKILL/scripts/checklist-gaps.sh" <patches-repo>/docs/<app>.md "$SKILL/references/apps/<app>.md"
    ```
 
    It compares the headings under `## Patches` with the docs' Patches table, lists

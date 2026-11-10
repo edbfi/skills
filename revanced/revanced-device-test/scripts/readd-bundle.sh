@@ -45,11 +45,15 @@ usage: readd-bundle.sh <display-name> <file> <positive|negative> [max-tries]
   positive      ReVanced's bundle loads first (the order a positive uid gives)
   negative      this bundle loads first
   max-tries     default 6
+
+Exit codes: 0 the uid has the wanted sign, 1 tries ran out, 2 usage or environment error,
+3 a screen or tap target didn't show up, 4 the new uid couldn't be read from logcat.
 EOF
 }
 
 die() { printf 'readd-bundle: %s\n' "${*:2}" >&2; exit "$1"; }
 
+case ${1:-} in -h | --help) usage; exit 0 ;; esac
 [[ $# -ge 3 && $# -le 4 ]] || {
   usage >&2
   exit 2
@@ -66,9 +70,11 @@ command -v adb >/dev/null || die 2 "adb isn't on PATH"
 size=$(adb shell wm size | tr -d '\r' | sed -n 's/^Override size: //p; s/^Physical size: //p' | tail -n 1)
 fab_x=${ADD_FAB_X:-$DEFAULT_FAB_X}
 fab_y=${ADD_FAB_Y:-$DEFAULT_FAB_Y}
-if [[ $size != "$MEASURED_SIZE" && -z ${ADD_FAB_X:-} && -z ${ADD_FAB_Y:-} ]]; then
+[[ $fab_x =~ ^[0-9]+$ && $fab_y =~ ^[0-9]+$ ]] || die 2 "ADD_FAB_X and ADD_FAB_Y must be whole numbers"
+# On another screen both coordinates must be measured: one default plus one override is a blind tap.
+if [[ $size != "$MEASURED_SIZE" && (-z ${ADD_FAB_X:-} || -z ${ADD_FAB_Y:-}) ]]; then
   die 2 "the screen is ${size:-unknown}, not $MEASURED_SIZE: measure the Add patches button," \
-    "then set ADD_FAB_X and ADD_FAB_Y"
+    "then set both ADD_FAB_X and ADD_FAB_Y"
 fi
 
 focus=$(adb shell dumpsys window | grep mCurrentFocus || true)
@@ -114,12 +120,13 @@ readd() {
   # shellcheck disable=SC2086 # "cx cy" splits into the two coordinates
   adb shell input tap $trash
   await 'will be deleted$'
-  NAME=$name "$UI" dump 'will be deleted$' |
-    awk -F'\t' 'index($6, ENVIRON["NAME"]) { found = 1 } END { exit !found }' ||
+  # NAME is set on awk, the command that reads it: a prefix on the pipeline's first command stops there.
+  "$UI" dump 'will be deleted$' |
+    NAME=$name awk -F'\t' 'index($6, ENVIRON["NAME"]) { found = 1 } END { exit !found }' ||
     die 3 "the delete dialog doesn't name '$name'; tap Cancel and check the screen"
   tap '^Confirm$'
   for i in $(seq 11); do
-    NAME=$name "$UI" dump | awk -F'\t' '$6 == ENVIRON["NAME"] { found = 1 } END { exit found }' && break
+    "$UI" dump | NAME=$name awk -F'\t' '$6 == ENVIRON["NAME"] { found = 1 } END { exit found }' && break
     ((i < 11)) || die 3 "'$name' is still listed 10s after Confirm"
     sleep 1
   done

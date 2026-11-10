@@ -16,7 +16,8 @@
 # writes its PNGs there. Without it, dumps go to a temporary file and `shot` refuses.
 #
 # Exit codes: 0 ok, 1 no node matched (tap), 2 usage or environment error, 3 adb or
-# uiautomator failure (no usable dump after retries, empty screenshot), 124 wait timed out.
+# uiautomator failure (no usable dump after retries, or none at all during a wait; empty
+# screenshot), 124 wait timed out.
 set -euo pipefail
 
 DEVICE_XML=/sdcard/ui.xml
@@ -32,6 +33,10 @@ usage: ui.sh <command> [args]
   wait <regex> [secs]     dump until a node matches, then print its rows (default 30 s)
   shot <name>             save a screenshot as $UI_OUT/<name>.png
   type <text>             type text into the focused field (spaces become %s)
+
+Needs ANDROID_SERIAL (except nodes); shot needs UI_OUT, an existing directory.
+Exit codes: 0 ok, 1 no node matched, 2 usage or environment error, 3 adb or uiautomator
+failure, 124 wait timed out.
 EOF
 }
 
@@ -91,11 +96,10 @@ xml_file() {
   fi
 }
 
-# Take a fresh dump into $xml. The device file is removed first so a failed dump can't leave the
-# previous screen behind; an empty or unparsable dump is retried.
-dump_xml() {
-  local try
-  for try in 1 2 3; do
+# Take a fresh dump into $xml, or return 1. The device file is removed first so a failed dump
+# can't leave the previous screen behind; an empty or unparsable dump is retried.
+try_dump() {
+  for _ in 1 2 3; do
     adb shell rm -f "$DEVICE_XML" >/dev/null 2>&1 || true
     if adb shell uiautomator dump "$DEVICE_XML" >/dev/null 2>&1 &&
       adb exec-out cat "$DEVICE_XML" >"$xml" 2>/dev/null &&
@@ -104,8 +108,10 @@ dump_xml() {
     fi
     sleep 1
   done
-  die 3 "no usable uiautomator dump after $try tries; is the screen on and the app idle?"
+  return 1
 }
+
+dump_xml() { try_dump || die 3 "no usable uiautomator dump after 3 tries; is the screen on and the app idle?"; }
 
 positive_int() { [[ $1 =~ ^[1-9][0-9]*$ ]] || die 2 "$2 must be a positive integer, not '$1'"; }
 
@@ -149,14 +155,21 @@ case $command in
     need_device
     xml_file
     deadline=$((SECONDS + secs))
+    dumped=0
     while :; do
-      dump_xml
-      rows=$(table "$xml" "$1")
-      if [[ -n $rows ]]; then
-        printf '%s\n' "$rows"
-        exit 0
+      # A busy screen can refuse a dump ("could not get idle state"): that is "no match yet".
+      if try_dump; then
+        dumped=1
+        rows=$(table "$xml" "$1")
+        if [[ -n $rows ]]; then
+          printf '%s\n' "$rows"
+          exit 0
+        fi
       fi
-      ((SECONDS <= deadline)) || die 124 "timed out after ${secs}s waiting for /$1/"
+      if ((SECONDS > deadline)); then
+        ((dumped)) || die 3 "no usable uiautomator dump in ${secs}s while waiting for /$1/"
+        die 124 "timed out after ${secs}s waiting for /$1/"
+      fi
       sleep 1
     done
     ;;

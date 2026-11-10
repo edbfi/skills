@@ -7,8 +7,8 @@ does something unexpected. The patches repo owns the device serial, the bundle's
 tested version; this file only gives examples of them, marked as observations from the run on 2026-11-09.
 
 **Last verified on 2026-11-09, Manager v2.6.0.** Before relying on anything below, check for a newer release
-([section 1](#1-check-for-a-newer-manager)). Commands below assume `ANDROID_SERIAL` is exported with the serial the
-patches repo's `AGENTS.md` gives, `$TMP` is the repo's ignored `tmp/`, and `UI=<skill>/scripts/ui.sh`.
+([section 1](#1-check-for-a-newer-manager)). Commands below use `ANDROID_SERIAL`, `$TMP`, `$SKILL`, `$UI` and
+`$UI_OUT` from the run directory block in [evidence.md](evidence.md).
 
 ## Contents
 
@@ -235,11 +235,16 @@ patches** offers **Enter URL** ("Patches can receive updates", marked **Recommen
 ("Add patches from local storage") → **Next**.
 
 - **Local file**, for builds that aren't released: `adb push <bundle>.rvp /sdcard/Download/`, choose **Select from
-  storage**, **Next**, tap **Not selected**, pick the file (it then reads **Selected**), tap **Add**.
+  storage**, **Next**, tap **Not selected**, pick the file (it then reads **Selected**), run `adb logcat -c`, tap
+  **Add**.
 - **URL**, what users do: take the URL from the Install section of the patches repo's README, choose **Enter URL**,
-  **Next**, tap **Patches URL**, type the URL, close the keyboard, tap **Add**. **Auto update** sits under the field;
+  **Next**, tap **Patches URL**, type the URL, close the keyboard, run `adb logcat -c`, tap **Add**. **Auto update**
+  sits under the field;
   the run left it as it was, and logcat showed `autoUpdate=true`. On 2026-11-09 the README's
   `…/releases/latest/download/patches-bundle.json` loaded release v0.1.0.
+
+Right after the add, read the bundle's uid from logcat (section 10) and note it: Manager logs it only when a bundle
+is added, and a later `adb logcat -c` loses it.
 
 Manager leaves edit mode after every add. The bundle's row then shows its name, version and patch count, for example
 `edbfi patches` / `0.0.0 • 15 patches` for a local build and `v0.1.0 (11h ago) • 12 patches` for the URL. Check them
@@ -285,19 +290,20 @@ D ReVanced Manager: Source: PatchBundleEntity(uid=-512351965, name=Unnamed, vers
 A local bundle has an empty `name` and `versionHash=null`; a URL bundle has `name=Unnamed`, the release tag and the
 URL.
 
-Test the order that fails, ReVanced's bundle first (a positive uid). If the bundle got a negative uid, re-add it until
-the sign is right:
+Test both orders. The one that matters most is ReVanced's bundle first (a positive uid), the order that failed
+before; if there is time for one only, test that one. Patch with the order the first add gave, then re-add the bundle
+until it has the other sign:
 
 ```bash
-<skill>/scripts/readd-bundle.sh '<bundle name as Manager shows it>' <bundle>.rvp positive
+"$SKILL/scripts/readd-bundle.sh" '<bundle name as Manager shows it>' <bundle>.rvp <positive|negative>
 ```
 
 It prints each try's uid; each try is a coin flip, so six tries fail about once in 64. It handles local bundles only;
-for a URL bundle repeat section 9's URL steps by hand, deleting the bundle first. The run needed 1 try for v0.1.0 by
-URL and 2 for a local build.
+for a URL bundle repeat section 9's URL steps by hand, deleting the bundle first. In the run, v0.1.0 by URL got a
+negative uid first and a positive one on the next add; a local build needed 2 tries.
 
-**Selections are saved per bundle uid.** After a re-add, the app's selection is back to the default (the unlock from
-section 8 stays): untick ReVanced Patches again (section 11).
+**After a re-add, the app's selection was back to the default** in the run (the unlock from section 8 stays): untick
+ReVanced Patches again (section 11) and check the count before patching.
 
 ## 11. Select the app and patches
 
@@ -312,8 +318,8 @@ Patch both selections:
    patches for the same app next to the repo's.
 2. **The repo's bundle only**, what the README tells users to do: after section 8, **Select patches**, untick the
    **ReVanced Patches** header (fixed coordinates, section 5; check which bundle's header is at the top first), **Save**
-   (the button reads "Save (21)" on screen and "Save" in the dump). "N patches selected" must equal the repo's
-   default-on count.
+   (the button reads "Save (N)" on screen, "Save (14)" in the run, and "Save" in the dump). "N patches selected" must
+   equal the repo's default-on count.
 
 Patch options: a patch row with options has a **Settings** gear. Its screen lists each option with its description;
 required ones end in `*`, an unchanged option shows **Using default value**, and an option with preset values has
@@ -330,13 +336,17 @@ repo's bundle first, all 21 completed, which says nothing about how two overlapp
 
 Tap **Patch**. The **Patcher** screen shows steps (**Preparing**, **Patching** with an **Execute patches** list of
 each patch and its status, then **Saving**), and at the bottom **Save APK** and **Save logs**, which are there from the
-start. When patching ends, **Install** appears on success, and a step's status reads `failed` on failure:
+start. When patching ends, **Install** appears on success. On a failure the run saw the failed step marked with a
+red cross and the exception's text under **Execute patches**; the label of the failed status was never read from a
+dump, so wait for the exception text as well:
 
 ```bash
-$UI tap '^Patch$'
-$UI wait '^(Install|failed)$' 300
-$UI shot <name>
+"$UI" tap '^Patch$'
+"$UI" wait '^Install$|^failed$|Exception' 300
+"$UI" shot <name>
 ```
+
+A wait that times out (exit 124) is not a result: take a screenshot and a dump, and read the screen.
 
 Never tap **Install** unless the owner allowed Manager's installer (ground rules in SKILL.md).
 
@@ -358,8 +368,9 @@ On 2026-11-09 Redroid patched 14 patches in about 33 s, 21 in 34 s. Memory, read
 
 ## 13. Save APK and pull it
 
-There is no root shell (`adb shell id` is uid 2000, `shell`) and Manager isn't debuggable, so `run-as` can't read its
-result. Don't run `adb root` on the shared device: it restarts adbd. Use **Save APK**, as a user would:
+`adb shell` runs as uid 2000 (`shell`) and Manager isn't debuggable, so `run-as` can't read its result. The image has
+`su`, but reading Manager's private files as root isn't how a user gets the APK, and `adb root` restarts adbd on the
+shared device. Use **Save APK**, as a user would:
 
 1. Tap **Save APK**. The file picker opens in Downloads with a name filled in:
    `com.laurencedawson.reddit_sync_v23.06.30-13:39_revanced_patched.apk` in the run, so presumably
@@ -368,7 +379,7 @@ result. Don't run `adb root` on the shared device: it restarts adbd. Use **Save 
 
 ```bash
 adb shell ls /sdcard/Download/ | grep revanced_patched
-adb pull "/sdcard/Download/<saved name>" "$TMP/<run dir>/manager-patched.apk"
+adb pull "/sdcard/Download/<saved name>" "$RUN/manager-patched.apk"
 ```
 
 Then check it as [apk-provenance.md](apk-provenance.md) section 5 describes: the signer certificate equals the CLI

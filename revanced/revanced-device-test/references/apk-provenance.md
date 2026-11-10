@@ -89,15 +89,17 @@ Run these on every patched APK before it goes on the device, whether it came fro
 or from Manager's **Save APK** ([manager.md](manager.md) section 13):
 
 ```bash
-out=$TMP/<run dir>/manager-patched.apk     # the APK to check
-ref=<the CLI build of the same commit>     # the CLI build to compare with
+out=$RUN/manager-patched.apk               # the APK to check
+ref=<the CLI build of the same commit>     # the CLI build to compare with (for a Manager build)
 "$apksigner" verify --print-certs "$out" | grep 'certificate SHA-256'
 "$apksigner" verify --print-certs "$ref" | grep 'certificate SHA-256'
 "$aapt2" dump badging "$out" | head -1
 ```
 
-- **Signer:** the same certificate as the CLI build, which is the one the installed app is signed with. Compare the two
-  builds with each other rather than with a hash written down somewhere; the test key belongs to the repo. On
+- **Signer:** for a Manager build, the same certificate as the CLI build, which is the one the installed app is signed
+  with. Compare the two builds with each other rather than with a hash written down somewhere; the test key belongs
+  to the repo. For the CLI build itself there is nothing to compare yet: note its certificate, and let
+  `adb install -r` over the installed app be the test. On
   2026-11-09 both read `db947b6f…38eb`. A different signer means Manager didn't use the imported keystore: don't
   install it, `adb install -r` would refuse it and an uninstall would lose the login.
 - **Version:** package, versionName and versionCode equal the original APK's. Patches don't change them.
@@ -106,7 +108,7 @@ ref=<the CLI build of the same commit>     # the CLI build to compare with
   2026-11-09 they were `app/edbfi/extension/…` and `extensions/edbfi/syncforreddit.rve`.
 
 ```bash
-d=$TMP/<run dir>/dex-check; mkdir -p "$d"
+d=$RUN/dex-check; rm -rf "$d"; mkdir -p "$d"      # a fresh directory per APK: no dex left from the last one
 unzip -o -q "$out" 'classes*.dex' -d "$d"
 for x in "$d"/classes*.dex; do "$dexdump" "$x"; done > "$d/dump.txt" 2>/dev/null
 grep -cE "Class descriptor.*'L<extension package path>/" "$d/dump.txt"
