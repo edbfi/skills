@@ -37,8 +37,9 @@ It works in any ReVanced patches repo laid out like `edbfi/revanced-patches`: a 
 | Manager | By hand before a release when Manager, Patcher or the patches Gradle plugin changed, or an app was added | 1–8, 10, 11 |
 | Release | After a release is published | 1, 2, 4, 9, 10, 11 |
 
-Every path that touches the device includes step 4. The Release path also needs Manager set up (steps 8.1 and 8.2)
-if it isn't already.
+Every path that touches the device includes step 4. Host checks also need the repo's built bundle and its pinned CLI
+jar, which the repo's build and patch recipes produce (step 6.1). The Release path also needs Manager set up (steps
+8.1 and 8.2) if it isn't already.
 
 The CLI path is where patches are checked one by one. The Manager path shows that Manager loads the bundle, patches
 with it next to ReVanced's own bundle, and produces the same app; it repeats only a few per-patch checks.
@@ -119,7 +120,9 @@ steps don't cover; don't work around it on the device.
    2. Install it, grant its permissions, go through onboarding with self-update, ReVanced Patches and Downloaders
       unticked, and import the keystore the repo's patch recipe signs with. Remove the keystore copy from shared
       storage at once.
-   3. Add the repo's bundle: the local `.rvp` for an unreleased build, the README's URL for a release. Clear logcat
+   3. Delete any bundle of this repo that an earlier run left in Manager, so that only ReVanced Patches and the
+      bundle under test are loaded. Then add the repo's bundle: the local `.rvp` for an unreleased build, the
+      README's URL for a release. Clear logcat
       just before the add and read the bundle's uid from it just after: Manager logs it only then, and its sign says
       which bundle loads first. The bundle's name, version and patch count must match the repo.
    4. Patch with **the default selection** first, which is what a user gets: ReVanced's own bundle can't be removed
@@ -134,9 +137,10 @@ steps don't cover; don't work around it on the device.
       classes present), install the repo-only build with `adb install -r`, and run the Baseline plus the few
       checks the checklist names for a Manager build. Don't install the mixed-selection build unless the owner
       asks: for that path, report whether patching completed and that the app was not exercised.
-9. **After a release:** add the README's URL in Manager and check that it loads the new version and patch count
-   (manager.md, "After a release is published"). Check the release bundle's signature with the CLI command in the
-   repo's README; Manager doesn't verify it.
+9. **After a release:** delete any bundle of this repo an earlier run left in Manager, add the README's URL, and
+   check that it loads the new version and patch count (manager.md, "After a release is published"). Manager doesn't
+   verify a bundle's signature, so check the release bundle with the pinned CLI and the verification flags the
+   repo's README gives (apk-provenance.md, "Other downloads").
 10. **Clean up.**
     - If the run installed any build of the app, leave it on the CLI build of the commit under test with the
       repo's default patches, installed with `adb install -r`, unless the owner wants another build, and check

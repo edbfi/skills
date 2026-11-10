@@ -7,8 +7,8 @@ does something unexpected. The patches repo owns the device serial, the bundle's
 tested version; this file only gives examples of them, marked as observations from the run on 2026-11-09.
 
 **Last verified on 2026-11-09, Manager v2.6.0.** Before relying on anything below, check for a newer release
-([section 1](#1-check-for-a-newer-manager)). Commands below use `ANDROID_SERIAL`, `$TMP`, `$SKILL`, `$UI` and
-`$UI_OUT` from the run directory block in [evidence.md](evidence.md).
+([section 1](#1-check-for-a-newer-manager)). Commands below use `ANDROID_SERIAL`, `$TMP`, `$RUN`, `$SKILL`, `$UI`
+and `$UI_OUT` from the run directory block in [evidence.md](evidence.md).
 
 ## Contents
 
@@ -230,6 +230,9 @@ logs**. The run patched in-process, the default.
 
 ## 9. Add a bundle
 
+First delete any bundle of the repo under test that an earlier run left loaded (how to remove one is below): two
+copies of a bundle collide on their own file paths, and the order test in section 10 assumes one.
+
 **Patches** tab → **Edit** (bottom right) → **Add patches** (fixed coordinates, section 5) → the dialog **Add
 patches** offers **Enter URL** ("Patches can receive updates", marked **Recommended**) and **Select from storage**
 ("Add patches from local storage") → **Next**.
@@ -379,7 +382,8 @@ shared device. Use **Save APK**, as a user would:
 
 ```bash
 adb shell ls /sdcard/Download/ | grep revanced_patched
-adb pull "/sdcard/Download/<saved name>" "$RUN/manager-patched.apk"
+d="$RUN/downloads/manager-<selection>-<order>"; mkdir -p "$d"     # one directory per Manager build
+adb pull "/sdcard/Download/<saved name>" "$d/patched.apk"
 ```
 
 Then check it as [apk-provenance.md](apk-provenance.md) section 5 describes: the signer certificate equals the CLI

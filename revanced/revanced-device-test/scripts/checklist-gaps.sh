@@ -5,6 +5,7 @@
 # whose header row is `| Patch | What it does | Default |` (cell padding is ignored). The checklist's entries are
 # the `### ` headings under its own `## Patches` heading. Names must match exactly. Fenced code blocks are skipped
 # in both files, at any indentation. The unverified marker counts only when it stands on one line, outside a fence.
+# A patch name is read up to the first `|`, so a name holding an escaped pipe is not supported.
 #
 # Prints the patches with no checklist entry, the entries for patches the docs no longer list, duplicate entries,
 # and the entries holding `unverified: confirm on the next run` (informational: they don't change the exit code).

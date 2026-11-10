@@ -113,8 +113,9 @@ Status:
 
 - Steps 1–3, 5 and 6: verified 2026-11-09, edbfi/revanced-patches#21 (Manager's Save APK build installed with
   `adb install -r`, `firstInstallTime` unchanged, feed loaded, no `FATAL` or `NoClassDefFoundError`).
-- Step 4: verified 2026-11-08, device set-up before edbfi/revanced-patches#7 (Autoplay set from WiFi only to Never
-  through the settings search).
+- Step 4: verified 2026-11-08, in the device set-up session before edbfi/revanced-patches#7 (Autoplay set from WiFi
+  only to Never through the settings search; the labels are from that session's uiautomator dump, which no PR body
+  quotes).
 
 ## Patches
 
@@ -205,7 +206,7 @@ Status:
 
      ```bash
      adb shell am force-stop "$pkg"
-     adb shell "su 0 rm -rf /data/data/$pkg/cache/image_manager_disk_cache"
+     adb shell "su 0 rm -rf /data/data/${pkg:?}/cache/image_manager_disk_cache"
      adb logcat -c
      ```
 
@@ -320,8 +321,10 @@ Status:
        -d 'https://www.reddit.com/r/gifs/search?q=gfycat.com&restrict_sr=on&sort=comments&t=all' $pkg"
      ```
 
-     Open a result, scroll its comments, then `adb logcat -d | grep -cE 'image\?url=.*gfycat'`. Pass: 0, and no
-     empty preview box under the Gfycat links. Before the patch, Glide logged
+     Open the text post #19 used, r/gifs' "Gfycat.com pages now allowed!", by tapping its title, never a thumbnail:
+     the other results are media posts, and opening one plays it. Scroll its comments, then
+     `adb logcat -d | grep -cE 'image\?url=.*gfycat'`. Pass: 0, and no empty preview box under the Gfycat links.
+     Before the patch, Glide logged
      `Load failed for https://ap.syncforreddit.com/image?url=http://giant.gfycat.com/…`.
 - **Needs:** network; a thread with Gfycat links in comments.
 - **Status:** verified 2026-11-09, edbfi/revanced-patches#19.
@@ -346,7 +349,7 @@ Status:
   1. Start the app's download job for a v.redd.it video (no playback):
 
      ```bash
-     adb shell "su 0 sh -c 'rm -f /sdcard/Android/data/$pkg/cache/images/*.mp4'"
+     adb shell "su 0 sh -c 'rm -f /sdcard/Android/data/${pkg:?}/cache/images/*.mp4'"
      adb logcat -c
      adb shell "su 0 sh -c 'am broadcast -n $pkg/.receiver.download.RetryReceiver --es title VideoTest \
        --es subreddit magpies --es url https://v.redd.it/9t7qu1y5bc0i1 --ei mode 1 --ei id 2'"
@@ -367,7 +370,7 @@ Status:
 
      Pass: a video stream (`codec_type=video`, h264 with width and height) and an audio stream (`aac`). Fail: audio
      only (before the patch: one `aac` stream, about 225 KB). Don't open the file in a player.
-  3. Remove the cached file: `adb shell "su 0 sh -c 'rm -f /sdcard/Android/data/$pkg/cache/images/*.mp4'"`.
+  3. Remove the cached file: `adb shell "su 0 sh -c 'rm -f /sdcard/Android/data/${pkg:?}/cache/images/*.mp4'"`.
 - **Needs:** network, `ffprobe` on the host, root on the device.
 - **Status:** verified 2026-11-08, edbfi/revanced-patches#10 (H.264 720×1280 plus AAC, 3.6 MB).
 

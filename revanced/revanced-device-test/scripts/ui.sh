@@ -145,7 +145,7 @@ case $command in
     row=$(table "$xml" "$1" | sed -n "${nth}p")
     [[ -n $row ]] || die 1 "no node matches /$1/ (match $nth)"
     IFS=$'\t' read -r bounds cx cy _ <<<"$row"
-    adb shell input tap "$cx" "$cy"
+    adb shell input tap "$cx" "$cy" || die 3 "adb couldn't send the tap"
     printf 'tapped /%s/ at %s\n' "$1" "$bounds"
     ;;
   wait)
@@ -179,7 +179,7 @@ case $command in
     [[ -n ${UI_OUT:-} && -d $UI_OUT ]] || die 2 "set UI_OUT to the directory that keeps this run's screenshots"
     need_device
     png=$UI_OUT/$1.png
-    adb exec-out screencap -p >"$png"
+    adb exec-out screencap -p >"$png" || die 3 "adb couldn't take the screenshot"
     [[ -s $png ]] || die 3 "screencap wrote nothing to $png"
     printf '%s\n' "$png"
     ;;
@@ -188,7 +188,7 @@ case $command in
     # `input text` takes %s for a space; the device shell gets the text in single quotes.
     [[ $1 != *[\'%]* ]] || die 2 "type can't send ' or %"
     need_device
-    adb shell input text "'${1// /%s}'"
+    adb shell input text "'${1// /%s}'" || die 3 "adb couldn't send the text"
     ;;
   -h | --help | help)
     usage

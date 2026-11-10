@@ -89,7 +89,7 @@ Run these on every patched APK before it goes on the device, whether it came fro
 or from Manager's **Save APK** ([manager.md](manager.md) section 13):
 
 ```bash
-out=$RUN/manager-patched.apk               # the APK to check
+out=<patched APK>                          # the APK to check
 ref=<the CLI build of the same commit>     # the CLI build to compare with (for a Manager build)
 "$apksigner" verify --print-certs "$out" | grep 'certificate SHA-256'
 "$apksigner" verify --print-certs "$ref" | grep 'certificate SHA-256'
@@ -139,4 +139,6 @@ probably gone: stop and tell the owner.
   `-b`, which skips verification. Never install an APK patched with it on the device.
 - **The patches repo's own release bundle:** the repo's README gives the CLI command that checks its GPG signature
   and build attestation (`-k`, `-s`, `-a`, `-r`). Manager doesn't verify bundle signatures, so check a release bundle
-  with the CLI before trusting what Manager loaded from its URL.
+  with the CLI before trusting what Manager loaded from its URL. The README's command is `patch`, which needs the
+  checked original APK (section 3). CLI 6.0.0's `list-patches` takes the same flags without an APK, going by its
+  usage text; that form wasn't exercised on 2026-11-09, so say which one you ran.
