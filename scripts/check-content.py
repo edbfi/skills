@@ -25,8 +25,8 @@ for path in skills:
     layout = ["name", "description", "license"] + (["compatibility"] if "compatibility" in fields else []) + ["metadata"]
     if keys != layout:
         errors.append(f"{path.relative_to(root)}: frontmatter keys must be {', '.join(layout)} in that order")
-    # The repository is AGPL-3.0; a skill adapted from elsewhere keeps its own LICENSE and license.
-    license_ok = {"AGPL-3.0"} | ({"MIT"} if (path.parent / "LICENSE").is_file() else set())
+    # The repository is AGPL-3.0-or-later; a skill adapted from elsewhere keeps its own LICENSE and license.
+    license_ok = {"AGPL-3.0-or-later"} | ({"MIT"} if (path.parent / "LICENSE").is_file() else set())
     if fields.get("license", "").strip("\"'") not in license_ok:
         errors.append(f"{path.relative_to(root)}: unexpected license")
     meta = {m[1]: m[2].strip("\"'") for m in re.finditer(r"^  ([a-z][a-z0-9_-]*):[ \t]*(.+)$", parts[1], re.M)}

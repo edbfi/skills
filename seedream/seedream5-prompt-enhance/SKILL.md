@@ -1,7 +1,7 @@
 ---
 name: seedream5-prompt-enhance
 description: "Turn a rough image idea, edit request or reference-image brief into one ready-to-paste prompt for ByteDance Seedream 5.0 pro, 5.0 flash, 5.0 lite or a later 5.x model (Seedream 5.5 and on), following ByteDance's official ModelArk / Volcengine Ark prompt guides, plus the few API settings the request depends on. Use whenever the user types /seedream5-prompt-enhance or asks to write, improve, enhance, fix or translate a Seedream, Doubao Seedream (豆包) or Dola Seedream prompt, or wants a poster, infographic, product shot, portrait, UI mockup, sticker sheet, image edit, multi-reference composite or layer split prepared for Seedream via BytePlus, Volcengine, Jimeng (即梦) / Dreamina, WaveSpeed, fal, Replicate, Runware, Atlas Cloud, OpenRouter or another host, even if they don't name this skill. Not for Seedance video prompts or questions about pricing, quotas or API errors."
-license: AGPL-3.0
+license: AGPL-3.0-or-later
 metadata:
   author: edbfi
   version: "1.0.0"

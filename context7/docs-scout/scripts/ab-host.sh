@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # Share one agent-browser browser between every docs-scout agent on this machine.
 #
 #   ab-host.sh new                     print a fresh session name (docsearch-<8 hex>)

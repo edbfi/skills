@@ -1,7 +1,7 @@
 ---
 name: docendo-orchestrate-bricks
 description: Plan, create, place, move, edit, copy, delete and audit Docendo calendar bricks in relation to the user's task overview and scheduled hours. Use for Docendo calendar work and brick automation.
-license: AGPL-3.0
+license: AGPL-3.0-or-later
 metadata:
   author: edbfi
   version: "1.0.0"

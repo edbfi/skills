@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SPDX-License-Identifier: AGPL-3.0-only
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # Run one read-only Codex turn through the codex CLI. The prompt is read from stdin.
 #
 #   ask-codex.sh [--cwd DIR] [--model NAME] [--effort LEVEL] <<'EOF'
