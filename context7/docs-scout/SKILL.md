@@ -1,7 +1,7 @@
 ---
 name: docs-scout
 description: Search library documentation, API references and coding guidelines with the Context7 Search API (two keys balanced across their monthly quota) and agent-browser web search, then read and cite the sources. Use whenever the user asks how to do something in a library or framework, wants the current API, docs, changelog, migration notes, best practices, style or coding guidelines for a language or tool, or says "look it up in the docs" or "search the docs"; a standalone replacement for Exa, Firecrawl or Context7 MCP lookups.
-license: AGPL-3.0
+license: AGPL-3.0-or-later
 compatibility: Requires python3 >= 3.11 and the agent-browser CLI (any executablePath, CloakBrowser included); POSIX (Linux, macOS). Context7 API keys are optional.
 metadata:
   author: edbfi

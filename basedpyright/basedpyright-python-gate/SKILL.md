@@ -1,7 +1,7 @@
 ---
 name: basedpyright-python-gate
 description: "Drive Python code to 0 errors / 0 warnings under basedpyright 'recommended' mode by fixing the code properly, never by suppressing globally. Use this whenever Python is written, edited, generated or reviewed in a project that has a [tool.basedpyright] table, and whenever the user mentions basedpyright, pyright, type errors, type-checking failures, 'make it type-safe', `pyright: ignore`, typing CI/prek hooks, or asks to 'fix the types'. Trigger even if the user only asks to write or change Python and doesn't mention typing at all — in these projects the typing gate is not optional, and code that doesn't pass it is not done."
-license: AGPL-3.0
+license: AGPL-3.0-or-later
 compatibility: Requires uv (`uvx basedpyright@latest`, network on first run), git, and Python 3.11+ for the bundled scripts.
 metadata:
   author: edbfi

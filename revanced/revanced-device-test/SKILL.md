@@ -1,7 +1,7 @@
 ---
 name: revanced-device-test
 description: Test a ReVanced patches bundle the way users use it, on an Android test device through revanced-cli and the real ReVanced Manager app, then check each patch in the patched app. Use only when asked to test or verify a ReVanced patches bundle, a patched APK or a patches release on a device or in ReVanced Manager. Not for writing, fixing or reviewing patches.
-license: AGPL-3.0
+license: AGPL-3.0-or-later
 metadata:
   author: edbfi
   version: "1.0.0"

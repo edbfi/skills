@@ -1,7 +1,7 @@
 ---
 name: babysit-pr
 description: "Monitor a pull request through AI review bots and CI until it is ready: verify every bot finding, fix what is real, and answer each one with a VALID / INVALID / OUT OF SCOPE reply, reaction and resolved thread. Use when the user asks to monitor, watch, babysit, shepherd or land a PR, or to handle review-bot comments."
-license: AGPL-3.0
+license: AGPL-3.0-or-later
 compatibility: Requires git, bash, jq and an authenticated GitHub CLI (gh 2.96+ validated) with write access to the pull request's repository.
 metadata:
   author: edbfi

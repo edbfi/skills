@@ -1,7 +1,7 @@
 ---
 name: panel-egg-roundtrip
 description: Round-trip Pelican PLCN_v3 YAML and Pterodactyl PTDL_v2 JSON egg files through temporary panel installations using Docker/Colima and agent-browser, then replace manual working files with genuine panel exports and remove every temporary resource. Use when an egg repository requires panel-generated exports, when reviewing or updating Pelican/Pterodactyl eggs, or when manual JSON/YAML edits must be imported and re-exported before submission.
-license: AGPL-3.0
+license: AGPL-3.0-or-later
 metadata:
   author: edbfi
   version: "1.0.0"
