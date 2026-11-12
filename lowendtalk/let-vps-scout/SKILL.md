@@ -1,7 +1,7 @@
 ---
 name: let-vps-scout
 description: Research LowEndTalk offers and provider websites with ego-browser or agent-browser (the user picks at the start) to find and purchase-verify the cheapest currently available European VPS plans (default brief 4+ vCPU, 8+ GB RAM, annual billing, game-server use), ranked by first-year price excluding VAT, using coordinated subagents, a disposable /tmp run ledger and one archived HTML report. Use whenever the user wants to hunt LET or LowEndBox VPS deals, compare cheap European VPS/VDS offers for a game server, or start, resume or rerun a let-vps-scout run.
-license: AGPL-3.0
+license: AGPL-3.0-or-later
 compatibility: Requires python3 and either the ego-browser or the agent-browser CLI.
 metadata:
   author: edbfi

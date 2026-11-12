@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/skills.svg" alt="skills logo" width="256" height="256">
+  <img src="assets/skills.svg" alt="skills logo" width="160" height="160">
 </p>
 
 <h1 align="center">skills</h1>
@@ -7,7 +7,7 @@
 <p align="center"><strong>Reusable skills for coding agents and everyday workflows.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/edbfi/skills/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat" alt="License: AGPL-3.0 (council subtree: MIT)" title="AGPL-3.0; tstack/council remains MIT (see License below)"></a>
+  <a href="https://github.com/edbfi/skills/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0--or--later-blue?style=flat" alt="License: AGPL-3.0-or-later (council subtree: MIT)" title="AGPL-3.0-or-later; tstack/council remains MIT (see License below)"></a>
 </p>
 
 Agent Skills for the open [Agent Skills](https://agentskills.io) ecosystem,
@@ -42,6 +42,12 @@ installable via the [`skills`](https://github.com/vercel-labs/skills) CLI.
 
 ## License
 
-AGPL-3.0. See [LICENSE](LICENSE). `tstack/council` is adapted from
-[t3dotgg/tstack](https://github.com/t3dotgg/tstack) and stays MIT; see
-[its LICENSE](tstack/council/LICENSE).
+Except for separately licensed third-party material, original code and documentation
+in this repository are licensed under the GNU Affero General Public License,
+version 3 or (at your option) any later version (SPDX: `AGPL-3.0-or-later`).
+See [LICENSE](LICENSE) for the full license text.
+
+`tstack/council` is adapted from [t3dotgg/tstack](https://github.com/t3dotgg/tstack)
+and stays MIT; see [its LICENSE](tstack/council/LICENSE). Bundled Archivo fonts
+retain the [SIL Open Font License 1.1](lowendtalk/let-vps-scout/assets/fonts/OFL.txt).
+Other upstream material retains its own license and notices.

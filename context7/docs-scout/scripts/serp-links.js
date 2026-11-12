@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: AGPL-3.0-or-later
 // Organic result links from the search engine page in the current tab, as JSON.
 //   ab eval --stdin < serp-links.js
 // Engine-agnostic: reads every link inside the results region, unwraps the engines' redirect

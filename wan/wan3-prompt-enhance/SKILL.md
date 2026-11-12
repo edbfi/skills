@@ -1,7 +1,7 @@
 ---
 name: wan3-prompt-enhance
 description: "Organize a Wan 3.0 (wan3.0, Alibaba Cloud Model Studio) video generation request - the user's text plus any Image N / Video N / Audio N references - into one clean, structured request with the five sections Core Task, Plot Outline, Audio Style, Camera and Core Constraints and Negative Prompt, faithful to the user's own story and never enriching it. Use whenever the user types /wan3-prompt-enhance or /wan3-pe (the upstream name), asks to refine, tidy, structure or optimize a Wan, Wanxiang or wan3.0 video prompt, or wants a text-to-video, image-to-video, first/last-frame, reference-to-video, multi-shot, storyboard, clay-render, audio-driven or video-extension request organized before generation, even if they don't name this skill. Not for remaking a source video's plot, direct edits to an existing video, or questions about API pricing, quotas or errors."
-license: AGPL-3.0
+license: AGPL-3.0-or-later
 metadata:
   author: edbfi
   version: "1.0.0"
