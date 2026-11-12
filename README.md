@@ -1,4 +1,14 @@
-# edbfi/skills
+<p align="center">
+  <img src="assets/skills.svg" alt="skills logo" width="256" height="256">
+</p>
+
+<h1 align="center">skills</h1>
+
+<p align="center"><strong>Reusable skills for coding agents and everyday workflows.</strong></p>
+
+<p align="center">
+  <a href="https://github.com/edbfi/skills/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat" alt="License: AGPL-3.0 (council subtree: MIT)" title="AGPL-3.0; tstack/council remains MIT (see License below)"></a>
+</p>
 
 Agent Skills for the open [Agent Skills](https://agentskills.io) ecosystem,
 installable via the [`skills`](https://github.com/vercel-labs/skills) CLI.
