@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/edbfi/skills/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-AGPL--3.0--or--later-blue?style=flat" alt="License: AGPL-3.0-or-later (council subtree: MIT)" title="AGPL-3.0-or-later; tstack/council remains MIT (see License below)"></a>
+  <a href="https://github.com/edbfi/skills/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://img.shields.io/github/actions/workflow/status/edbfi/skills/ci.yml?branch=main&amp;event=push&amp;label=CI&amp;style=flat" alt="CI"></a>
 </p>
 
 Agent Skills for the open [Agent Skills](https://agentskills.io) ecosystem,
