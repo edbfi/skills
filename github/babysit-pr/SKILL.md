@@ -52,12 +52,13 @@ a resume or compaction, call it again if you aren't sure it is active.
   hand off as "Stopped: <bot>'s run still going" with its link.
 - **Same-head re-runs.** A title, body or label edit can re-run a check without moving `head_sha`
   (a `pull_request` `edited` workflow). After the required checks pass on a head, the watch only
-  notices a re-run if one of its reads, about two minutes apart, catches it pending, so a re-run
-  that takes seconds never wakes you. Make such edits while a check on `head_sha` is still running
-  when you can. Otherwise don't end your turn on the re-run: finish the rest of the round, then
-  check it with `status`. GitHub takes about twenty seconds to show a fast re-run's result and a
-  `CLEAN` merge state, so allow up to three `status` runs. If it is still running, hand off as
-  above.
+  notices a re-run if one of its reads, about two minutes apart, catches it pending, so a passing
+  re-run that takes seconds never wakes you. Make such edits while a check on `head_sha` is still
+  running when you can. Otherwise don't end your turn on the re-run: finish the rest of the round,
+  then run `status` again, back to back without sleeping, for up to about a minute. Even a fast
+  re-run takes GitHub around twenty seconds to show, and after every check is green
+  `mergeStateStatus` can stay BLOCKED for a few seconds more; while nothing else in `status`
+  explains BLOCKED, treat it as still running. If it is still running, hand off as above.
 - **Unwatch when you hand off.** A watched thread stays in Working and out of the user's inbox.
   When babysitting ends without a merge or close (ready, blocked, or asking the user a question),
   call `unwatch_pull_request` first, even if you go on to other work. A merge or close ends the
@@ -74,9 +75,9 @@ bash <skill-dir>/scripts/pr-ops.sh wait --since <cursor> [--timeout 1800]
 ```
 
 It prints `{"reason": ...}` and returns on `new-activity`, `checks-finished` (a check finished
-after `--since` and none is pending, same-head re-runs included), `head-changed`,
-`merge-state` (the branch became BEHIND or DIRTY), `pr-MERGED` or `pr-CLOSED`, and exits 124 on
-`timeout`.
+after `--since` and none is pending, same-head re-runs included), `head-changed`, `merge-state`
+(the branch became BEHIND, DIRTY or, with nothing pending, CLEAN), `pr-MERGED` or `pr-CLOSED`,
+and exits 124 on `timeout`.
 
 In Claude Code, run it in the background (`run_in_background: true`) so its exit wakes you. With
 scheduled wake-ups, schedule the next round instead. Otherwise run it in the foreground with

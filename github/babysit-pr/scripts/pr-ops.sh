@@ -24,7 +24,8 @@ usage: pr-ops.sh <command> [--repo owner/name] [--pr N] [options]
   wait      [--since CURSOR] [--timeout S] [--interval S] [--settle S]
                                            block until new activity, finished
                                            checks, a new head, a branch that
-                                           became BEHIND or DIRTY, or a closed PR
+                                           became BEHIND, DIRTY or CLEAN, or a
+                                           closed PR
   reply     --comment CID [--force]        reply to an inline review comment;
                                            body on stdin
   react     --comment CID --verdict V      V: VALID (+1), INVALID (-1),
@@ -438,7 +439,10 @@ cmd_wait() {
       || [[ ! "${now_done}" < "${since}" ]]; }; then
       reason="checks-finished"
     elif [ -n "${merge}" ] && [ "${now_merge}" != "${merge}" ] \
-      && { [ "${now_merge}" = BEHIND ] || [ "${now_merge}" = DIRTY ]; }; then
+      && { [ "${now_merge}" = BEHIND ] || [ "${now_merge}" = DIRTY ] \
+        || { [ "${now_pending}" = 0 ] \
+          && { [ "${now_merge}" = CLEAN ] || [ "${now_merge}" = HAS_HOOKS ]; }; }; }; then
+      # CLEAN too: it can lag the last check by seconds, so a round may have seen BLOCKED.
       reason="merge-state"
     fi
     [ "${now_merge}" = UNKNOWN ] || merge=${now_merge}
