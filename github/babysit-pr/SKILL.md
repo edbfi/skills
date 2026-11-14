@@ -58,7 +58,8 @@ a resume or compaction, call it again if you aren't sure it is active.
   then run `status` again, back to back without sleeping, for up to about a minute. Even a fast
   re-run takes GitHub around twenty seconds to show, and after every check is green
   `mergeStateStatus` can stay BLOCKED for a few seconds more; while nothing else in `status`
-  explains BLOCKED, treat it as still running. If it is still running, hand off as above.
+  explains BLOCKED, treat it as still running. If the re-run is still running, hand off as above;
+  if every check is green and BLOCKED stays, report "Done, blocked by mergeStateStatus BLOCKED".
 - **Unwatch when you hand off.** A watched thread stays in Working and out of the user's inbox.
   When babysitting ends without a merge or close (ready, blocked, or asking the user a question),
   call `unwatch_pull_request` first, even if you go on to other work. A merge or close ends the
@@ -79,9 +80,11 @@ after `--since` and none is pending, same-head re-runs included), `head-changed`
 (the branch became BEHIND, DIRTY or, with nothing pending, CLEAN), `pr-MERGED` or `pr-CLOSED`,
 and exits 124 on `timeout`.
 
-In Claude Code, run it in the background (`run_in_background: true`) so its exit wakes you. With
-scheduled wake-ups, schedule the next round instead. Otherwise run it in the foreground with
-`--timeout` under your tool's time limit, and loop. Start it again after every round, including
+In Claude Code, run it in the background (`run_in_background: true`) so its exit wakes you, then
+run `status --since <cursor>` once more, as in T3 Code: `wait` takes the merge state from its
+first snapshot, so a PR that turned CLEAN just before then won't wake it. With scheduled
+wake-ups, schedule the next round instead. Otherwise run it in the foreground with `--timeout`
+under your tool's time limit, and loop. Start it again after every round, including
 rounds that needed nothing, and after a resume. After a timeout, run `status` before waiting
 again. After about two hours without any change, stop and report what you are waiting on.
 

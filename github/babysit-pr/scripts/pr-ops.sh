@@ -24,8 +24,8 @@ usage: pr-ops.sh <command> [--repo owner/name] [--pr N] [options]
   wait      [--since CURSOR] [--timeout S] [--interval S] [--settle S]
                                            block until new activity, finished
                                            checks, a new head, a branch that
-                                           became BEHIND, DIRTY or CLEAN, or a
-                                           closed PR
+                                           became BEHIND or DIRTY (or CLEAN
+                                           with nothing pending), or a closed PR
   reply     --comment CID [--force]        reply to an inline review comment;
                                            body on stdin
   react     --comment CID --verdict V      V: VALID (+1), INVALID (-1),
