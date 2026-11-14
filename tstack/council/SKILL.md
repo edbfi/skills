@@ -6,7 +6,7 @@ metadata:
   author: edbfi
   version: "1.0.0"
   vendor: tstack
-  upstream: "t3dotgg/tstack council skill at 1085050 (MIT, see LICENSE)"
+  upstream: "t3dotgg/tstack council skill at 11e37a7 (MIT, see LICENSE)"
 ---
 
 # Council
@@ -20,13 +20,10 @@ Bring in three delegates to help with the user's request, usually for review
 or feedback. Use one strong model from each of three different providers, at
 high reasoning effort. If the user's instructions name council members, use
 those. Otherwise pick the latest flagship model from each provider, for
-example Claude Opus, GPT Sol, and Gemini 4 Carbon. Gemini flagships now use
-codenames instead of "Pro": take the newest generation, and ask the user if
-several codenames share it. If effort is part of a model ID, pick the `-high`
-variant, such as `gemini-4-carbon-high`.
+example Claude Opus, GPT Sol, and Gemini 4 Carbon.
+For Gemini, use OpenCode with the exact model ID `cpa/gemini-4-carbon`.
 
-In T3 Code, use `orchestrator_capabilities`, with a `search` per member, to
-resolve the models, then
+In T3 Code, use `orchestrator_capabilities` to resolve the models, then
 `delegate_task` to start one delegate per model in parallel. Elsewhere, use
 the harness's subagent tools. If you cannot reach three providers, or a named
 member is unavailable, report it instead of substituting.
@@ -34,6 +31,12 @@ member is unavailable, report it instead of substituting.
 Give each delegate the request and relevant context. For review or feedback,
 keep their work read-only. Collect their responses and summarize the useful
 findings, disagreements, and recommended next steps.
+
+Do not wait idle. When a result arrives, check its findings against the code
+at once and decide what to fix while the other delegates run. Do not edit
+files while a delegate still reviews the same checkout. If the user's
+instructions mark a delegate as non-blocking, do not wait for it; treat a
+late result as feedback and do not record its score.
 
 For a code review, ask each delegate for a score out of 10.
 Count each full review pass as one round.
