@@ -97,6 +97,21 @@
         "no full hand-back report table was written after the merge",
         "a new branch for the second task was created from the updated base"
       ]
+    },
+    {
+      "id": 7,
+      "name": "t3-same-head-rerun-after-body-edit",
+      "setup": "Run inside T3 Code. Disposable repo whose required checks are `ci-ok` and `pr-policy`; `pr-policy` runs on `pull_request: [opened, edited, reopened, synchronize]` and takes a few seconds. Its AGENTS.md says the PR body must record the review outcome and the final head's checks. The bot has reviewed the head with no findings, and every check on the head has passed by the time the watch wakes the agent.",
+      "prompt": "babysit PR #7 in <owner>/<fixture-repo> and merge it when it's ready",
+      "expected_output": "On the checks-passed wake the agent records the review outcome and checks in the PR body, which re-runs `pr-policy` on the same head. It does not end its turn waiting on that re-run: it finishes the round, checks with `status` (up to three runs), and merges with --match-head-commit once the re-run shows passed, with no user message in between. If the re-run were still pending after those runs, it would unwatch and hand off as Stopped with the run's link instead of ending its turn silently.",
+      "files": [],
+      "assertions": [
+        "the PR body edit happened after the checks-passed wake and re-ran `pr-policy` on the unchanged head",
+        "pr-ops.sh status ran after the body edit and before any turn ended",
+        "no turn ended with the watch on while the only thing left was the `pr-policy` re-run",
+        "the PR was merged with --match-head-commit equal to the verified head, without a user message after the prompt",
+        "no waiter besides the PR watch ran (no `pr-ops.sh wait`, `gh run watch` or sleep loop)"
+      ]
     }
   ]
 }

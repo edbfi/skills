@@ -191,7 +191,7 @@ fetch_threads() {
 fetch_checks() {
   local out rc=0
   out=$(gh pr checks "${PR_ID}" --repo "${REPO}" "$@" \
-    --json name,state,bucket,workflow,link 2>"${WORK}/checks.err") || rc=$?
+    --json name,state,bucket,workflow,link,completedAt 2>"${WORK}/checks.err") || rc=$?
   if jq -e 'type == "array"' <<<"${out:-null}" >/dev/null 2>&1; then
     printf '%s' "${out}"
   elif grep -q -E '^no (required )?checks reported' "${WORK}/checks.err"; then
@@ -400,6 +400,9 @@ snapshot_line() {
       ([$checks[] | select(.bucket == "pending")] | length | tostring),
       # Before the fingerprint: read collapses empty tab-separated fields.
       ($pr.mergeStateStatus // "UNKNOWN"),
+      # Latest completion, so a re-run on the same head that finished between
+      # two polls (or before the first) still counts as finished checks.
+      ([$checks[].completedAt // empty] | max // "0"),
       ($checks | map("\(.name)=\(.bucket)") | sort | join(","))
     ]
     | join("\t")
@@ -409,11 +412,11 @@ snapshot_line() {
 cmd_wait() {
   need_pr
   local since start head pending fp now_state now_head now_pending now_fp
-  local merge now_merge activity reason deadline
+  local merge now_merge now_done activity reason deadline
   since=${SINCE}
   [ -n "${since}" ] || since=$(server_now)
   start=$(snapshot_line)
-  IFS=$'\t' read -r _ head pending merge fp <<<"${start}"
+  IFS=$'\t' read -r _ head pending merge _ fp <<<"${start}"
   # UNKNOWN means GitHub is still computing it (seconds after any push).
   [ "${merge}" != UNKNOWN ] || merge=""
   deadline=$((SECONDS + TIMEOUT))
@@ -421,7 +424,7 @@ cmd_wait() {
 
   while [ "${SECONDS}" -lt "${deadline}" ]; do
     sleep "${INTERVAL}"
-    IFS=$'\t' read -r now_state now_head now_pending now_merge now_fp <<<"$(snapshot_line)"
+    IFS=$'\t' read -r now_state now_head now_pending now_merge now_done now_fp <<<"$(snapshot_line)"
     activity=$(latest_activity)
     if [ "${now_state}" != "OPEN" ]; then
       reason="pr-${now_state}"
@@ -431,7 +434,8 @@ cmd_wait() {
       reason="new-activity"
       # Bots often post a review and its follow-ups seconds apart.
       sleep "${SETTLE}"
-    elif [ "${now_pending}" = 0 ] && { [ "${pending}" != 0 ] || [ "${now_fp}" != "${fp}" ]; }; then
+    elif [ "${now_pending}" = 0 ] && { [ "${pending}" != 0 ] || [ "${now_fp}" != "${fp}" ] \
+      || [[ ! "${now_done}" < "${since}" ]]; }; then
       reason="checks-finished"
     elif [ -n "${merge}" ] && [ "${now_merge}" != "${merge}" ] \
       && { [ "${now_merge}" = BEHIND ] || [ "${now_merge}" = DIRTY ]; }; then
