@@ -55,11 +55,13 @@ a resume or compaction, call it again if you aren't sure it is active.
   notices a re-run if one of its reads, about two minutes apart, catches it pending, so a passing
   re-run that takes seconds never wakes you. Make such edits while a check on `head_sha` is still
   running when you can. Otherwise don't end your turn on the re-run: finish the rest of the round,
-  then run `status` again, back to back without sleeping, for up to about a minute. Even a fast
+  then re-check with `status`, back to back and without sleeping, at most eight times (about a
+  minute). This bounded re-check is the one exception to the no-polling rule above. Even a fast
   re-run takes GitHub around twenty seconds to show, and after every check is green
   `mergeStateStatus` can stay BLOCKED for a few seconds more; while nothing else in `status`
-  explains BLOCKED, treat it as still running. If the re-run is still running, hand off as above;
-  if every check is green and BLOCKED stays, report "Done, blocked by mergeStateStatus BLOCKED".
+  explains BLOCKED, treat it as still running. If the re-run is still running, hand off as
+  "Stopped: <check> re-run still going" with its link; if every check is green and BLOCKED stays,
+  report "Done, blocked by mergeStateStatus BLOCKED".
 - **Unwatch when you hand off.** A watched thread stays in Working and out of the user's inbox.
   When babysitting ends without a merge or close (ready, blocked, or asking the user a question),
   call `unwatch_pull_request` first, even if you go on to other work. A merge or close ends the
