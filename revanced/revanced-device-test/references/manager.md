@@ -53,12 +53,12 @@ Record in the final report which Manager version you tested and which statements
 
 ## 2. Download and verify Manager
 
-Download the APK and its signature into a directory of their own. This one download is kept beside the run
-directories on purpose, so a later run can reuse it; verify it again every time, whoever downloaded it:
+Download the APK and its signature into `$TMP/inputs/revanced-manager-$V/`. This one download is kept outside the
+run directory on purpose, so a later run can reuse it; verify it again every time, whoever downloaded it:
 
 ```bash
 V=2.6.0                      # the release from section 1
-D=$TMP/manager-$V; mkdir -p "$D"
+D=$TMP/inputs/revanced-manager-$V; mkdir -p "$D"
 for f in revanced-manager-$V.apk revanced-manager-$V.apk.asc; do
   curl -fsSL -o "$D/$f" "https://github.com/ReVanced/revanced-manager/releases/download/v$V/$f"
 done
@@ -75,8 +75,8 @@ Check the GPG signature in a keyring of its own, never the user's:
 ```bash
 export GNUPGHOME=$RUN/gnupg; mkdir -p -m 700 "$GNUPGHOME"       # a fresh keyring per run
 gpg --list-packets "$D/revanced-manager-$V.apk.asc" | grep -iE 'keyid|issuer|fpr'
-curl -fsSL https://api.revanced.app/keys -o "$D/revanced-keys.asc"
-gpg -q --import "$D/revanced-keys.asc"
+curl -fsSL https://api.revanced.app/keys -o "$GNUPGHOME/revanced-keys.asc"
+gpg -q --import "$GNUPGHOME/revanced-keys.asc"
 gpg --list-keys --with-subkey-fingerprints
 gpg --verify "$D/revanced-manager-$V.apk.asc" "$D/revanced-manager-$V.apk"
 ```
@@ -402,7 +402,7 @@ has the same wasn't checked. If you test it, report what you saw.
 
 ## 15. What stays manual
 
-- New app APK downloads ([apk-provenance.md](apk-provenance.md) section 1).
+- A new app APK, if the browser stays on Cloudflare's check ([apk-provenance.md](apk-provenance.md) section 1).
 - Any login. The agent never types credentials; the owner logs in through scrcpy.
 - Using Manager's own **Install**: only with the owner's permission. Without it, Manager's installer stays untested;
   say so in the report.

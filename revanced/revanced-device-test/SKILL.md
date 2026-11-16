@@ -65,7 +65,8 @@ These come from the device's owner. They hold for every step and every reference
   first and run the CLI without `ANDROID_SERIAL` (host-checks.md).
 - **Don't use Manager's Install button** unless the owner allows it for this run. Use **Save APK**, pull the file
   and install it with `adb install -r`. Manager's installer then stays untested: say so in the report.
-- **Never click a "Verify you are human" check.** New app APKs come from the owner.
+- **Never click a "Verify you are human" check.** Fetch new app APKs yourself; if the browser stays on Cloudflare's
+  check, ask the owner for the APK (apk-provenance.md, section 1).
 - **No `adb root` unless the owner agrees:** it restarts adbd for everyone on the device. Use root for single
   commands (`su 0`) only where a checklist step shows it, and undo what the step changed.
 - **Nothing that publishes without the owner's say:** an upload from the app, a gist, a comment. Evidence goes where
@@ -76,15 +77,15 @@ These come from the device's owner. They hold for every step and every reference
 Do the steps your path needs (table above), in order. Stop and tell the owner when a check fails in a way these
 steps don't cover; don't work around it on the device.
 
-1. **Read the patches repo.** Its `CLAUDE.md`/`AGENTS.md` ("Test device", "Commands", "Docs", and the layout rules
-   for extension and resource paths), its `justfile`, the Install section of its `README.md`, and `docs/<app>.md`
+1. **Read the patches repo.** Its `CLAUDE.md`/`AGENTS.md` ("Local files", "Test device", "Commands", "Docs", and the
+   layout rules for extension and resource paths), its `justfile`, the Install section of its `README.md`, and `docs/<app>.md`
    for the app under test. Note the serial, the recipes for starting the device, building and patching, the pinned
    CLI, the keystore the patch recipe signs with, the package and tested version, and each patch with its default.
    If the repo doesn't say one of these, ask the owner; don't guess.
-2. **Set up the run directory** in the repo's ignored `tmp/` with the block in
+2. **Set up the run directory** in the main checkout's ignored `tmp/` with the block in
    [references/evidence.md](references/evidence.md) ("The run directory"). It sets `ANDROID_SERIAL`, `TMP`, `RUN`,
    `UI_OUT`, `SKILL` and `UI`, which the commands in every reference use. Everything the run produces stays there;
-   only the verified Manager download is kept beside it for later runs.
+   only downloads later runs reuse (original APKs, Manager) go in `$TMP/inputs/`.
 3. **Check the checklist against the docs** (`$SKILL` is this skill's directory):
 
    ```bash
@@ -102,8 +103,8 @@ steps don't cover; don't work around it on the device.
    the owner. Then record the state you start from: the patched app's `versionName`, `versionCode` and
    `firstInstallTime`, whether it is logged in, Manager's version if installed, and `ls -la /sdcard/Download/`.
 5. **Get and check the original APK** with [references/apk-provenance.md](references/apk-provenance.md): its
-   SHA-256, signer certificate, package and version, and whether it is a plain APK. A new version needs the owner to
-   download it. A mismatch stops the run.
+   SHA-256, signer certificate, package and version, and whether it is a plain APK. Fetch a missing version as its
+   section 1 says. A mismatch stops the run.
 6. **CLI path.**
    1. Build the bundle and patch the APK with the repo's patch recipe, keeping its output in a log. The CLI writes
       the APK and exits 0 even when a patch fails: the run passed only if the log has no `SEVERE` line and every
@@ -175,7 +176,7 @@ The paths are relative to this skill's directory; a run works from the patches r
 
 ## What stays manual
 
-- Downloading a new app version.
+- A new app APK, if the browser stays on Cloudflare's check.
 - Any login.
 - Permission to use Manager's own installer, to publish anything, or to reset the device.
 
