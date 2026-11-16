@@ -27,18 +27,20 @@ goes in the PR body. Under that rule:
 
 ## The run directory
 
-Everything a run produces stays in the patches repo's ignored `tmp/`, one directory per run, never committed. Set
-it up once, at the start; the commands in every reference of this skill use these names:
+Everything a run produces stays in the patches repo main checkout's ignored `tmp/`, one directory per run, never
+committed; a run started from a worktree uses it too. Set it up once, at the start; the commands in every reference
+of this skill use these names:
 
 ```bash
 export ANDROID_SERIAL=<serial>               # from the patches repo's "Test device" section
-TMP=<patches-repo>/tmp                       # the repo's ignored directory for samples and output
+MAIN=$(cd "$(git -C <patches-repo> rev-parse --path-format=absolute --git-common-dir)/.." && pwd)
+TMP=$MAIN/tmp                                # the main checkout's ignored tmp/ (inputs/, device-test/)
 SKILL=<this skill's directory>               # the directory that holds SKILL.md
 UI=$SKILL/scripts/ui.sh
 RUN="$TMP/device-test/$(date -u +%Y%m%dT%H%M%SZ)"
 export UI_OUT="$RUN/shots"                   # ui.sh shot writes here
 mkdir -p "$UI_OUT" "$RUN/logs" "$RUN/downloads"
-git -C <patches-repo> check-ignore -q "$RUN" && echo ignored
+git -C "$MAIN" check-ignore -q "$RUN" && echo ignored
 ```
 
 Stop if the last line doesn't print `ignored`: the directory would show up in the repo's `git status`.
