@@ -15,8 +15,10 @@ device, install the result over the app that is already there, and use the patch
 what it says. This is a procedure with judgment calls, not an automated test. A patch that applies is not a patch
 that works, and a bundle that patches alone can still fail next to another bundle.
 
-It works in any ReVanced patches repo laid out like `edbfi/revanced-patches`: a `CLAUDE.md` or `AGENTS.md` with
-"Test device" and "Commands" sections, a `justfile`, and one `docs/<app>.md` per app.
+It works in any patches repo laid out like `edbfi/apk-patches`: a `CLAUDE.md` or `AGENTS.md` with "Test device" and
+"Commands" sections, a `justfile` with a `revanced-patch` recipe, and one `docs/revanced/<app>.md` per app. That repo
+also builds a Morphe bundle (`morphe/`, `docs/morphe/`), which this skill doesn't test; both bundles' builds are signed
+with the same test key, so either installs over the other with `adb install -r`.
 
 ## Who owns what
 
@@ -78,10 +80,10 @@ Do the steps your path needs (table above), in order. Stop and tell the owner wh
 steps don't cover; don't work around it on the device.
 
 1. **Read the patches repo.** Its `CLAUDE.md`/`AGENTS.md` ("Local files", "Test device", "Commands", "Docs", and the
-   layout rules for extension and resource paths), its `justfile`, the Install section of its `README.md`, and `docs/<app>.md`
-   for the app under test. Note the serial, the recipes for starting the device, building and patching, the pinned
-   CLI, the keystore the patch recipe signs with, the package and tested version, and each patch with its default.
-   If the repo doesn't say one of these, ask the owner; don't guess.
+   layout rules for extension and resource paths), its `justfile`, the ReVanced Manager and ReVanced CLI parts of its
+   `README.md`'s Install section, and `docs/revanced/<app>.md` for the app under test. Note the serial, the recipes for
+   starting the device, building and patching, the pinned CLI, the keystore the patch recipe signs with, the package and
+   tested version, and each patch with its default. If the repo doesn't say one of these, ask the owner; don't guess.
 2. **Set up the run directory** in the main checkout's ignored `tmp/` with the block in
    [references/evidence.md](references/evidence.md) ("The run directory"). It sets `ANDROID_SERIAL`, `TMP`, `RUN`,
    `UI_OUT`, `SKILL` and `UI`, which the commands in every reference use. Everything the run produces stays there;
@@ -89,7 +91,7 @@ steps don't cover; don't work around it on the device.
 3. **Check the checklist against the docs** (`$SKILL` is this skill's directory):
 
    ```bash
-   "$SKILL/scripts/checklist-gaps.sh" <patches-repo>/docs/<app>.md "$SKILL/references/apps/<app>.md"
+   "$SKILL/scripts/checklist-gaps.sh" <patches-repo>/docs/revanced/<app>.md "$SKILL/references/apps/<app>.md"
    ```
 
    It lists patches with no checklist entry, entries for patches that are gone, and entries still marked
@@ -106,9 +108,9 @@ steps don't cover; don't work around it on the device.
    SHA-256, signer certificate, package and version, and whether it is a plain APK. Fetch a missing version as its
    section 1 says. A mismatch stops the run.
 6. **CLI path.**
-   1. Build the bundle and patch the APK with the repo's patch recipe, keeping its output in a log. The CLI writes
-      the APK and exits 0 even when a patch fails: the run passed only if the log has no `SEVERE` line and every
-      selected patch is reported as succeeded.
+   1. Build the bundle and patch the APK with the repo's ReVanced patch recipe (`just revanced-patch <apk>` in
+      `edbfi/apk-patches`), keeping its output in a log. The CLI writes the APK and exits 0 even when a patch
+      fails: the run passed only if the log has no `SEVERE` line and every selected patch is reported as succeeded.
    2. Check the patched APK (apk-provenance.md, "Check a patched APK").
    3. Install it with `adb install -r` and run the checklist's Baseline: `firstInstallTime` unchanged, autoplay
       confirmed off before the feed is scrolled or a post opened, the app opens logged in, no crash in logcat. If
@@ -126,11 +128,11 @@ steps don't cover; don't work around it on the device.
    2. Install it, grant its permissions, go through onboarding with self-update, ReVanced Patches and Downloaders
       unticked, and import the keystore the repo's patch recipe signs with. Remove the keystore copy from shared
       storage at once.
-   3. Delete any bundle of this repo that an earlier run left in Manager, so that only ReVanced Patches and the
-      bundle under test are loaded. Then add the repo's bundle: the local `.rvp` for an unreleased build, the
-      README's URL for a release. Clear logcat
-      just before the add and read the bundle's uid from it just after: Manager logs it only then, and its sign says
-      which bundle loads first. The bundle's name, version and patch count must match the repo.
+   3. Delete any bundle of this repo that an earlier run left in Manager, so that only ReVanced Patches and the bundle
+      under test are loaded. Then add the repo's bundle: the local `.rvp` for an unreleased build, the README's ReVanced
+      Manager URL for a release. Clear logcat just before the add and read the bundle's uid from it just after: Manager
+      logs it only then, and its sign says which bundle loads first. The bundle's name, version and patch count must
+      match the repo.
    4. Patch with **the default selection** first, which is what a user gets: ReVanced's own bundle can't be removed
       and selects its patches for the same app. Then unlock patch selection, untick ReVanced Patches, and patch with
       **the repo's bundle only**.
@@ -143,9 +145,9 @@ steps don't cover; don't work around it on the device.
       classes present), install the repo-only build with `adb install -r`, and run the Baseline plus the few
       checks the checklist names for a Manager build. Don't install the mixed-selection build unless the owner
       asks: for that path, report whether patching completed and that the app was not exercised.
-9. **After a release:** delete any bundle of this repo an earlier run left in Manager, add the README's URL, and
-   check that it loads the new version and patch count (manager.md, "After a release is published"). Manager doesn't
-   verify a bundle's signature, so check the release bundle with the pinned CLI and the verification flags the
+9. **After a release:** delete any bundle of this repo an earlier run left in Manager, add the README's ReVanced Manager
+   URL, and check that it loads the new version and patch count (manager.md, "After a release is published"). Manager
+   doesn't verify a bundle's signature, so check the release bundle with the pinned CLI and the verification flags the
    repo's README gives (apk-provenance.md, "Other downloads").
 10. **Clean up.**
     - If the run installed any build of the app, leave it on the CLI build of the commit under test with the
@@ -168,8 +170,8 @@ steps don't cover; don't work around it on the device.
 - `scripts/readd-bundle.sh <display-name> <file.rvp> <positive|negative> [max-tries]`: delete a local bundle in
   Manager and add it again until its uid has the wanted sign. It holds the one tap coordinate uiautomator can't
   find; re-measure it when Manager or the screen size changes.
-- `scripts/checklist-gaps.sh <patches-repo>/docs/<app>.md references/apps/<app>.md`: compare the docs' patch list
-  with the checklist. Exit 0 no gaps, 1 gaps, 2 the docs or checklist couldn't be parsed.
+- `scripts/checklist-gaps.sh <patches-repo>/docs/revanced/<app>.md references/apps/<app>.md`: compare the docs' patch
+  list with the checklist. Exit 0 no gaps, 1 gaps, 2 the docs or checklist couldn't be parsed.
 
 The paths are relative to this skill's directory; a run works from the patches repo, so call them as
 `"$SKILL/scripts/…"`. Each prints its usage and exit codes with `--help`.

@@ -1,8 +1,8 @@
 # Per-app checklists
 
 One file per app, `references/apps/<app>.md`, where `<app>` is the app's package directory in the patches repo
-(`syncforreddit`), the same name as its `docs/<app>.md`. A checklist holds only how to check each patch in real use.
-The patches repo owns everything else: which patches exist, their descriptions and defaults, the tested version,
+(`syncforreddit`), the same name as its `docs/revanced/<app>.md`. A checklist holds only how to check each patch in real
+use. The patches repo owns everything else: which patches exist, their descriptions and defaults, the tested version,
 the device and the commands. Read those from the repo at run time; never copy them here.
 
 ## File layout
@@ -37,7 +37,7 @@ Rules:
 
 - The heading is the docs' patch name, character for character. Don't add the description or the default.
 - A status is exactly one of:
-  - `verified <YYYY-MM-DD>, <source>`, e.g. `verified 2026-11-09, edbfi/revanced-patches#21`: the check was done
+  - `verified <YYYY-MM-DD>, <source>`, e.g. `verified 2026-11-09, edbfi/apk-patches#21`: the check was done
     on the device and the source shows it. Add a short note of what was seen when it helps.
   - `unverified: confirm on the next run`: everything else, including checks proposed from the source but never
     run. When only part of a check was confirmed, split it and give each part its status.
@@ -52,11 +52,11 @@ Rules:
 ## Adding a checklist for a new app
 
 1. Copy the layout above into `references/apps/<app>.md`.
-2. Take the patch list from the repo's `docs/<app>.md` and add one `### ` entry per patch, in its order.
+2. Take the patch list from the repo's `docs/revanced/<app>.md` and add one `### ` entry per patch, in its order.
 3. For each patch, derive the check from:
-   - the patch source (`patches/src/main/kotlin/…/patches/<app>/`, each `*Patch.kt` and `Matchers.kt`) and the
-     extension (`extensions/<app>/`): the hooks, rewritten URLs and hosts, log tags, settings it flips, exceptions
-     it throws;
+   - the patch source (`revanced/patches/src/main/kotlin/…/patches/<app>/`, each `*Patch.kt` and `Matchers.kt`) and the
+     extension (`revanced/extensions/<app>/`): the hooks, rewritten URLs and hosts, log tags, settings it flips,
+     exceptions it throws;
    - the patch's description in the docs;
    - the device evidence in the PRs that added or fixed it (their Evidence sections).
 4. Mark every check that no source shows done on a device `unverified: confirm on the next run`. Never invent a
@@ -64,7 +64,7 @@ Rules:
 5. Run [`scripts/checklist-gaps.sh`](../../scripts/checklist-gaps.sh):
 
    ```bash
-   "$SKILL/scripts/checklist-gaps.sh" <patches-repo>/docs/<app>.md "$SKILL/references/apps/<app>.md"
+   "$SKILL/scripts/checklist-gaps.sh" <patches-repo>/docs/revanced/<app>.md "$SKILL/references/apps/<app>.md"
    ```
 
    It compares the headings under `## Patches` with the docs' Patches table, lists

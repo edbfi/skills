@@ -241,7 +241,7 @@ patches** offers **Enter URL** ("Patches can receive updates", marked **Recommen
 - **Local file**, for builds that aren't released: `adb push <bundle>.rvp /sdcard/Download/`, choose **Select from
   storage**, **Next**, tap **Not selected**, pick the file (it then reads **Selected**), run `adb logcat -c`, tap
   **Add**.
-- **URL**, what users do: take the URL from the Install section of the patches repo's README, choose **Enter URL**,
+- **URL**, what users do: take the URL from the README's Install → ReVanced Manager section, choose **Enter URL**,
   **Next**, tap **Patches URL**, type the URL, close the keyboard, run `adb logcat -c`, tap **Add**. **Auto update**
   sits under the field;
   the run left it as it was, and logcat showed `autoUpdate=true`. On 2026-11-09 the README's
@@ -252,8 +252,8 @@ is added, and a later `adb logcat -c` loses it.
 
 Manager leaves edit mode after every add. The bundle's row then shows its name, version and patch count, for example
 `edbfi patches` / `0.0.0 • 15 patches` for a local build and `v0.1.0 (11h ago) • 12 patches` for the URL. Check them
-against the repo's README and `docs/<app>.md` (the count includes patches that are off by default). Tapping the row
-opens its info page (name, description, website, contact, repository, license, patch count): check those against the
+against the repo's README and `docs/revanced/<app>.md` (the count includes patches that are off by default). Tapping the
+row opens its info page (name, description, website, contact, repository, license, patch count): check those against the
 bundle's manifest in the repo's build file.
 
 To remove a bundle: **Edit**, the trash icon (content-desc **Delete**) in its row, **Confirm** in the dialog that says
@@ -266,7 +266,7 @@ page has **Refresh** instead of **Delete**. It loads whether or not any of its p
 
 Manager (and the CLI, see [host-checks.md](host-checks.md)) loads every bundle through one class loader. A file at
 the same path in two bundles resolves to whichever bundle comes first, so a bundle's patches can read another bundle's
-extension or resource. That broke release v0.1.0 of edbfi/revanced-patches: ReVanced's bundle also shipped
+extension or resource. That broke release v0.1.0 of edbfi/apk-patches: ReVanced's bundle also shipped
 `extensions/syncforreddit.rve`, and with it first, patching failed with `Could not find WebsitePreviews.isEnabled in
 the extension` (local build) or `Could not find Imgur.clientId in the extension` (v0.1.0). PR #21 moved the extension
 to a path of its own.
@@ -327,7 +327,7 @@ Patch both selections:
 
 Patch options: a patch row with options has a **Settings** gear. Its screen lists each option with its description;
 required ones end in `*`, an unchanged option shows **Using default value**, and an option with preset values has
-**Toggle dropdown menu**. Check names, descriptions and defaults against the repo's `docs/<app>.md`.
+**Toggle dropdown menu**. Check names, descriptions and defaults against the repo's `docs/revanced/<app>.md`.
 
 A worked example of what a mixed run can show, for one app only (Sync for Reddit, 2026-11-09): ReVanced's bundle v6.2.1
 selected its 7 default Sync patches next to the repo's 14, so Manager showed "21 patches selected"; 7 patch names
