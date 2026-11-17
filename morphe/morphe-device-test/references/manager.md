@@ -119,6 +119,10 @@ screenshots and the last dump are kept.
 - **Some labels repeat.** On the Sources tab with the add sheet open, the top bar's add button and the sheet's bottom
   button can both match `^Add$`. Pick nodes by position (`$UI dump '^Add$'`, then the one at the bottom), never by
   match number alone.
+- **The Add sheet isn't in dumps until a file is picked,** and `$UI tap '^Add$'` may not open it. Tap the top bar's
+  Add by its position (860,174 on a 1080×2400 screen), then **Select patch source files** (540,1793).
+- **On the Sources tab with a card expanded,** `$UI tap '^Apps$'` hits the card's **Apps** row, which opens the app
+  chooser (where a tap unticks an app), not the bottom tab. Tap the bottom tab by its position (540,2158).
 - **Ticks aren't always in the dump.** Compose checkboxes and switches may have no node of their own, so the
   `checked` column can stay false. Read the state from a screenshot, or from a count Manager prints
   ("2 of 2 selected").

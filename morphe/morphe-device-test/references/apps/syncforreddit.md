@@ -137,8 +137,7 @@ Status:
   `adb install -r`, `firstInstallTime` unchanged, Frontpage and Inbox logged in, no FATAL, `VerifyError` or 401/403).
 - Step 4: verified 2026-11-17, device run 2026-11-17 (the settings search found **Autoplay** under Data options
   reading **WiFi only** for the account, and it was set to **Never**).
-- Step 3's prefs-file check: unverified: confirm on the next run. The run found the account's value by other means;
-  the command above is new.
+- Step 3's prefs-file check: verified 2026-11-17, device run 2026-11-17 (the command above, Morphe builds).
 
 ## Patches
 
@@ -202,7 +201,7 @@ Status:
 - **Needs:** nothing beyond the Baseline.
 - **Status:**
   - Step 1: verified 2026-11-17, edbfi/apk-patches#50 (CLI and Manager builds).
-  - Step 2: unverified: confirm on the next run.
+  - Step 2: verified 2026-11-17, device run 2026-11-17 (Morphe builds).
 
 ### Enable Sync Ultra
 
@@ -214,7 +213,9 @@ Status:
   is switched on, so website previews are read from the linked page's `og:image` on the phone.
 - **Check:**
   1. More actions → Settings → **Sync Ultra**. Pass: the screen shows Paint users, Tag users, Website previews (on),
-     Translate, Select text and Support, and no subscription card, Settings cloud backup or Reset.
+     Translate, Select text and Support, and no subscription card, Settings cloud backup or Reset row. A `Reset`
+     node in the dump is the toolbar's `menu_reset` (from `res/menu/settings.xml`, shared by every settings screen),
+     not the `UltraResetPreference` row the patch hides: ignore it.
   2. Tag users → add a throwaway tag (for example `edbfi-test`) on a public account (#20 used `spez`) through the
      **Add user tag** dialog (**Username**, **Tag**, **Add**). It must be stored locally:
 
@@ -249,8 +250,8 @@ Status:
   they can't be checked on this device; report them as not checked, not as failures.
 - **Status:**
   - Steps 1, 4 and 5: verified 2026-11-17, edbfi/apk-patches#50 (no subscription card or "Get Ultra"; website
-    previews load). Step 1's dump also held a `Reset` node: the gear icon at the top right of the screen. Whether
-    that is the Reset the patch hides after no purchase: unverified: confirm on the next run.
+    previews load). Step 1's `Reset` node is the toolbar's `menu_reset`, not the row the patch hides (device run
+    2026-11-17).
   - Step 2: unverified: confirm on the next run. The 2026-11-17 run added a tag in the app (screenshots) but kept no
     read of the prefs.
   - Steps 3, 6 and 7: unverified: confirm on the next run.
@@ -329,9 +330,10 @@ Status:
        -d 'https://www.reddit.com/r/RPGMaker/comments/1xger3g/' -p "$pkg"
      ```
 
-     Then `adb logcat -d | grep -E 'image\?url=https?://(www\.)?tenor\.com'`. Pass: the preview shows a thumbnail
-     (`"$UI" shot tenor`), and no `Load failed`, `Unauthorized, status code: 401` or "Sync's image server is gone"
-     line for the Tenor link.
+     Then `adb logcat -d | grep -E 'image\?url=https?://(www\.)?tenor\.com'`. Glide logs only failures, so this
+     prints nothing when the preview works: the pass rests on the screenshot and dump. Pass: the preview shows a
+     thumbnail (`"$UI" shot tenor`), and the grep prints no `Load failed`, `Unauthorized, status code: 401` or "Sync's
+     image server is gone" line for the Tenor link.
 - **Needs:** network; a thread with a Tenor link (the one above is from #19).
 - **Status:** verified 2026-11-17, edbfi/apk-patches#50 (CLI and Manager builds).
 
@@ -361,7 +363,8 @@ Status:
 - **Changes:** right after the app reads a listing's `thumbnail` (`PostThumbnailHelper`), `&amp;` in the URL becomes
   `&`; Reddit answers the escaped URL with 403.
 - **Check:**
-  1. Open a busy subreddit in a layout that shows thumbnails (#10 used r/worldnews in List view):
+  1. The app's default view is Slides, which shows no thumbnails: switch with More actions → Change View → List,
+     and set it back after. Then open a busy subreddit (#10 used r/worldnews in List view):
      `adb shell am start -a android.intent.action.VIEW -d 'https://www.reddit.com/r/worldnews/' -p "$pkg"`, wait,
      scroll once, `"$UI" shot thumbnails`. Pass: thumbnails fill their slots; titles unchanged.
 - **Needs:** network.
@@ -447,8 +450,9 @@ Status:
      ```
 
      Pass: the log starts `.ui.activities.media.MultiImageActivity`, the viewer shows a page counter such as
-     `1 / 3`, and a swipe (`adb shell input swipe 900 1200 150 1200 300`) moves it to the next page. Fail:
-     "Error loading album", or an `edbfi` "Gallery request failed".
+     `1 / 3`, and a swipe (`adb shell input swipe 1000 1700 80 1700 600`) moves it to the next page.
+     (`900 1200 150 1200 300` lands on the zoomable image and doesn't page.) Fail: "Error loading album", or an
+     `edbfi` "Gallery request failed".
 - **Needs:** login, network, a Reddit gallery post (the one above is from #12; any public gallery will do).
 - **Status:** verified 2026-11-17, edbfi/apk-patches#50 (1 / 3 → 2 / 3; CLI and Manager builds).
 
@@ -571,10 +575,8 @@ a post) is expected; report it as a known issue, not as a failure. A symptom it 
 
 Checks marked `unverified: confirm on the next run`:
 
-- Baseline (step 3's prefs-file check)
 - Disable ads (step 3)
-- Disable Sync for Lemmy bottom sheet (step 2)
-- Enable Sync Ultra (step 1's `Reset` node, steps 2, 3, 6 and 7)
+- Enable Sync Ultra (steps 2, 3, 6 and 7)
 - Fix Redgifs (step 2)
 - Fix View more comments (step 3)
 - Fix Imgur (step 3)

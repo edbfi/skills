@@ -167,9 +167,10 @@ steps don't cover; don't work around it on the device.
   `wait <regex> [secs]`, `shot <name>`, `type <text>`, and `nodes <file.xml>` for a saved dump. It needs
   `ANDROID_SERIAL`; `shot` needs `UI_OUT`. Dumps lag the screen: wait for a label of the screen you expect next,
   never for one that is always there.
-- `scripts/readd-bundle.sh <display-name> <file.rvp> <positive|negative> [max-tries]`: delete a local bundle in
-  Manager and add it again until its uid has the wanted sign. It holds the one tap coordinate uiautomator can't
-  find; re-measure it when Manager or the screen size changes.
+- `scripts/readd-bundle.sh <display-name> <file> <positive|negative> [max-tries]` (`<file>` is the bundle's name in
+  `/sdcard/Download`, such as `patches-0.4.0.rvp`, not a path): delete a local bundle in Manager and add it again
+  until its uid has the wanted sign. It holds the one tap coordinate uiautomator can't find; re-measure it when
+  Manager or the screen size changes.
 - `scripts/checklist-gaps.sh <patches-repo>/docs/revanced/<app>.md references/apps/<app>.md`: compare the docs' patch
   list with the checklist. Exit 0 no gaps, 1 gaps, 2 the docs or checklist couldn't be parsed.
 

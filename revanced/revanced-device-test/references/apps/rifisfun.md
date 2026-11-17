@@ -8,7 +8,9 @@ patches exist, what they do, their defaults and the tested version. Read it firs
 First full pass: 2026-11-16 (UTC 2026-11-15), a CLI build of edbfi/apk-patches 67e2838 plus Manager v2.6.0 Save APK
 builds of the same commit, **logged out** (no account on the device). Its evidence went to the owner and is in no PR
 body, so its statuses name it "device run 2026-11-16"; change them to `verified <date>, <PR>` once a PR body holds
-the evidence. Checks that need a login are unverified.
+the evidence. A second run on 2026-11-17, **logged in**, on ReVanced CLI and Manager builds of edbfi/apk-patches
+72c9bff (v0.4.0, before release), is named "device run 2026-11-17"; the logged-in checks it didn't cover are
+unverified.
 
 ## Contents
 
@@ -46,8 +48,9 @@ they disagree, the docs and the file win and this list needs a fix.
   device), `ADS_ENABLED`, `THREADS_CARDS`. Read it with `adb shell "su 0 cat …"`; never print `credentials.xml`
   values (it holds tokens). Login state: `adb shell dumpsys account` (`Accounts: 0` = logged out) plus
   `credentials.xml` key names only.
-- **Resources:** the APK's resource file names are obfuscated (`res/EQ.xml`, not `res/layout/…`). Find a layout's
-  file with `aapt2 dump resources <apk> | grep -A1 'layout/<name>$'`.
+- **Resources:** the original APK's resource file names are obfuscated (`res/EQ.xml`); a patched APK has plain
+  `res/layout/…` paths. Find a layout's file with
+  `aapt2 dump resources <apk> | grep -A1 -E 'layout/<name>( |$)'` (aapt2 36 prints `layout/<name> PUBLIC`).
 - **Extension:** package `app.edbfi.extension.rifisfun`, `extensions/edbfi/rifisfun.rve` (35 classes in the 67e2838
   build), log tag `edbfi`: `adb logcat -d -s edbfi:*`. On every start it logs `I edbfi: Unpinned api.redgifs.com`
   (Fix Redgifs' pin hook). Its prefs, `app.edbfi.extension.rifisfun.xml`, hold `app_token_client` =
@@ -99,7 +102,7 @@ open() {  # open <url> <name> [secs] [component]
 Status:
 
 - Steps 1–3 and 5, and step 4 logged out: verified 2026-11-16, device run 2026-11-16.
-- Step 4 logged in: unverified: confirm on the next run.
+- Step 4 logged in: verified 2026-11-17, device run 2026-11-17 (ReVanced CLI and Manager builds).
 
 ## Patches
 
@@ -226,7 +229,8 @@ Status:
 - **Needs:** network; a large thread.
 - **Status:**
   - Step 1: verified 2026-11-16, device run 2026-11-16 (CLI and Manager builds).
-  - Step 2: unverified: confirm on the next run (logged in needs the owner).
+  - Step 2 logged in: verified 2026-11-17, device run 2026-11-17 (ReVanced CLI and Manager builds).
+  - Step 2's top-level row past 20 comments: unverified: confirm on the next run.
 
 ### Fix markdown links
 
@@ -303,7 +307,7 @@ Status:
 - **Needs:** for step 2 the owner's login.
 - **Status:**
   - Step 1: verified 2026-11-16, device run 2026-11-16 (patched side only).
-  - Step 2: unverified: confirm on the next run (logged out on 2026-11-16).
+  - Step 2: verified 2026-11-17, device run 2026-11-17 (ReVanced CLI and Manager builds).
 
 ### Spoof client
 
@@ -324,7 +328,8 @@ Status:
 - **Needs:** network; step 4 the owner's login.
 - **Status:**
   - Steps 1–3 and 5: verified 2026-11-16, device run 2026-11-16.
-  - Step 4: unverified: confirm on the next run (no account on the device).
+  - Step 4, the feed and Inbox logged in: verified 2026-11-17, device run 2026-11-17 (ReVanced CLI and Manager builds).
+  - Step 4 after `adb install -r` and across the token's hourly refresh: unverified: confirm on the next run.
 
 ## Checks that need two builds
 
@@ -349,14 +354,12 @@ as a known issue, not as a failure. A symptom it doesn't list is a finding.
 
 Checks marked `unverified: confirm on the next run`:
 
-- Baseline (step 4, logged in)
 - Disable ads (step 5)
 - Enable golden platinum (step 6)
 - Fix /s/ links (step 5)
 - Fix galleries (step 4)
 - Fix Imgur (step 3)
-- Fix load more comments (step 2)
+- Fix load more comments (step 2, top-level row)
 - Fix Redgifs (step 3)
 - Fix YouTube player (step 2)
-- Keep typed text in view (step 2)
-- Spoof client (step 4)
+- Spoof client (step 4 after `adb install -r` and across a token refresh)

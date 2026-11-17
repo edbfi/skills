@@ -48,8 +48,9 @@ they disagree, the docs and the file win and this list needs a fix.
   device), `ADS_ENABLED`, `THREADS_CARDS`. Read it with `adb shell "su 0 cat …"`; never print `credentials.xml`
   values (it holds tokens). Login state: `adb shell dumpsys account` (`Accounts: 0` = logged out) plus
   `credentials.xml` key names only.
-- **Resources:** the APK's resource file names are obfuscated (`res/EQ.xml`, not `res/layout/…`). Find a layout's
-  file with `aapt2 dump resources <apk> | grep -A1 'layout/<name>$'`.
+- **Resources:** the original APK's resource file names are obfuscated (`res/EQ.xml`); a patched APK has plain
+  `res/layout/…` paths. Find a layout's file with
+  `aapt2 dump resources <apk> | grep -A1 -E 'layout/<name>( |$)'` (aapt2 36 prints `layout/<name> PUBLIC`).
 - **Extension:** package `app.edbfi.extension.rifisfun`, `extensions/edbfi/rifisfun.mpe` (35 classes in the `fba9f12`
   build), log tag `edbfi`: `adb logcat -d -s edbfi:*`. On every start it logs `I edbfi: Unpinned api.redgifs.com`
   (Fix Redgifs' pin hook). Its prefs, `app.edbfi.extension.rifisfun.xml`, hold `app_token_client` =

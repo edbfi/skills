@@ -7,6 +7,9 @@ patches exist, what they do, their defaults and the tested version. Read it firs
 
 No single full pass has been run yet. Each check was last confirmed on the device in the PR named in its Status,
 between 2026-11-08 and 2026-11-09, on CLI builds (the patches repo's patch recipe) of the code at that PR.
+Statuses naming "device run 2026-11-17" come from a run on ReVanced CLI and Manager builds of edbfi/apk-patches
+72c9bff (v0.4.0, before release), logged in; its notes, logs and screenshots are with the owner (the patches repo's
+ignored `tmp/evidence/`).
 
 ## Contents
 
@@ -128,9 +131,8 @@ Status:
   `adb install -r`, `firstInstallTime` unchanged, feed loaded, no `FATAL` or `NoClassDefFoundError`).
 - Step 4: unverified: confirm on the next run. The labels come from a uiautomator dump of the device set-up
   session of 2026-11-08 (Autoplay set from WiFi only to Never through the settings search), which no PR body quotes.
-- Step 3's prefs-file check: unverified: confirm on the next run. The keys and values come from the app's
-  decompiled settings. The run of 2026-11-17 (Morphe builds) found the account's file at `1` and the global one at
-  `2`, but didn't record its command.
+- Step 3's prefs-file check: verified 2026-11-17, device run 2026-11-17 (the command above, ReVanced CLI and Manager
+  builds; before that, the keys and values came from the app's decompiled settings).
 
 ## Patches
 
@@ -154,7 +156,7 @@ Status:
 - **Status:**
   - Steps 1–2: verified 2026-11-08, edbfi/apk-patches#7 (front page and Inbox loaded logged in, login kept
     after `adb install -r`).
-  - Step 3: unverified: confirm on the next run.
+  - Step 3: verified 2026-11-17, device run 2026-11-17 (ReVanced CLI and Manager builds).
 
 ### Disable ads
 
@@ -180,8 +182,8 @@ Status:
      `firebaseremoteconfig.googleapis.com` is the app's remote config, not an ad.
 - **Needs:** login, network.
 - **Status:**
-  - Step 1: unverified: confirm on the next run. edbfi/apk-patches#9 records no logcat count, and none was
-    taken on an unpatched build.
+  - Step 1: verified 2026-11-17, device run 2026-11-17 (ReVanced CLI and Manager builds; the pattern still has
+    no unpatched baseline).
   - Steps 2–3: verified 2026-11-08, edbfi/apk-patches#9.
 
 ### Disable Sync for Lemmy bottom sheet
@@ -195,7 +197,7 @@ Status:
 - **Needs:** nothing beyond the Baseline.
 - **Status:**
   - Step 1: verified 2026-11-08, edbfi/apk-patches#9.
-  - Step 2: unverified: confirm on the next run.
+  - Step 2: verified 2026-11-17, device run 2026-11-17 (ReVanced CLI and Manager builds).
 
 ### Enable Sync Ultra
 
@@ -207,7 +209,9 @@ Status:
   is switched on, so website previews are read from the linked page's `og:image` on the phone.
 - **Check:**
   1. More actions → Settings → **Sync Ultra**. Pass: the screen shows Paint users, Tag users, Website previews (on),
-     Translate, Select text and Support, and no subscription card, Settings cloud backup or Reset.
+     Translate, Select text and Support, and no subscription card, Settings cloud backup or Reset row. A `Reset`
+     node in the dump is the toolbar's `menu_reset` (from `res/menu/settings.xml`, shared by every settings screen),
+     not the `UltraResetPreference` row the patch hides: ignore it.
   2. Tag users → add a throwaway tag (for example `revanced-test`) on a public account (#20 used `spez`) through the
      **Add user tag** dialog (**Username**, **Tag**, **Add**). It must be stored locally:
 
@@ -318,9 +322,10 @@ Status:
        -d 'https://www.reddit.com/r/RPGMaker/comments/1xger3g/' -p "$pkg"
      ```
 
-     Then `adb logcat -d | grep -E 'image\?url=https?://(www\.)?tenor\.com'`. Pass: the preview shows a thumbnail
-     (`"$UI" shot tenor`), and no `Load failed`, `Unauthorized, status code: 401` or "Sync's image server is gone"
-     line for the Tenor link.
+     Then `adb logcat -d | grep -E 'image\?url=https?://(www\.)?tenor\.com'`. Glide logs only failures, so this
+     prints nothing when the preview works: the pass rests on the screenshot and dump. Pass: the preview shows a
+     thumbnail (`"$UI" shot tenor`), and the grep prints no `Load failed`, `Unauthorized, status code: 401` or "Sync's
+     image server is gone" line for the Tenor link.
 - **Needs:** network; a thread with a Tenor link (the one above is from #19).
 - **Status:** verified 2026-11-09, edbfi/apk-patches#19.
 
@@ -350,7 +355,8 @@ Status:
 - **Changes:** right after the app reads a listing's `thumbnail` (`PostThumbnailHelper`), `&amp;` in the URL becomes
   `&`; Reddit answers the escaped URL with 403.
 - **Check:**
-  1. Open a busy subreddit in a layout that shows thumbnails (#10 used r/worldnews in List view):
+  1. The app's default view is Slides, which shows no thumbnails: switch with More actions → Change View → List,
+     and set it back after. Then open a busy subreddit (#10 used r/worldnews in List view):
      `adb shell am start -a android.intent.action.VIEW -d 'https://www.reddit.com/r/worldnews/' -p "$pkg"`, wait,
      scroll once, `"$UI" shot thumbnails`. Pass: thumbnails fill their slots; titles unchanged.
 - **Needs:** network.
@@ -433,8 +439,9 @@ Status:
      ```
 
      Pass: the log starts `.ui.activities.media.MultiImageActivity`, the viewer shows a page counter such as
-     `1 / 3`, and a swipe (`adb shell input swipe 900 1200 150 1200 300`) moves it to the next page. Fail:
-     "Error loading album", or an `edbfi` "Gallery request failed".
+     `1 / 3`, and a swipe (`adb shell input swipe 1000 1700 80 1700 600`) moves it to the next page.
+     (`900 1200 150 1200 300` lands on the zoomable image and doesn't page.) Fail: "Error loading album", or an
+     `edbfi` "Gallery request failed".
 - **Needs:** login, network, a Reddit gallery post (the one above is from #12; any public gallery will do).
 - **Status:** verified 2026-11-08, edbfi/apk-patches#12.
 
@@ -555,9 +562,6 @@ a post) is expected; report it as a known issue, not as a failure. A symptom it 
 
 Checks marked `unverified: confirm on the next run`:
 
-- Baseline (step 3's prefs-file check, step 4)
-- Spoof client (step 3)
-- Disable ads (step 1)
-- Disable Sync for Lemmy bottom sheet (step 2)
+- Baseline (step 4)
 - Enable Sync Ultra (steps 5–7)
 - Fix /s/ links (step 3)
