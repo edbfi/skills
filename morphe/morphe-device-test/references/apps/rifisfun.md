@@ -149,7 +149,8 @@ Status:
      (#38's `manifest.json` steps).
 - **Needs:** network; for step 6 a moderator account or Reddit Premium (the owner's login).
 - **Status:**
-  - Steps 1–3: verified 2026-11-17, edbfi/apk-patches#49.
+  - Steps 1–3: verified 2026-11-17, device run 2026-11-17 (edbfi/apk-patches#49 shows only the summary: Ads/Pro
+    features stay on, no Upgrade or Synccit, cards without a "pro" dialog).
   - Steps 4–5: verified 2026-11-17, device run 2026-11-17 (Dual pane's summary "Tablet recommended."; the settings
     file's keys equal the start's).
   - Step 6: unverified: confirm on the next run.

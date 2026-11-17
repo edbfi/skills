@@ -38,7 +38,9 @@ Rules:
 - The heading is the docs' patch name, character for character. Don't add the description or the default.
 - A status is exactly one of:
   - `verified <YYYY-MM-DD>, <source>`, e.g. `verified 2026-11-09, edbfi/apk-patches#21`: the check was done
-    on the device and the source shows it. Add a short note of what was seen when it helps.
+    on the device and the source shows it. Add a short note of what was seen when it helps. When the evidence is in
+    no PR body, the source is `device run <YYYY-MM-DD>`, and the checklist's opening says where that run's evidence
+    is; change it to the PR once a PR body holds it.
   - `unverified: confirm on the next run`: everything else, including checks proposed from the source but never
     run. When only part of a check was confirmed, split it and give each part its status.
 - Quote UI text only when a source shows it: a string literal in the patch or extension source, a label quoted in a

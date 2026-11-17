@@ -47,9 +47,11 @@ keeps the patches for one app (and those for any app; `-u` is on by default).
 `.tools/morphe-desktop-<version>-all.jar` in `edbfi/apk-patches`, run with `MORPHE_DATA_DIR` as the recipe sets it). Its
 usage text (`--help` on each subcommand) was read on 2026-11-17; these commands weren't run. For the file checks below
 you also need the `.mpp` as a file: an earlier download sat in `$TMP/inputs/morphe-patches-2.3.0/patches-2.3.0.mpp` on
-2026-11-17. A file from anywhere but the CLI's own download is unchecked: its zip comment holds Morphe's signature
-(`MorpheSig1 …`, `unzip -z <file>`), which the CLI only checks for downloads. Record its version and SHA-256 in the
-report.
+2026-11-17. The CLI checks a bundle's signature only when it downloads it, so check a file before it runs: its
+SHA-256 must equal the release asset's `digest`
+(`gh release view <tag> -R MorpheApp/morphe-patches --json assets --jq '.assets[] | .name + " " + .digest'`), as
+`manager.md` section 2 does for Manager's APK. Its zip comment also holds Morphe's signature (`MorpheSig1 …`,
+`unzip -z <file>`). Record its version and SHA-256 in the report.
 
 ## 3. Shared file paths
 

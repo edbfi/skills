@@ -1,6 +1,6 @@
 ---
 name: morphe-device-test
-description: Test a Morphe patches bundle the way users use it, on an Android test device through the Morphe desktop CLI and the real Morphe Manager app, then check each patch in the patched app. Use only when asked to test or verify a Morphe patches bundle (.mpp), an APK patched with one or a patches release for Morphe, on a device or in Morphe Manager. Not for writing, fixing or reviewing patches, and not for ReVanced bundles.
+description: Test a Morphe patches bundle the way users use it, on an Android test device through the Morphe desktop CLI and the real Morphe Manager app, then check each patch in the patched app. Use only when asked to test or verify a Morphe patches bundle (.mpp), an APK patched with one, or a patches release for Morphe, on a device or in Morphe Manager. Not for writing, fixing or reviewing patches, and not for ReVanced bundles.
 license: AGPL-3.0-or-later
 metadata:
   author: edbfi
@@ -20,8 +20,9 @@ It works in any patches repo laid out like `edbfi/apk-patches`: a `CLAUDE.md` or
 builds a ReVanced bundle (`revanced/`, `docs/revanced/`), which this skill doesn't test; both bundles' builds are signed
 with the same test key, so either installs over the other with `adb install -r`.
 
-Morphe's NOTICE forbids "Morphe" in a project, bundle or product name. Keep it out of anything a run names (files,
-gists, PR titles): "for use with Morphe" is fine, a "Morphe patches" product is not.
+Morphe's NOTICE (section 7c) doesn't let "Morphe" be the name, or part of the name, of a project, bundle or product;
+it allows it "solely for descriptive compatibility purposes". So don't call the bundle or anything a run publishes
+"Morphe patches"; "for use with Morphe" and commit scopes such as `morphe-rifisfun` are fine.
 
 ## Who owns what
 
