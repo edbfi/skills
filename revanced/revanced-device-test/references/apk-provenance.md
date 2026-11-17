@@ -2,9 +2,9 @@
 
 How to make sure the APK you patch is the real app at the tested version, how to handle split APKs, and how to check a
 patched APK (from the CLI or from Manager's **Save APK**) before it goes on the device. Read it whenever a new APK
-enters the run: a new app version, a patched build, or a download from ReVanced. Values from the run
-on 2026-11-09 are examples. The known values for an app are in this skill's per-app reference `apps/<app>.md` (its
-signer certificate) and in the patches repo's `docs/<app>.md` (its tested version).
+enters the run: a new app version, a patched build, or a download from ReVanced. Values from the run on 2026-11-09 are
+examples. The known values for an app are in this skill's per-app reference `apps/<app>.md` (its signer certificate) and
+in the patches repo's `docs/revanced/<app>.md` (its tested version).
 
 ## Contents
 
@@ -63,9 +63,9 @@ Pass only when all of these hold:
   Google Play source stamp (`Source Stamp Signer certificate DN: CN=Android, OU=Android, O=Google Inc., …`, SHA-256
   `3257d599a49d2c961a471ca9843f59d341a405884583fc087df4237b733bbd6d`).
 - **Package and version** from the badging line, `package: name='…' versionCode='…' versionName='…'`: the package and
-  versionName must equal the tested version in the repo's `docs/<app>.md` (it matches the patches' `compatibleWith`).
-  `compatibleWith` holds version names, not codes: compare the versionCode with the one `apps/<app>.md` records, if
-  any, and report it (Sync: `23033` for `v23.06.30-13:39`).
+  versionName must equal the tested version in the repo's `docs/revanced/<app>.md` (it matches the patches'
+  `compatibleWith`). `compatibleWith` holds version names, not codes: compare the versionCode with the one
+  `apps/<app>.md` records, if any, and report it (Sync: `23033` for `v23.06.30-13:39`).
 
 A mismatch means the file is not the app the patches were tested on: stop and tell the owner. Don't patch "close
 enough" versions.

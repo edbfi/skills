@@ -1,12 +1,15 @@
 # Sync for Reddit: real-use checklist
 
-How to check, on the test device and in the patched app, that each Sync for Reddit patch does what it says. The
-patch names are the ones in the patches repo's `docs/syncforreddit.md` (its Patches table); that page wins on which
+How to check, on the test device and in the patched app, that each Sync for Reddit patch does what it says. The patch
+names are the ones in the patches repo's `docs/revanced/syncforreddit.md` (its Patches table); that page wins on which
 patches exist, what they do, their defaults and the tested version. Read it first, then run
 [`scripts/checklist-gaps.sh`](../../scripts/checklist-gaps.sh) to see which entries below are missing or stale.
 
 No single full pass has been run yet. Each check was last confirmed on the device in the PR named in its Status,
 between 2026-11-08 and 2026-11-09, on CLI builds (the patches repo's patch recipe) of the code at that PR.
+Statuses naming "device run 2026-11-17" come from a run on ReVanced CLI and Manager builds of edbfi/apk-patches
+72c9bff (v0.4.0, before release), logged in; its notes, logs and screenshots are with the owner (the patches repo's
+ignored `tmp/evidence/`).
 
 ## Contents
 
@@ -46,7 +49,7 @@ they disagree, the docs and the file win and this list needs a fix.
 - **Media download job:** `.receiver.download.RetryReceiver` (not exported, so broadcast it as root) starts the
   app's download jobs (`DownloadRedditVideoJob`, `DownloadMediaJob`). On the test device the final copy to shared
   storage fails because no download folder has been picked, so the result stays in the app's cache,
-  `/sdcard/Android/data/<package>/cache/images/<n>.mp4`, readable only as root (edbfi/revanced-patches#10).
+  `/sdcard/Android/data/<package>/cache/images/<n>.mp4`, readable only as root (edbfi/apk-patches#10).
 - **Extension log tag:** the bundle's extension (`app.edbfi.extension.syncforreddit`) logs its warnings under the tag
   `edbfi`: `adb logcat -d -s edbfi:W`.
 - **Root:** the Redroid image is `userdebug`. The #10 and #11 sessions read the app's private files with
@@ -82,7 +85,18 @@ Applies to every build, CLI or Manager, before any patch check.
 3. Launch through the resolved activity. The launch shows the feed, so it is only safe when autoplay is already
    off. The setting is app data and `adb install -r` keeps it: if the last run's device-state report says it was
    off, go on. After a new login, cleared app data, or on a device you know nothing about, don't launch: ask the
-   owner to set Autoplay to **Never** through scrcpy first, as part of their login.
+   owner to set Autoplay to **Never** through scrcpy first, as part of their login. Before launching, read the
+   setting from the app's files too. Sync reads its settings from the logged-in account's own prefs file (named after
+   the account) once that file holds a `set` key, and from `<package>_preferences.xml` otherwise, so check every
+   file; `cat` keeps the file names, and so the account name, out of the output:
+
+   ```bash
+   adb shell "su 0 sh -c 'cat /data/data/$pkg/shared_prefs/*.xml'" | grep -E 'name="(enhanced_)?autoplay"'
+   ```
+
+   Pass: every `autoplay` reads `2` (Never; `1` is WiFi only, the default) and `enhanced_autoplay` is `false` or
+   absent. On 2026-11-17 the account's file still read `1` while the global file read `2`: don't launch then, ask
+   the owner to set it.
 
    ```bash
    act=$(adb shell cmd package resolve-activity --brief -a android.intent.action.MAIN \
@@ -113,10 +127,12 @@ Applies to every build, CLI or Manager, before any patch check.
 
 Status:
 
-- Steps 1–3, 5 and 6: verified 2026-11-09, edbfi/revanced-patches#21 (Manager's Save APK build installed with
+- Steps 1–3, 5 and 6: verified 2026-11-09, edbfi/apk-patches#21 (Manager's Save APK build installed with
   `adb install -r`, `firstInstallTime` unchanged, feed loaded, no `FATAL` or `NoClassDefFoundError`).
 - Step 4: unverified: confirm on the next run. The labels come from a uiautomator dump of the device set-up
   session of 2026-11-08 (Autoplay set from WiFi only to Never through the settings search), which no PR body quotes.
+- Step 3's prefs-file check: verified 2026-11-17, device run 2026-11-17 (the command above, ReVanced CLI and Manager
+  builds; before that, the keys and values came from the app's decompiled settings).
 
 ## Patches
 
@@ -138,9 +154,9 @@ Status:
 - **Needs:** the owner's login, network. Testing a non-default `OAuth client ID`, `Redirect URI` or `User-Agent`
   needs the accounts removed and added again (docs, Options): that is a new login, so leave it to the owner.
 - **Status:**
-  - Steps 1–2: verified 2026-11-08, edbfi/revanced-patches#7 (front page and Inbox loaded logged in, login kept
+  - Steps 1–2: verified 2026-11-08, edbfi/apk-patches#7 (front page and Inbox loaded logged in, login kept
     after `adb install -r`).
-  - Step 3: unverified: confirm on the next run.
+  - Step 3: verified 2026-11-17, device run 2026-11-17 (ReVanced CLI and Manager builds).
 
 ### Disable ads
 
@@ -166,9 +182,9 @@ Status:
      `firebaseremoteconfig.googleapis.com` is the app's remote config, not an ad.
 - **Needs:** login, network.
 - **Status:**
-  - Step 1: unverified: confirm on the next run. edbfi/revanced-patches#9 records no logcat count, and none was
-    taken on an unpatched build.
-  - Steps 2–3: verified 2026-11-08, edbfi/revanced-patches#9.
+  - Step 1: verified 2026-11-17, device run 2026-11-17 (ReVanced CLI and Manager builds; the pattern still has
+    no unpatched baseline).
+  - Steps 2–3: verified 2026-11-08, edbfi/apk-patches#9.
 
 ### Disable Sync for Lemmy bottom sheet
 
@@ -180,8 +196,8 @@ Status:
   2. `"$UI" dump | grep -c 'Signup to Sync for Lemmy'`. Pass: 0.
 - **Needs:** nothing beyond the Baseline.
 - **Status:**
-  - Step 1: verified 2026-11-08, edbfi/revanced-patches#9.
-  - Step 2: unverified: confirm on the next run.
+  - Step 1: verified 2026-11-08, edbfi/apk-patches#9.
+  - Step 2: verified 2026-11-17, device run 2026-11-17 (ReVanced CLI and Manager builds).
 
 ### Enable Sync Ultra
 
@@ -193,7 +209,9 @@ Status:
   is switched on, so website previews are read from the linked page's `og:image` on the phone.
 - **Check:**
   1. More actions → Settings → **Sync Ultra**. Pass: the screen shows Paint users, Tag users, Website previews (on),
-     Translate, Select text and Support, and no subscription card, Settings cloud backup or Reset.
+     Translate, Select text and Support, and no subscription card, Settings cloud backup or Reset row. A `Reset`
+     node in the dump is the toolbar's `menu_reset` (from `res/menu/settings.xml`, shared by every settings screen),
+     not the `UltraResetPreference` row the patch hides: ignore it.
   2. Tag users → add a throwaway tag (for example `revanced-test`) on a public account (#20 used `spez`) through the
      **Add user tag** dialog (**Username**, **Tag**, **Add**). It must be stored locally:
 
@@ -227,7 +245,7 @@ Status:
 - **Needs:** login, network. Translate and Select text need Google Play services (ML Kit), which Redroid lacks:
   they can't be checked on this device; report them as not checked, not as failures.
 - **Status:**
-  - Steps 1–4: verified 2026-11-09, edbfi/revanced-patches#20.
+  - Steps 1–4: verified 2026-11-09, edbfi/apk-patches#20.
   - Steps 5–7: unverified: confirm on the next run. #20 could not open the comment overflow menu through adb.
 
 ### Fix /s/ links
@@ -254,7 +272,7 @@ Status:
 - **Needs:** network; a public `/s/` share link (the one above is from #10; if it no longer redirects, use another
   public one).
 - **Status:**
-  - Steps 1–2: verified 2026-11-08, edbfi/revanced-patches#10.
+  - Steps 1–2: verified 2026-11-08, edbfi/apk-patches#10.
   - Step 3: unverified: confirm on the next run.
 
 ### Fix Redgifs
@@ -286,8 +304,8 @@ Status:
 - **Needs:** network; a public Redgifs watch link (#10's Evidence names the one used; Redgifs content is often
   adult, so pick one with care and don't screenshot it).
 - **Status:**
-  - Step 1: verified 2026-11-08, edbfi/revanced-patches#10.
-  - Step 2: verified 2026-11-09, edbfi/revanced-patches#19.
+  - Step 1: verified 2026-11-08, edbfi/apk-patches#10.
+  - Step 2: verified 2026-11-09, edbfi/apk-patches#19.
 
 ### Fix Tenor previews
 
@@ -304,11 +322,12 @@ Status:
        -d 'https://www.reddit.com/r/RPGMaker/comments/1xger3g/' -p "$pkg"
      ```
 
-     Then `adb logcat -d | grep -E 'image\?url=https?://(www\.)?tenor\.com'`. Pass: the preview shows a thumbnail
-     (`"$UI" shot tenor`), and no `Load failed`, `Unauthorized, status code: 401` or "Sync's image server is gone"
-     line for the Tenor link.
+     Then `adb logcat -d | grep -E 'image\?url=https?://(www\.)?tenor\.com'`. Glide logs only failures, so this
+     prints nothing when the preview works: the pass rests on the screenshot and dump. Pass: the preview shows a
+     thumbnail (`"$UI" shot tenor`), and the grep prints no `Load failed`, `Unauthorized, status code: 401` or "Sync's
+     image server is gone" line for the Tenor link.
 - **Needs:** network; a thread with a Tenor link (the one above is from #19).
-- **Status:** verified 2026-11-09, edbfi/revanced-patches#19.
+- **Status:** verified 2026-11-09, edbfi/apk-patches#19.
 
 ### Hide Gfycat link previews
 
@@ -329,18 +348,19 @@ Status:
      Before the patch, Glide logged
      `Load failed for https://ap.syncforreddit.com/image?url=http://giant.gfycat.com/…`.
 - **Needs:** network; a thread with Gfycat links in comments.
-- **Status:** verified 2026-11-09, edbfi/revanced-patches#19.
+- **Status:** verified 2026-11-09, edbfi/apk-patches#19.
 
 ### Fix post thumbnails
 
 - **Changes:** right after the app reads a listing's `thumbnail` (`PostThumbnailHelper`), `&amp;` in the URL becomes
   `&`; Reddit answers the escaped URL with 403.
 - **Check:**
-  1. Open a busy subreddit in a layout that shows thumbnails (#10 used r/worldnews in List view):
+  1. The app's default view is Slides, which shows no thumbnails: switch with More actions → Change View → List,
+     and set it back after. Then open a busy subreddit (#10 used r/worldnews in List view):
      `adb shell am start -a android.intent.action.VIEW -d 'https://www.reddit.com/r/worldnews/' -p "$pkg"`, wait,
      scroll once, `"$UI" shot thumbnails`. Pass: thumbnails fill their slots; titles unchanged.
 - **Needs:** network.
-- **Status:** verified 2026-11-08, edbfi/revanced-patches#10.
+- **Status:** verified 2026-11-08, edbfi/apk-patches#10.
 
 ### Fix video downloads
 
@@ -374,7 +394,7 @@ Status:
      only (before the patch: one `aac` stream, about 225 KB). Don't open the file in a player.
   3. Remove the cached file: `adb shell "su 0 sh -c 'rm -f /sdcard/Android/data/${pkg:?}/cache/images/*.mp4'"`.
 - **Needs:** network, `ffprobe` on the host, root on the device.
-- **Status:** verified 2026-11-08, edbfi/revanced-patches#10 (H.264 720×1280 plus AAC, 3.6 MB).
+- **Status:** verified 2026-11-08, edbfi/apk-patches#10 (H.264 720×1280 plus AAC, 3.6 MB).
 
 ### Fix View more comments
 
@@ -398,7 +418,7 @@ Status:
      live Reddit error: the comment comes back in the new row; tap it again.
   3. Scroll far down a thread of a few thousand comments: the top-level row loads itself as the list scrolls.
 - **Needs:** login, network, a thread with "View more" rows (nested and top-level).
-- **Status:** verified 2026-11-08, edbfi/revanced-patches#11.
+- **Status:** verified 2026-11-08, edbfi/apk-patches#11.
 
 ### Fix galleries
 
@@ -419,10 +439,11 @@ Status:
      ```
 
      Pass: the log starts `.ui.activities.media.MultiImageActivity`, the viewer shows a page counter such as
-     `1 / 3`, and a swipe (`adb shell input swipe 900 1200 150 1200 300`) moves it to the next page. Fail:
-     "Error loading album", or an `edbfi` "Gallery request failed".
+     `1 / 3`, and a swipe (`adb shell input swipe 1000 1700 80 1700 600`) moves it to the next page.
+     (`900 1200 150 1200 300` lands on the zoomable image and doesn't page.) Fail: "Error loading album", or an
+     `edbfi` "Gallery request failed".
 - **Needs:** login, network, a Reddit gallery post (the one above is from #12; any public gallery will do).
-- **Status:** verified 2026-11-08, edbfi/revanced-patches#12.
+- **Status:** verified 2026-11-08, edbfi/apk-patches#12.
 
 ### Fix Other discussions
 
@@ -444,7 +465,7 @@ Status:
      subreddits, no "Error loading page: 403" snackbar and no Volley 403 for
      `www.reddit.com/submit.json?url=…`.
 - **Needs:** login, network, a link post that other subreddits also posted.
-- **Status:** verified 2026-11-09, edbfi/revanced-patches#14.
+- **Status:** verified 2026-11-09, edbfi/apk-patches#14.
 
 ### Fix Imgur
 
@@ -497,9 +518,9 @@ Status:
 - **Needs:** login (comment editor), network. A non-default `Imgur client ID` is an option of this patch: check it
   only on a separate build, and only if the owner supplies an ID.
 - **Status:**
-  - Steps 1 and 3: verified 2026-11-08, edbfi/revanced-patches#12; the upload past the switch again 2026-11-09,
-    edbfi/revanced-patches#15.
-  - Step 2: verified 2026-11-09, edbfi/revanced-patches#15.
+  - Steps 1 and 3: verified 2026-11-08, edbfi/apk-patches#12; the upload past the switch again 2026-11-09,
+    edbfi/apk-patches#15.
+  - Step 2: verified 2026-11-09, edbfi/apk-patches#15.
 
 ### Use /user/ endpoint
 
@@ -517,7 +538,7 @@ Status:
   3. Afterwards reinstall the default build with `adb install -r`, so the device is back on the default selection.
 - **Needs:** network; a build with `-e`. Without the patch the profile loads too (Reddit redirects `/u/` to
   `/user/`), so this check only shows the patch does no harm; there is no log line that shows which path was asked.
-- **Status:** verified 2026-11-08, edbfi/revanced-patches#10.
+- **Status:** verified 2026-11-08, edbfi/apk-patches#10.
 
 ## Checks that need two builds
 
@@ -533,17 +554,14 @@ Status:
 
 ## Known issues
 
-Read the Known issues section of the patches repo's `docs/syncforreddit.md` before reporting a failure. A symptom it
-lists (for example Clear all only saying "TODO", Translate needing Play services, "Other discussions" missing a post)
-is expected; report it as a known issue, not as a failure. A symptom it doesn't list is a finding.
+Read the Known issues section of the patches repo's `docs/revanced/syncforreddit.md` before reporting a failure. A
+symptom it lists (for example Clear all only saying "TODO", Translate needing Play services, "Other discussions" missing
+a post) is expected; report it as a known issue, not as a failure. A symptom it doesn't list is a finding.
 
 ## Unverified
 
 Checks marked `unverified: confirm on the next run`:
 
 - Baseline (step 4)
-- Spoof client (step 3)
-- Disable ads (step 1)
-- Disable Sync for Lemmy bottom sheet (step 2)
 - Enable Sync Ultra (steps 5–7)
 - Fix /s/ links (step 3)

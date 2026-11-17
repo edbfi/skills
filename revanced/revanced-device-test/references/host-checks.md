@@ -20,7 +20,7 @@ Patcher loads every bundle passed to it through one class loader, in the CLI as 
 extension through that loader. A file at the same path in two bundles comes from whichever bundle is first. The
 repo's patch recipe passes one bundle (see its `justfile`), so it can never see this.
 
-On 2026-11-09, ReVanced's bundle shipped `extensions/syncforreddit.rve`, the same path as edbfi/revanced-patches
+On 2026-11-09, ReVanced's bundle shipped `extensions/syncforreddit.rve`, the same path as edbfi/apk-patches
 v0.1.0's extension. With ReVanced's bundle first, the CLI failed "Enable Sync Ultra" with `Could not find
 WebsitePreviews.isEnabled in the extension`, then wrote the APK and exited 0. With the repo's bundle first it
 succeeded. PR #21 gave the repo's extension a path of its own and made the extension patch fail when none of its

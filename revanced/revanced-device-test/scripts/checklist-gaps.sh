@@ -20,10 +20,10 @@ UNVERIFIED='unverified: confirm on the next run'
 
 usage() {
   cat <<'EOF'
-usage: checklist-gaps.sh <docs/app.md> <references/apps/app.md>
+usage: checklist-gaps.sh <docs/revanced/app.md> <references/apps/app.md>
 
-  <docs/app.md>               the app's page in the patches repo, e.g. docs/syncforreddit.md
-                              (or a copy from `git show origin/main:docs/<app>.md`)
+  <docs/revanced/app.md>      the app's ReVanced page in the patches repo, e.g. docs/revanced/syncforreddit.md
+                              (or a copy from `git show origin/main:docs/revanced/<app>.md`)
   <references/apps/app.md>    this skill's checklist for the app; may not exist yet
 
 Exit codes: 0 no gaps, 1 gaps found, 2 usage or parse error.

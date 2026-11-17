@@ -1,0 +1,4 @@
+interface:
+  display_name: "Morphe Device Test"
+  short_description: "Test a patches bundle for Morphe on a device, through the Morphe CLI and Morphe Manager"
+  default_prompt: "Use $morphe-device-test to test this repo's patches bundle for Morphe on the test device: patch through the Morphe CLI and Morphe Manager, install over the existing app, check each patch in the patched app, and report."

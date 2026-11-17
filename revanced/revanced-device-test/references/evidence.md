@@ -16,12 +16,12 @@ The patches repo decides: read what its `CLAUDE.md`/`AGENTS.md` says about docs 
 says nothing, ask the owner. Whatever it says, a run never commits its artifacts to the patches repo, and never adds
 run results to this skill (only checklist updates, below).
 
-In `edbfi/revanced-patches` on 2026-11-10, the "Docs" section said: no reports, plans or notes in the repo; evidence
+In `edbfi/apk-patches` on 2026-11-17, the "Docs" section said: no reports, plans or notes in the repo; evidence
 goes in the PR body. Under that rule:
 
 - **CLI path:** the results go in the body of the patch PR they test, in its Evidence section.
 - **Manager path:** the repo names no place but the PR body. Put the results in the body of the PR that prompted the
-  run (the dependency bump, the new app, or the fix the run found, as edbfi/revanced-patches#21 did). That repo
+  run (the dependency bump, the new app, or the fix the run found, as edbfi/apk-patches#21 did). That repo
   publishes releases from `main` without a release PR; if no PR fits, give the results to the owner in the
   conversation and ask where they go.
 
@@ -53,7 +53,7 @@ Stop if the last line doesn't print `ignored`: the directory would show up in th
 
 ## The shape of an Evidence section
 
-edbfi/revanced-patches#7 to #21 share one shape:
+edbfi/apk-patches#7 to #21 share one shape:
 
 1. **What was built and run on.** App version (`versionName` / `versionCode`), the device (image, Android version,
    ABI), CLI or Manager version (for Manager, how it was verified), and the bundle (branch, commit or release).
@@ -158,7 +158,7 @@ The device is shared. End every run with this, to the owner and, for a Manager r
 The checklists in [apps/](apps/README.md) are keyed by patch name, which the patches repo owns, so they drift. At
 the end of every run:
 
-1. Run `"$SKILL/scripts/checklist-gaps.sh" <patches-repo>/docs/<app>.md "$SKILL/references/apps/<app>.md"`.
+1. Run `"$SKILL/scripts/checklist-gaps.sh" <patches-repo>/docs/revanced/<app>.md "$SKILL/references/apps/<app>.md"`.
 2. Collect what the run learned: patches with no entry, entries for patches that are gone, checks now confirmed,
    checks that didn't match the app (a label, a log line, a URL that no longer works).
 3. Suggest a PR to `edbfi/skills` updating `references/apps/<app>.md`:
