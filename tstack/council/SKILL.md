@@ -4,7 +4,7 @@ description: Run a council of models from different providers (three by default)
 license: MIT
 metadata:
   author: edbfi
-  version: "2.0.0"
+  version: "2.1.0"
   vendor: tstack
   upstream: "t3dotgg/tstack council skill at 11e37a7 (MIT, see LICENSE)"
 ---
@@ -20,7 +20,7 @@ Bring in three delegates to help with the user's request, usually for review
 or feedback. Use one strong model from each of three different providers:
 Claude Opus, GPT Sol and Gemini, at high reasoning effort where the model
 offers an effort option.
-The Gemini seat is Gemini 4 Carbon, model `gemini-4-carbon-high` in T3 Code.
+The default Gemini seat is Gemini 4 Neon, model `gemini-4-neon-xhigh` in T3 Code.
 Never fill it with an older Gemini or a "Pro" model. If the user names the
 members, run exactly those, even if fewer than three; if they swap one seat,
 keep the other defaults. Never add or substitute a seat yourself.
