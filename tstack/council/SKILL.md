@@ -18,8 +18,8 @@ and explore new ideas, skip fixes to code being replaced.
 
 Bring in three delegates to help with the user's request, usually for review
 or feedback. Use one strong model from each of three different providers:
-Claude Opus, GPT Sol and Gemini 4 Neon, at high reasoning effort where the model
-offers an effort option.
+Claude Opus, GPT Sol and Gemini 4 Neon, at high reasoning effort where the
+model offers an effort option.
 Never fill the Gemini seat with an older Gemini or a "Pro" model. If the user
 names the members, run exactly those, even if fewer than three; if they swap
 one seat, keep the other defaults. Never add or substitute a seat yourself.
