@@ -18,12 +18,11 @@ and explore new ideas, skip fixes to code being replaced.
 
 Bring in three delegates to help with the user's request, usually for review
 or feedback. Use one strong model from each of three different providers:
-Claude Opus, GPT Sol and Gemini, at high reasoning effort where the model
-offers an effort option.
-The default Gemini seat is Gemini 4 Neon, model `gemini-4-neon-xhigh` in T3 Code.
-Never fill it with an older Gemini or a "Pro" model. If the user names the
-members, run exactly those, even if fewer than three; if they swap one seat,
-keep the other defaults. Never add or substitute a seat yourself.
+Claude Opus, GPT Sol and Gemini 4 Neon, at high reasoning effort where the
+model offers an effort option.
+Never fill the Gemini seat with an older Gemini or a "Pro" model. If the user
+names the members, run exactly those, even if fewer than three; if they swap
+one seat, keep the other defaults. Never add or substitute a seat yourself.
 
 In T3 Code, use `orchestrator_capabilities` to resolve the models, then
 `delegate_task` to start one delegate per model in parallel. Elsewhere, use the
@@ -76,7 +75,7 @@ agree and where they split, then give your own pick.
 
 If the work ends in a pull request, put the results in the PR description,
 before the model and harness line at the end, replacing any existing Council
-review section. Label rows with the resolved model name, not the seat name.
+review section. Label rows with each model's display name.
 
 ```markdown
 ## Council review
@@ -87,7 +86,7 @@ Rounds: 2
 | --- | --- | --- |
 | Claude Opus | 7/10 | 9/10 |
 | GPT Sol | 8/10 | 10/10 |
-| Gemini | 7/10 | 9/10 |
+| Gemini 4 Neon | 7/10 | 9/10 |
 ```
 
 If a delegate gives no score, write `no score`. Do not invent one.
